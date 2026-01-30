@@ -135,6 +135,17 @@ function createStandingsTable(teams, state) {
         return `<span class="sort-arrow">${arrow}</span>`;
     };
 
+    // Find the last team in playoff position (for cutoff line)
+    // Use conferenceSequence to determine playoff position (1-8 are in playoffs)
+    // conferenceSequence represents the team's rank in the conference
+    const inPlayoffTeams = teams.filter(t => t.conferenceSequence >= 1 && t.conferenceSequence <= 8);
+    const outOfPlayoffTeams = teams.filter(t => t.conferenceSequence > 8);
+
+    // Only show cutoff if there are teams both in and out of playoffs
+    const lastPlayoffTeamId = (inPlayoffTeams.length > 0 && outOfPlayoffTeams.length > 0)
+        ? inPlayoffTeams[inPlayoffTeams.length - 1].teamAbbrev.default
+        : null;
+
     return `
         <table>
             <thead>
@@ -173,7 +184,11 @@ function createStandingsTable(teams, state) {
                         magicDisplay = `<span class="${className}">${magicNumber.value}</span>`;
                     }
 
-                    return `
+                    // Determine if playoff cutoff line should be added after this team
+                    // Show cutoff after the last team that's in a playoff position
+                    const showCutoff = lastPlayoffTeamId && team.teamAbbrev.default === lastPlayoffTeamId;
+
+                    const row = `
                         <tr class="${isWild ? 'wild-highlight' : ''}">
                             <td class="center rank">${rank}</td>
                             <td class="team-name">
@@ -200,6 +215,9 @@ function createStandingsTable(teams, state) {
                             <td class="center">${magicDisplay}</td>
                         </tr>
                     `;
+
+                    const cutoffLine = showCutoff ? '<tr class="playoff-cutoff"><td colspan="16"></td></tr>' : '';
+                    return row + cutoffLine;
                 }).join('')}
             </tbody>
         </table>
