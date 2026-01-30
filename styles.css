@@ -859,6 +859,12 @@ footer {
     .p-pct-mobile {
         display: inline;
     }
+
+    /* Hide rank column on small screens */
+    th:first-child,
+    td.rank {
+        display: none;
+    }
 }
 
 /* Stats page specific mobile styles */
