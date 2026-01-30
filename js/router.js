@@ -92,18 +92,19 @@ export async function navigateTo(path) {
 // Handle navigation link clicks
 function handleNavClick(e) {
     // Only handle links with data-link attribute
-    if (!e.target.matches('[data-link]')) {
+    const link = e.target.closest('[data-link]');
+    if (!link) {
         return;
     }
 
     e.preventDefault();
-    const path = e.target.getAttribute('href');
+    const path = link.getAttribute('href');
 
     // If this is a standings view button, update the state
-    if (e.target.classList.contains('view-btn')) {
+    if (link.classList.contains('view-btn')) {
         const viewButtons = document.querySelectorAll('.view-btn');
         viewButtons.forEach(btn => btn.classList.remove('active'));
-        e.target.classList.add('active');
+        link.classList.add('active');
     }
 
     navigateTo(path);

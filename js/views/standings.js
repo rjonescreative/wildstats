@@ -85,12 +85,8 @@ function setupSortListeners() {
             const field = e.target.dataset.sort;
             const state = getUIState('standings');
 
-            if (state.sortBy === field) {
-                state.sortDirection = state.sortDirection === 'desc' ? 'asc' : 'desc';
-            } else {
-                state.sortBy = field;
-                state.sortDirection = 'desc';
-            }
+            state.sortBy = field;
+            state.sortDirection = 'desc';
 
             setUIState('standings', state);
             render();
@@ -233,14 +229,18 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
     };
 
     // Find the last team in playoff position (for cutoff line)
-    // Use conferenceSequence to determine playoff position (1-8 are in playoffs)
-    const inPlayoffTeams = teams.filter(t => t.conferenceSequence >= 1 && t.conferenceSequence <= 8);
-    const outOfPlayoffTeams = teams.filter(t => t.conferenceSequence > 8);
+    // Only show cutoff line when sorting by points, and never in league standings
+    let lastPlayoffTeamId = null;
+    if (state.sortBy === 'points' && !showLeagueRank) {
+        // Use conferenceSequence to determine playoff position (1-8 are in playoffs)
+        const inPlayoffTeams = teams.filter(t => t.conferenceSequence >= 1 && t.conferenceSequence <= 8);
+        const outOfPlayoffTeams = teams.filter(t => t.conferenceSequence > 8);
 
-    // Only show cutoff if there are teams both in and out of playoffs
-    const lastPlayoffTeamId = (inPlayoffTeams.length > 0 && outOfPlayoffTeams.length > 0)
-        ? inPlayoffTeams[inPlayoffTeams.length - 1].teamAbbrev.default
-        : null;
+        // Only show cutoff if there are teams both in and out of playoffs
+        if (inPlayoffTeams.length > 0 && outOfPlayoffTeams.length > 0) {
+            lastPlayoffTeamId = inPlayoffTeams[inPlayoffTeams.length - 1].teamAbbrev.default;
+        }
+    }
 
     return `
         <table>
