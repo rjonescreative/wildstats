@@ -57,6 +57,50 @@ function setupSortListeners() {
     });
 }
 
+function calculateMagicNumber(team, conferenceTeams) {
+    const TOTAL_GAMES = 82;
+    const PLAYOFF_SPOTS = 8;
+
+    // Sort teams by wildcard sequence (current playoff standings)
+    const sortedTeams = [...conferenceTeams].sort((a, b) => a.wildcardSequence - b.wildcardSequence);
+
+    // Determine if team is in playoff position (top 8)
+    const teamPosition = sortedTeams.findIndex(t => t.teamAbbrev.default === team.teamAbbrev.default) + 1;
+    const isInPlayoffs = teamPosition <= PLAYOFF_SPOTS;
+
+    // Check for clinch/elimination markers (if they exist in the API)
+    if (team.clinchIndicator) return null; // Team has clinched
+    if (team.eliminationNumber === 0) return null; // Team is eliminated
+
+    // Calculate games remaining and max points for all teams
+    const teamsWithMax = sortedTeams.map(t => ({
+        ...t,
+        gamesRemaining: TOTAL_GAMES - t.gamesPlayed,
+        maxPoints: t.points + ((TOTAL_GAMES - t.gamesPlayed) * 2)
+    }));
+
+    const currentTeam = teamsWithMax.find(t => t.teamAbbrev.default === team.teamAbbrev.default);
+
+    if (isInPlayoffs) {
+        // Magic number: points needed to guarantee playoff spot
+        // Find the team in 9th place or the strongest team that could finish 9th
+        const ninthPlaceTeam = teamsWithMax[PLAYOFF_SPOTS]; // 9th place team (index 8)
+        if (!ninthPlaceTeam) return null;
+
+        // Magic number = (9th place max points + 1) - your current points
+        const magic = (ninthPlaceTeam.maxPoints + 1) - currentTeam.points;
+        return magic > 0 ? { type: 'magic', value: magic } : null;
+    } else {
+        // Tragic number: points 8th place needs to eliminate you
+        const eighthPlaceTeam = teamsWithMax[PLAYOFF_SPOTS - 1]; // 8th place team (index 7)
+        if (!eighthPlaceTeam) return null;
+
+        // Tragic number = (your max points + 1) - 8th place current points
+        const tragic = (currentTeam.maxPoints + 1) - eighthPlaceTeam.points;
+        return tragic > 0 ? { type: 'tragic', value: tragic } : null;
+    }
+}
+
 function renderCentralDivision() {
     const state = getUIState('dashboard');
     const centralTeams = standingsData.standings.filter(team => team.divisionName === 'Central');
@@ -98,6 +142,7 @@ function createStandingsTable(teams, state) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak">STRK</th>
+                    <th class="center" data-tooltip="Magic/Tragic numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
@@ -105,6 +150,15 @@ function createStandingsTable(teams, state) {
                     const isWild = team.teamAbbrev.default === 'MIN';
                     const rank = index + 1;
                     const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
+
+                    // Calculate magic/tragic number
+                    const conferenceTeams = standingsData.standings.filter(t => t.conferenceName === team.conferenceName);
+                    const magicNumber = calculateMagicNumber(team, conferenceTeams);
+                    let magicDisplay = '';
+                    if (magicNumber) {
+                        const className = magicNumber.type === 'magic' ? 'magic-number' : 'tragic-number';
+                        magicDisplay = `<span class="${className}">${magicNumber.value}</span>`;
+                    }
 
                     return `
                         <tr class="${isWild ? 'wild-highlight' : ''}">
@@ -127,6 +181,7 @@ function createStandingsTable(teams, state) {
                             <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                            <td class="center">${magicDisplay}</td>
                         </tr>
                     `;
                 }).join('')}

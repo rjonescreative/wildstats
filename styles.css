@@ -516,6 +516,32 @@ td {
     font-weight: 500;
 }
 
+.magic-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #059669;
+    color: #ffffff;
+    width: 2rem;
+    height: 1.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
+.tragic-number {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #dc2626;
+    color: #ffffff;
+    width: 2rem;
+    height: 1.5rem;
+    border-radius: 4px;
+    font-weight: 600;
+    font-size: 0.75rem;
+}
+
 .playoff-indicator {
     display: inline-block;
     margin-left: 0.5rem;

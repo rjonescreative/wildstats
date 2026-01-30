@@ -94,6 +94,50 @@ function sortTeams(teams, state) {
     });
 }
 
+function calculateMagicNumber(team, conferenceTeams) {
+    const TOTAL_GAMES = 82;
+    const PLAYOFF_SPOTS = 8;
+
+    // Sort teams by wildcard sequence (current playoff standings)
+    const sortedTeams = [...conferenceTeams].sort((a, b) => a.wildcardSequence - b.wildcardSequence);
+
+    // Determine if team is in playoff position (top 8)
+    const teamPosition = sortedTeams.findIndex(t => t.teamAbbrev.default === team.teamAbbrev.default) + 1;
+    const isInPlayoffs = teamPosition <= PLAYOFF_SPOTS;
+
+    // Check for clinch/elimination markers (if they exist in the API)
+    if (team.clinchIndicator) return null; // Team has clinched
+    if (team.eliminationNumber === 0) return null; // Team is eliminated
+
+    // Calculate games remaining and max points for all teams
+    const teamsWithMax = sortedTeams.map(t => ({
+        ...t,
+        gamesRemaining: TOTAL_GAMES - t.gamesPlayed,
+        maxPoints: t.points + ((TOTAL_GAMES - t.gamesPlayed) * 2)
+    }));
+
+    const currentTeam = teamsWithMax.find(t => t.teamAbbrev.default === team.teamAbbrev.default);
+
+    if (isInPlayoffs) {
+        // Magic number: points needed to guarantee playoff spot
+        // Find the team in 9th place or the strongest team that could finish 9th
+        const ninthPlaceTeam = teamsWithMax[PLAYOFF_SPOTS]; // 9th place team (index 8)
+        if (!ninthPlaceTeam) return null;
+
+        // Magic number = (9th place max points + 1) - your current points
+        const magic = (ninthPlaceTeam.maxPoints + 1) - currentTeam.points;
+        return magic > 0 ? { type: 'magic', value: magic } : null;
+    } else {
+        // Tragic number: points 8th place needs to eliminate you
+        const eighthPlaceTeam = teamsWithMax[PLAYOFF_SPOTS - 1]; // 8th place team (index 7)
+        if (!eighthPlaceTeam) return null;
+
+        // Tragic number = (your max points + 1) - 8th place current points
+        const tragic = (currentTeam.maxPoints + 1) - eighthPlaceTeam.points;
+        return tragic > 0 ? { type: 'tragic', value: tragic } : null;
+    }
+}
+
 function renderLeagueStandings(state) {
     const allTeams = sortTeams(standingsData.standings, state);
 
@@ -195,6 +239,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak">STRK</th>
+                    <th class="center" data-tooltip="Magic/Tragic numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
@@ -202,6 +247,15 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                     const isWild = team.teamAbbrev.default === 'MIN';
                     const rank = showLeagueRank ? team.leagueSequence : index + 1;
                     const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
+
+                    // Get conference teams for magic number calculation
+                    const conferenceTeams = standingsData.standings.filter(t => t.conferenceName === team.conferenceName);
+                    const magicNumber = calculateMagicNumber(team, conferenceTeams);
+                    let magicDisplay = '';
+                    if (magicNumber) {
+                        const className = magicNumber.type === 'magic' ? 'magic-number' : 'tragic-number';
+                        magicDisplay = `<span class="${className}">${magicNumber.value}</span>`;
+                    }
 
                     return `
                         <tr class="${isWild ? 'wild-highlight' : ''}">
@@ -224,6 +278,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                            <td class="center">${magicDisplay}</td>
                         </tr>
                     `;
                 }).join('')}
@@ -270,6 +325,15 @@ function createWildcardTable(teams, state) {
         const isWild = team.teamAbbrev.default === 'MIN';
         const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
 
+        // Calculate magic/tragic number
+        const conferenceTeams = teams; // teams parameter is already the conference
+        const magicNumber = calculateMagicNumber(team, conferenceTeams);
+        let magicDisplay = '';
+        if (magicNumber) {
+            const className = magicNumber.type === 'magic' ? 'magic-number' : 'tragic-number';
+            magicDisplay = `<span class="${className}">${magicNumber.value}</span>`;
+        }
+
         return `
             <tr class="${isWild ? 'wild-highlight' : ''}">
                 <td class="team-name">
@@ -290,6 +354,7 @@ function createWildcardTable(teams, state) {
                 <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                 <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                 <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                <td class="center">${magicDisplay}</td>
             </tr>
         `;
     };
@@ -318,21 +383,22 @@ function createWildcardTable(teams, state) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak">STRK</th>
+                    <th class="center" data-tooltip="Magic/Tragic numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
                 ${divisionLeaders.map(div => `
                     <tr class="division-header">
-                        <td colspan="14"><strong>${div.name} Division</strong></td>
+                        <td colspan="15"><strong>${div.name} Division</strong></td>
                     </tr>
                     ${div.teams.map(team => createTeamRow(team)).join('')}
                 `).join('')}
                 <tr class="division-header">
-                    <td colspan="14"><strong>Wild Card</strong></td>
+                    <td colspan="15"><strong>Wild Card</strong></td>
                 </tr>
                 ${sortedWildcardTeams.map((team, index) => {
                     const row = createTeamRow(team);
-                    const cutoffLine = index === 1 ? '<tr class="playoff-cutoff"><td colspan="14"></td></tr>' : '';
+                    const cutoffLine = index === 1 ? '<tr class="playoff-cutoff"><td colspan="15"></td></tr>' : '';
                     return row + cutoffLine;
                 }).join('')}
             </tbody>
