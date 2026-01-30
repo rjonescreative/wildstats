@@ -239,7 +239,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic numbers">M#</th>
+                    <th class="center" data-tooltip="Magic/Tragic Numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
@@ -383,7 +383,7 @@ function createWildcardTable(teams, state) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic numbers">M#</th>
+                    <th class="center" data-tooltip="Magic/Tragic Numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
