@@ -4,6 +4,18 @@ import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
 
+// NHL.com team slug mapping
+const TEAM_SLUGS = {
+    'ANA': 'ducks', 'BOS': 'bruins', 'BUF': 'sabres', 'CAR': 'hurricanes',
+    'CBJ': 'bluejackets', 'CGY': 'flames', 'CHI': 'blackhawks', 'COL': 'avalanche',
+    'DAL': 'stars', 'DET': 'redwings', 'EDM': 'oilers', 'FLA': 'panthers',
+    'LAK': 'kings', 'MIN': 'wild', 'MTL': 'canadiens', 'NJD': 'devils',
+    'NSH': 'predators', 'NYI': 'islanders', 'NYR': 'rangers', 'OTT': 'senators',
+    'PHI': 'flyers', 'PIT': 'penguins', 'SJS': 'sharks', 'SEA': 'kraken',
+    'STL': 'blues', 'TBL': 'lightning', 'TOR': 'mapleleafs', 'VAN': 'canucks',
+    'VGK': 'goldenknights', 'WPG': 'jets', 'WSH': 'capitals', 'UTA': 'utah'
+};
+
 export async function init(view = 'wildcard') {
     try {
         // Fetch standings (cached if available)
@@ -262,8 +274,11 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center rank">${rank}</td>
                             <td class="team-name">
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
-                                <span class="team-full-name">${team.teamName.default}</span>
-                                <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                                <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
+                                    <span class="team-full-name">${team.teamName.default}</span>
+                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                                    <span class="external-link-icon">↗</span>
+                                </a>
                             </td>
                             <td class="center">${team.gamesPlayed}</td>
                             <td class="center">${team.wins}</td>
@@ -338,8 +353,11 @@ function createWildcardTable(teams, state) {
             <tr class="${isWild ? 'wild-highlight' : ''}">
                 <td class="team-name">
                     <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
-                    <span class="team-full-name">${team.teamName.default}</span>
-                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                    <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
+                        <span class="team-full-name">${team.teamName.default}</span>
+                        <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                        <span class="external-link-icon">↗</span>
+                    </a>
                 </td>
                 <td class="center">${team.gamesPlayed}</td>
                 <td class="center">${team.wins}</td>

@@ -463,6 +463,7 @@ th.center, td.center {
 tbody tr {
     border-bottom: 1px solid var(--border-subtle);
     transition: background-color 0.15s ease;
+    cursor: default;
 }
 
 tbody tr:last-child {
@@ -493,6 +494,33 @@ td {
     display: flex;
     align-items: center;
     gap: 0.75rem;
+}
+
+.team-link {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
+    flex: 1;
+    min-width: 0;
+}
+
+.team-link:hover {
+    color: var(--wild-gold);
+}
+
+.external-link-icon {
+    opacity: 0;
+    font-size: 0.75rem;
+    color: var(--wild-gold);
+    margin-left: 0.25rem;
+    transition: opacity 0.2s ease;
+}
+
+.team-link:hover .external-link-icon {
+    opacity: 1;
 }
 
 .team-logo {
