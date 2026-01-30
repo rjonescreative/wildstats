@@ -82,8 +82,13 @@ function setupViewButtons() {
 function setupSortListeners() {
     document.querySelectorAll('#standings-container .sortable').forEach(header => {
         header.addEventListener('click', (e) => {
-            const field = e.target.dataset.sort;
+            const field = e.currentTarget.dataset.sort;
             const state = getUIState('standings');
+
+            // Don't do anything if already sorted by this field
+            if (state.sortBy === field) {
+                return;
+            }
 
             state.sortBy = field;
             state.sortDirection = 'desc';

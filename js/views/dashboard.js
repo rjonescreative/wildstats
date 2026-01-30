@@ -53,8 +53,13 @@ export function cleanup() {
 function setupSortListeners() {
     document.querySelectorAll('#central-standings .sortable').forEach(header => {
         header.addEventListener('click', (e) => {
-            const field = e.target.dataset.sort;
+            const field = e.currentTarget.dataset.sort;
             const state = getUIState('dashboard');
+
+            // Don't do anything if already sorted by this field
+            if (state.sortBy === field) {
+                return;
+            }
 
             state.sortBy = field;
             state.sortDirection = 'desc';
