@@ -234,11 +234,19 @@ main {
 
 .stats-section {
     margin-bottom: 2rem;
+    overflow: visible;
+}
+
+.section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
 }
 
 .stats-section h2 {
     color: var(--text-primary);
-    margin-bottom: 1rem;
+    margin-bottom: 0;
     font-size: 1rem;
     font-weight: 600;
     text-transform: uppercase;
@@ -246,11 +254,25 @@ main {
     color: var(--text-secondary);
 }
 
+.puckpedia-link {
+    color: var(--wild-gold);
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+    white-space: nowrap;
+}
+
+.puckpedia-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
 .stats-table-container {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
-    overflow-x: auto;
+    overflow: visible;
 }
 
 .player-photo-small {
@@ -320,6 +342,7 @@ main {
 
 .standings-section {
     margin-bottom: 2rem;
+    overflow: visible;
 }
 
 .standings-section h2 {
@@ -337,7 +360,7 @@ main {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
-    overflow: hidden;
+    overflow: visible;
 }
 
 table {
@@ -358,6 +381,41 @@ th {
     text-transform: uppercase;
     font-size: 0.7rem;
     letter-spacing: 0.05em;
+    position: relative;
+    cursor: default;
+}
+
+/* Tooltip styles */
+
+th[data-tooltip]:hover::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%) translateY(-8px);
+    background-color: #2a2a2a;
+    color: #ffffff;
+    padding: 0.5rem 0.75rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    white-space: nowrap;
+    z-index: 10000;
+    font-weight: 400;
+    letter-spacing: 0;
+    text-transform: none;
+    opacity: 0;
+    animation: tooltipFadeIn 0.2s ease-in-out 0.5s forwards;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+@keyframes tooltipFadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 0.95;
+    }
 }
 
 th.sortable {
@@ -643,6 +701,10 @@ footer {
     .standings-section h2,
     .stats-section h2 {
         font-size: 0.85rem;
+    }
+
+    .puckpedia-link {
+        font-size: 0.75rem;
     }
 }
 
