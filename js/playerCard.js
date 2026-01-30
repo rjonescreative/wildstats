@@ -146,6 +146,32 @@ function processPlayerData(details, gameLog) {
     // Safe property access with defaults
     const firstName = details.firstName?.default || details.firstName || '';
     const lastName = details.lastName?.default || details.lastName || '';
+    const isGoalie = details.position === 'G';
+
+    // Get season stats - different paths for goalies vs skaters
+    let seasonStats = {};
+    if (isGoalie && details.seasonTotals) {
+        // For goalies, find current season in seasonTotals array
+        const currentSeasonStats = details.seasonTotals
+            .filter(s => s.leagueAbbrev === 'NHL' && s.gameTypeId === 2)
+            .sort((a, b) => b.season - a.season)[0];
+
+        if (currentSeasonStats) {
+            seasonStats = {
+                wins: currentSeasonStats.wins,
+                losses: currentSeasonStats.losses,
+                otLosses: currentSeasonStats.otLosses,
+                goalsAgainstAverage: currentSeasonStats.goalsAgainstAvg,
+                savePercentage: currentSeasonStats.savePctg,
+                shutouts: currentSeasonStats.shutouts,
+                gamesPlayed: currentSeasonStats.gamesPlayed,
+                gamesStarted: currentSeasonStats.gamesStarted
+            };
+        }
+    } else {
+        // For skaters, use featuredStats
+        seasonStats = details.featuredStats?.regularSeason?.subSeason || {};
+    }
 
     return {
         playerId: details.playerId,
@@ -157,7 +183,7 @@ function processPlayerData(details, gameLog) {
         position: details.position || '??',
         teamAbbr: details.currentTeamAbbrev || 'MIN',
         headshot: details.headshot || '',
-        seasonStats: details.featuredStats?.regularSeason?.subSeason || {},
+        seasonStats,
         last10Stats,
         streak,
         rankings: extractRankings(details),
