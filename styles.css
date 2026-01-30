@@ -719,12 +719,13 @@ footer {
     }
 
     .standings-controls {
-        flex-direction: column;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
     }
 
     .view-btn {
-        width: 100%;
         padding: 0.6rem 1rem;
+        text-align: center;
     }
 
     table {
