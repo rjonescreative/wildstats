@@ -222,10 +222,12 @@ function renderStatLeaders(data) {
         const firstInitial = player.firstName.default.charAt(0);
 
         return `
-            <div class="leader-row">
+            <div class="leader-row player-hoverable" data-player-id="${player.playerId}">
                 <span class="leader-rank">${index + 1}</span>
-                <img src="${player.headshot}" alt="${firstInitial}. ${lastName}" class="player-photo-small">
-                <span class="leader-name">${firstInitial}. ${lastName}</span>
+                <div class="leader-player">
+                    <img src="${player.headshot}" alt="${firstInitial}. ${lastName}" class="player-photo-small">
+                    <span class="leader-name">${firstInitial}. ${lastName}</span>
+                </div>
                 <span class="leader-stat">${rankText}${player[statProp]}</span>
             </div>
         `;

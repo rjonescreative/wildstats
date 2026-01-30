@@ -61,7 +61,8 @@ app.get('/api/league/leaders', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const [goalsRes, assistsRes, pointsRes] = await Promise.all([
+        const [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes] = await Promise.all([
+            // Skater stats
             fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=goals&limit=100', {
                 signal: controller.signal,
                 redirect: 'follow'
@@ -73,6 +74,27 @@ app.get('/api/league/leaders', async (req, res) => {
             fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=points&limit=100', {
                 signal: controller.signal,
                 redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=plusMinus&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            // Goalie stats
+            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=wins&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=savePctg&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=goalsAgainstAverage&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=shutouts&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
             })
         ]);
         clearTimeout(timeout);
@@ -80,11 +102,60 @@ app.get('/api/league/leaders', async (req, res) => {
         const goals = await goalsRes.json();
         const assists = await assistsRes.json();
         const points = await pointsRes.json();
+        const plusMinus = await plusMinusRes.json();
+        const wins = await winsRes.json();
+        const savePctg = await savePctgRes.json();
+        const goalsAgainstAverage = await gaaRes.json();
+        const shutouts = await shutoutsRes.json();
 
-        res.json({ goals, assists, points });
+        res.json({ goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts });
     } catch (error) {
         console.error('Error fetching league leaders:', error);
         res.status(500).json({ error: 'Failed to fetch league leaders' });
+    }
+});
+
+// Player details endpoint
+app.get('/api/player/:id/details', async (req, res) => {
+    const playerId = req.params.id;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        res.set('Cache-Control', 'public, max-age=900'); // 15 min
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching player details:', error);
+        res.status(500).json({ error: 'Failed to fetch player details' });
+    }
+});
+
+// Player game log endpoint
+app.get('/api/player/:id/game-log', async (req, res) => {
+    const playerId = req.params.id;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/20252026/2`, {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        res.set('Cache-Control', 'public, max-age=300'); // 5 min
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching game log:', error);
+        res.status(500).json({ error: 'Failed to fetch game log' });
     }
 });
 

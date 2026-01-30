@@ -5,7 +5,8 @@ const state = {
     cache: {
         standings: { data: null, timestamp: null },
         wildStats: { data: null, timestamp: null },
-        leagueLeaders: { data: null, timestamp: null }
+        leagueLeaders: { data: null, timestamp: null },
+        playerCards: new Map() // Map<playerId, { data, timestamp }>
     },
     ui: {
         currentView: 'dashboard',
@@ -79,6 +80,33 @@ export function getCurrentView() {
 // Set current view
 export function setCurrentView(view) {
     state.ui.currentView = view;
+}
+
+// Cache helpers for player cards
+export function getCachedPlayerCard(playerId) {
+    const cached = state.cache.playerCards.get(playerId);
+    if (!cached) return null;
+
+    const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+    if (Date.now() - cached.timestamp < CACHE_TTL) {
+        return cached.data;
+    }
+
+    state.cache.playerCards.delete(playerId);
+    return null;
+}
+
+export function setCachedPlayerCard(playerId, data) {
+    state.cache.playerCards.set(playerId, {
+        data,
+        timestamp: Date.now()
+    });
+
+    // LRU: limit cache size to 50 players
+    if (state.cache.playerCards.size > 50) {
+        const firstKey = state.cache.playerCards.keys().next().value;
+        state.cache.playerCards.delete(firstKey);
+    }
 }
 
 export default state;

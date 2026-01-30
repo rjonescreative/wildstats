@@ -156,6 +156,7 @@ main {
     padding: 0.4rem 0.5rem;
     border-radius: 4px;
     background-color: var(--bg-tertiary);
+    cursor: pointer;
 }
 
 .leader-row:hover {
@@ -170,8 +171,15 @@ main {
     text-align: center;
 }
 
-.leader-name {
+.leader-player {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
     flex: 1;
+    min-width: 0;
+}
+
+.leader-name {
     font-size: 0.85rem;
     font-weight: 500;
     color: var(--text-primary);
@@ -186,6 +194,8 @@ main {
     color: var(--wild-green);
     font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
     white-space: nowrap;
+    text-align: right;
+    min-width: fit-content;
 }
 
 .league-rank-inline {
@@ -812,4 +822,192 @@ footer {
 
 .view.active {
     display: block;
+}
+
+/* Player Card Popup */
+.player-card-popup {
+    position: fixed;
+    width: 320px;
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+    z-index: 10001;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.2s ease-in-out;
+    overflow: hidden;
+}
+
+.player-card-popup.visible {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+.player-card-close {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    width: 28px;
+    height: 28px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid var(--border-medium);
+    border-radius: 4px;
+    color: var(--text-secondary);
+    font-size: 1.5rem;
+    line-height: 1;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    z-index: 10;
+    padding: 0;
+}
+
+.player-card-close:hover {
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--text-primary);
+    border-color: var(--wild-gold);
+}
+
+.player-card-header {
+    display: flex;
+    gap: 0.75rem;
+    padding: 1rem;
+    padding-right: 2.5rem;
+    background-size: cover, 140%;
+    background-position: center, right -10px center;
+    background-repeat: no-repeat;
+    border-bottom: 1px solid var(--border-subtle);
+    position: relative;
+}
+
+.player-card-photo {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--border-medium);
+    background-color: rgba(1, 1, 1, 0.5);
+}
+
+.player-card-title {
+    flex: 1;
+}
+
+.player-card-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.player-card-name-row h3 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin: 0;
+    color: var(--text-primary);
+}
+
+.player-card-number {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-family: 'SF Mono', 'Monaco', monospace;
+}
+
+.player-card-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.player-card-flag {
+    width: 16px;
+    height: 12px;
+}
+
+.player-card-stats {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.stat-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    font-size: 0.85rem;
+}
+
+.stat-row:last-child {
+    margin-bottom: 0;
+}
+
+.stat-row.highlight {
+    color: var(--wild-gold);
+}
+
+.stat-label {
+    color: var(--text-secondary);
+}
+
+.stat-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.player-card-rankings {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.rankings-header {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.5rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.ranking-badge {
+    display: inline-block;
+    padding: 0.25rem 0.5rem;
+    background-color: rgba(234, 170, 0, 0.15);
+    color: var(--wild-gold);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    margin-right: 0.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.player-card-link {
+    display: block;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    color: var(--wild-gold);
+    font-size: 0.85rem;
+    font-weight: 500;
+    text-decoration: none;
+    background-color: var(--bg-tertiary);
+    transition: opacity 0.2s ease;
+}
+
+.player-card-link:hover {
+    opacity: 0.8;
+}
+
+.player-hoverable {
+    cursor: pointer;
+}
+
+/* Show player cards on all screen sizes since we're using click */
+@media (max-width: 768px) {
+    .player-card-popup {
+        /* Allow on mobile since click is better than hover */
+        max-width: calc(100vw - 2rem);
+    }
 }

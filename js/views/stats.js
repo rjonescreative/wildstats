@@ -1,5 +1,5 @@
 // Stats view module
-import { getWildStats } from '../api.js';
+import { getWildStats, getLeagueLeaders } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let wildStats = null;
@@ -13,8 +13,11 @@ function formatTimeOnIce(seconds) {
 
 export async function init() {
     try {
-        // Fetch wild stats (cached if available)
-        wildStats = await getWildStats();
+        // Fetch wild stats and league leaders (cached if available)
+        [wildStats] = await Promise.all([
+            getWildStats(),
+            getLeagueLeaders()
+        ]);
 
         // Render both tables
         renderSkaters();
@@ -110,7 +113,7 @@ function renderSkaters() {
             </thead>
             <tbody>
                 ${skaters.map((player, index) => `
-                    <tr>
+                    <tr class="player-hoverable" data-player-id="${player.playerId}">
                         <td class="center">${index + 1}</td>
                         <td class="player-name">
                             <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
@@ -173,7 +176,7 @@ function renderGoalies() {
             </thead>
             <tbody>
                 ${goalies.map((player, index) => `
-                    <tr>
+                    <tr class="player-hoverable" data-player-id="${player.playerId}">
                         <td class="center">${index + 1}</td>
                         <td class="player-name">
                             <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
