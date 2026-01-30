@@ -304,7 +304,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center">${team.losses}</td>
                             <td class="center">${team.otLosses}</td>
                             <td class="center"><strong>${team.points}</strong></td>
-                            <td class="center">${team.pointPctg.toFixed(3)}</td>
+                            <td class="center"><span class="p-pct-full">${team.pointPctg.toFixed(3)}</span><span class="p-pct-mobile">${team.pointPctg.toFixed(2).substring(1)}</span></td>
                             <td class="center hide-mobile">${team.regulationWins}</td>
                             <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                             <td class="center hide-mobile">${team.goalFor}</td>
@@ -387,7 +387,7 @@ function createWildcardTable(teams, state) {
                 <td class="center">${team.losses}</td>
                 <td class="center">${team.otLosses}</td>
                 <td class="center"><strong>${team.points}</strong></td>
-                <td class="center">${team.pointPctg.toFixed(3)}</td>
+                <td class="center"><span class="p-pct-full">${team.pointPctg.toFixed(3)}</span><span class="p-pct-mobile">${team.pointPctg.toFixed(2).substring(1)}</span></td>
                 <td class="center hide-mobile">${team.regulationWins}</td>
                 <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                 <td class="center hide-mobile">${team.goalFor}</td>

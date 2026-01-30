@@ -543,6 +543,15 @@ td {
     display: none;
 }
 
+/* P% format toggling for mobile */
+.p-pct-full {
+    display: inline;
+}
+
+.p-pct-mobile {
+    display: none;
+}
+
 .team-full-name {
     display: inline;
 }
@@ -820,16 +829,11 @@ footer {
     }
 
     .team-logo {
-        width: 18px;
-        height: 18px;
+        display: none;
     }
 }
 
 @media (max-width: 440px) {
-    .team-logo {
-        display: none;
-    }
-
     .team-name {
         gap: 0.25rem;
     }
@@ -840,6 +844,20 @@ footer {
 
     table {
         font-size: 0.65rem;
+    }
+
+    /* Hide player photos in stats tables on very small screens */
+    #stats-view .player-photo-small {
+        display: none;
+    }
+
+    /* Show short P% format without leading zero and 2 decimals */
+    .p-pct-full {
+        display: none;
+    }
+
+    .p-pct-mobile {
+        display: inline;
     }
 }
 

@@ -80,8 +80,15 @@ function setupGoalieSortListeners() {
 function renderSkaters() {
     const state = getUIState('stats');
     const skaters = [...wildStats.skaters].sort((a, b) => {
-        const aVal = a[state.skaterSort];
-        const bVal = b[state.skaterSort];
+        let aVal = a[state.skaterSort];
+        let bVal = b[state.skaterSort];
+
+        // Calculate points per game if sorting by that field
+        if (state.skaterSort === 'pointsPerGame') {
+            aVal = a.gamesPlayed > 0 ? a.points / a.gamesPlayed : 0;
+            bVal = b.gamesPlayed > 0 ? b.points / b.gamesPlayed : 0;
+        }
+
         return state.skaterSortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
@@ -102,6 +109,7 @@ function renderSkaters() {
                     <th class="center sortable ${state.skaterSort === 'goals' ? 'sorted' : ''}" data-sort="goals" data-tooltip="Goals">G${getSortIcon('goals')}</th>
                     <th class="center sortable ${state.skaterSort === 'assists' ? 'sorted' : ''}" data-sort="assists" data-tooltip="Assists">A${getSortIcon('assists')}</th>
                     <th class="center sortable ${state.skaterSort === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points">PTS${getSortIcon('points')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'pointsPerGame' ? 'sorted' : ''}" data-sort="pointsPerGame" data-tooltip="Average Points Per Game">P/G${getSortIcon('pointsPerGame')}</th>
                     <th class="center sortable ${state.skaterSort === 'plusMinus' ? 'sorted' : ''}" data-sort="plusMinus" data-tooltip="Plus/Minus">+/-${getSortIcon('plusMinus')}</th>
                     <th class="center hide-mobile sortable ${state.skaterSort === 'powerPlayGoals' ? 'sorted' : ''}" data-sort="powerPlayGoals" data-tooltip="Power Play Goals">PPG${getSortIcon('powerPlayGoals')}</th>
                     <th class="center hide-mobile sortable ${state.skaterSort === 'shorthandedGoals' ? 'sorted' : ''}" data-sort="shorthandedGoals" data-tooltip="Shorthanded Goals">SHG${getSortIcon('shorthandedGoals')}</th>
@@ -125,6 +133,7 @@ function renderSkaters() {
                         <td class="center">${player.goals}</td>
                         <td class="center">${player.assists}</td>
                         <td class="center"><strong>${player.points}</strong></td>
+                        <td class="center hide-mobile">${player.gamesPlayed > 0 ? (player.points / player.gamesPlayed).toFixed(2) : '0.00'}</td>
                         <td class="center">${player.plusMinus > 0 ? '+' : ''}${player.plusMinus ?? '--'}</td>
                         <td class="center hide-mobile">${player.powerPlayGoals ?? '--'}</td>
                         <td class="center hide-mobile">${player.shorthandedGoals ?? '--'}</td>
