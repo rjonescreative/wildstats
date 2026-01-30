@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wild Stats - Minnesota Wild Hockey</title>
+    <link rel="shortcut icon" href="/favicon.ico">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="site-title">
+                    <img src="/logos/MIN_dark_custom.svg" alt="Minnesota Wild" class="header-logo">
+                    <div class="header-text">
+                        <h1>Wild Stats</h1>
+                        <p class="subtitle">Minnesota Wild Statistics & Standings</p>
+                    </div>
+                </div>
+                <nav class="main-nav">
+                    <a href="/" class="nav-link" data-link>Dashboard</a>
+                    <a href="/stats" class="nav-link" data-link>Stats</a>
+                    <a href="/standings" class="nav-link" data-link>Standings</a>
+                </nav>
+            </div>
+        </div>
+    </header>
+
+    <main class="container" id="app">
+        <!-- Dashboard View -->
+        <div id="dashboard-view" class="view">
+            <div class="standings-section">
+                <h2>Leader Board</h2>
+                <div id="stat-leaders" class="stat-leaders">
+                    <div class="loading">Loading stat leaders...</div>
+                </div>
+            </div>
+
+            <div class="standings-section">
+                <h2>Central Division</h2>
+                <div id="central-standings" class="standings-table">
+                    <div class="loading">Loading standings...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats View -->
+        <div id="stats-view" class="view">
+            <div class="stats-section">
+                <h2>Skaters</h2>
+                <div id="skaters-table" class="stats-table-container">
+                    <div class="loading">Loading skater stats...</div>
+                </div>
+            </div>
+
+            <div class="stats-section">
+                <h2>Goalies</h2>
+                <div id="goalies-table" class="stats-table-container">
+                    <div class="loading">Loading goalie stats...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Standings View -->
+        <div id="standings-view" class="view">
+            <div class="standings-controls">
+                <a href="/standings/wildcard" class="view-btn" data-link data-view="wildcard">Wildcard</a>
+                <a href="/standings/division" class="view-btn" data-link data-view="division">Division</a>
+                <a href="/standings/conference" class="view-btn" data-link data-view="conference">Conference</a>
+                <a href="/standings/league" class="view-btn" data-link data-view="league">League</a>
+            </div>
+
+            <div id="standings-container">
+                <div class="loading">Loading standings...</div>
+            </div>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>Data provided by NHL API | Updated in real-time</p>
+        </div>
+    </footer>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
