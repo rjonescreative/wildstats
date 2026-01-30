@@ -111,7 +111,7 @@ main {
 }
 
 .stat-leaders {
-    margin: 0 0 2rem 0;
+    margin: 0;
 }
 
 .stat-leaders-grid {
@@ -254,7 +254,7 @@ main {
     color: var(--text-secondary);
 }
 
-.puckpedia-link {
+.text-link {
     color: var(--wild-gold);
     font-size: 0.875rem;
     font-weight: 500;
@@ -263,9 +263,14 @@ main {
     white-space: nowrap;
 }
 
-.puckpedia-link:hover {
+.text-link:hover {
     opacity: 0.8;
     text-decoration: underline;
+}
+
+.section-footer {
+    text-align: right;
+    margin-top: 1rem;
 }
 
 .stats-table-container {
@@ -703,7 +708,7 @@ footer {
         font-size: 0.85rem;
     }
 
-    .puckpedia-link {
+    .text-link {
         font-size: 0.75rem;
     }
 }
