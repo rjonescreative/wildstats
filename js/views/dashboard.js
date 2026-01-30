@@ -169,6 +169,7 @@ function renderStatLeaders(data) {
         return `
             <div class="leader-row">
                 <span class="leader-rank">${index + 1}</span>
+                <img src="${player.headshot}" alt="${firstInitial}. ${lastName}" class="player-photo-small">
                 <span class="leader-name">${firstInitial}. ${lastName}</span>
                 <span class="leader-stat">${rankText}${player[statProp]}</span>
             </div>

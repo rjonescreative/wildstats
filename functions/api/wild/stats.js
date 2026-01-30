@@ -1,7 +1,7 @@
 // Cloudflare Pages Function for Wild team stats
 export async function onRequest() {
     try {
-        const response = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/now');
+        const response = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/20252026/2');
         const data = await response.json();
 
         return new Response(JSON.stringify(data), {

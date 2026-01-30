@@ -1,7 +1,10 @@
 import express from 'express';
-import fetch from 'node-fetch';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import { setDefaultResultOrder } from 'dns';
+
+// Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
+setDefaultResultOrder('ipv4first');
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -15,7 +18,15 @@ app.use(express.static(__dirname));
 // Proxy endpoint for NHL API
 app.get('/api/standings/now', async (req, res) => {
     try {
-        const response = await fetch('https://api-web.nhle.com/v1/standings/now');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch('https://api-web.nhle.com/v1/standings/now', {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -27,7 +38,15 @@ app.get('/api/standings/now', async (req, res) => {
 // Wild team stats endpoint
 app.get('/api/wild/stats', async (req, res) => {
     try {
-        const response = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/now');
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/20252026/2', {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -39,11 +58,24 @@ app.get('/api/wild/stats', async (req, res) => {
 // League stat leaders endpoint
 app.get('/api/league/leaders', async (req, res) => {
     try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
         const [goalsRes, assistsRes, pointsRes] = await Promise.all([
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=goals&limit=100'),
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=assists&limit=100'),
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=points&limit=100')
+            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=goals&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=assists&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=points&limit=100', {
+                signal: controller.signal,
+                redirect: 'follow'
+            })
         ]);
+        clearTimeout(timeout);
 
         const goals = await goalsRes.json();
         const assists = await assistsRes.json();

@@ -236,6 +236,16 @@ main {
     margin-bottom: 2rem;
 }
 
+.stats-section h2 {
+    color: var(--text-primary);
+    margin-bottom: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
 .stats-table-container {
     background-color: var(--bg-secondary);
     border: 1px solid var(--border-subtle);
@@ -630,7 +640,8 @@ footer {
         margin-left: 0.25rem;
     }
 
-    .standings-section h2 {
+    .standings-section h2,
+    .stats-section h2 {
         font-size: 0.85rem;
     }
 }
@@ -687,6 +698,16 @@ footer {
         width: 24px;
         height: 24px;
         margin-right: 0.35rem;
+    }
+
+    /* Show abbreviated player names on mobile */
+    .player-name .player-full-name {
+        display: none;
+    }
+
+    .player-name .player-abbrev-text {
+        display: inline;
+        font-weight: 500;
     }
 }
 
