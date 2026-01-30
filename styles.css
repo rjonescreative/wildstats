@@ -554,6 +554,16 @@ td {
     font-weight: 500;
 }
 
+.diff-positive {
+    color: #10b981;
+    font-weight: 500;
+}
+
+.diff-negative {
+    color: #ef4444;
+    font-weight: 500;
+}
+
 .magic-number {
     display: inline-flex;
     align-items: center;

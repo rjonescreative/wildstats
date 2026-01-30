@@ -161,7 +161,8 @@ function createStandingsTable(teams, state) {
                 ${teams.map((team, index) => {
                     const isWild = team.teamAbbrev.default === 'MIN';
                     const rank = index + 1;
-                    const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
+                    const streakClass = team.streakCount > 2 ? (team.streakCode === 'W' ? 'streak-W' : 'streak-L') : '';
+                    const diffClass = team.goalDifferential > 0 ? 'diff-positive' : team.goalDifferential < 0 ? 'diff-negative' : '';
 
                     // Calculate magic/tragic number
                     const conferenceTeams = standingsData.standings.filter(t => t.conferenceName === team.conferenceName);
@@ -193,7 +194,7 @@ function createStandingsTable(teams, state) {
                             <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                             <td class="center hide-mobile">${team.goalFor}</td>
                             <td class="center hide-mobile">${team.goalAgainst}</td>
-                            <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
+                            <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
                             <td class="center">${magicDisplay}</td>

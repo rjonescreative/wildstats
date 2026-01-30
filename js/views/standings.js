@@ -258,7 +258,8 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                 ${teams.map((team, index) => {
                     const isWild = team.teamAbbrev.default === 'MIN';
                     const rank = showLeagueRank ? team.leagueSequence : index + 1;
-                    const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
+                    const streakClass = team.streakCount > 2 ? (team.streakCode === 'W' ? 'streak-W' : 'streak-L') : '';
+                    const diffClass = team.goalDifferential > 0 ? 'diff-positive' : team.goalDifferential < 0 ? 'diff-negative' : '';
 
                     // Get conference teams for magic number calculation
                     const conferenceTeams = standingsData.standings.filter(t => t.conferenceName === team.conferenceName);
@@ -290,7 +291,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                             <td class="center hide-mobile">${team.goalFor}</td>
                             <td class="center hide-mobile">${team.goalAgainst}</td>
-                            <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
+                            <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
                             <td class="center">${magicDisplay}</td>
@@ -338,7 +339,8 @@ function createWildcardTable(teams, state) {
 
     const createTeamRow = (team) => {
         const isWild = team.teamAbbrev.default === 'MIN';
-        const streakClass = team.streakCode === 'W' ? 'streak-W' : 'streak-L';
+        const streakClass = team.streakCount > 2 ? (team.streakCode === 'W' ? 'streak-W' : 'streak-L') : '';
+        const diffClass = team.goalDifferential > 0 ? 'diff-positive' : team.goalDifferential < 0 ? 'diff-negative' : '';
 
         // Calculate magic/tragic number
         const conferenceTeams = teams; // teams parameter is already the conference
@@ -369,7 +371,7 @@ function createWildcardTable(teams, state) {
                 <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                 <td class="center hide-mobile">${team.goalFor}</td>
                 <td class="center hide-mobile">${team.goalAgainst}</td>
-                <td class="center hide-mobile">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
+                <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                 <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                 <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
                 <td class="center">${magicDisplay}</td>
