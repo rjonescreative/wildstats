@@ -55,7 +55,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 captureOriginalLogo(headerLogo);
 
                 headerLogo.style.width = `${originalLogoWidth}px`;
-                headerLogo.style.objectFit = 'contain';
+                headerLogo.style.objectFit = window.innerWidth <= 1024 ? 'cover' : 'contain';
                 headerLogo.src = '/images/goal-light.gif';
 
                 goalHorn.currentTime = 0;
@@ -85,7 +85,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 captureOriginalLogo(headerLogo);
 
                 headerLogo.style.width = `${originalLogoWidth}px`;
-                headerLogo.style.objectFit = 'contain';
+                headerLogo.style.objectFit = window.innerWidth <= 1024 ? 'cover' : 'contain';
                 headerLogo.src = '/images/opa.gif';
 
                 opponentGoal.currentTime = 0;
