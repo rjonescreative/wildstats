@@ -1705,12 +1705,12 @@ footer {
     /* Adjust schedule table column widths for mobile */
     .schedule-table th:nth-child(1),
     .schedule-table td:nth-child(1) {
-        width: 80px; /* Date */
+        width: 50px; /* Date */
     }
 
     .schedule-table th:nth-child(2),
     .schedule-table td:nth-child(2) {
-        width: 80px; /* Time */
+        width: 110px; /* Time */
     }
 
     .schedule-table th:nth-child(3),

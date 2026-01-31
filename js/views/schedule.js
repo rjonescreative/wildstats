@@ -219,8 +219,8 @@ function createGameRow(game) {
     const date = formatGameDate(game.gameDate);
     const dayOfWeek = new Date(game.gameDate + 'T00:00:00')
         .toLocaleDateString('en-US', { weekday: 'short' });
-    const dateDisplay = `${dayOfWeek}, ${date}`;
-    const timeDisplay = isFuture ? formatGameTime(game.startTimeUTC) : '';
+    const dateDisplay = date;
+    const timeDisplay = isFuture ? `${dayOfWeek}, ${formatGameTime(game.startTimeUTC)}` : '';
 
     // Scores
     const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
