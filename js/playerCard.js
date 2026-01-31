@@ -176,12 +176,15 @@ function processPlayerData(details, gameLog) {
     }
 
     // Get previous season points (for all players)
+    // Sum points from all teams played for in the previous season
     if (details.seasonTotals) {
-        const prevSeason = details.seasonTotals.find(
+        const prevSeasonEntries = details.seasonTotals.filter(
             s => s.season === 20242025 && s.leagueAbbrev === 'NHL' && s.gameTypeId === 2
         );
-        if (prevSeason && prevSeason.points !== undefined) {
-            prevSeasonPoints = prevSeason.points;
+        if (prevSeasonEntries.length > 0) {
+            prevSeasonPoints = prevSeasonEntries.reduce((total, entry) => {
+                return total + (entry.points || 0);
+            }, 0);
         }
     }
 
