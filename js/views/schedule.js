@@ -176,8 +176,6 @@ function createMonthTable(monthName, games) {
                             <th class="hide-mobile">Day</th>
                             <th>Time</th>
                             <th>Matchup</th>
-                            <th class="center">Score</th>
-                            <th class="center">Result</th>
                             <th class="hide-mobile">TV</th>
                             <th class="hide-mobile center">Links</th>
                         </tr>
@@ -203,20 +201,26 @@ function createGameRow(game) {
         .toLocaleDateString('en-US', { weekday: 'short' });
     const time = isFuture ? formatGameTime(game.startTimeUTC) : 'Final';
 
-    // Matchup with logos
-    const matchup = isMinHome
-        ? `<img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"> ${oppTeam.abbrev} @ MIN <img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo">`
-        : `<img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"> MIN @ ${oppTeam.abbrev} <img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo">`;
-
-    // Score
+    // Scores
     const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
     const oppScore = isMinHome ? game.awayTeam.score : game.homeTeam.score;
-    const score = isPast ? `${minScore} - ${oppScore}` : '--';
 
     // Result
-    const result = isPast ? getGameResult(game) : '--';
+    const result = isPast ? getGameResult(game) : '';
     const resultClass = result.startsWith('W') ? 'game-win' :
                        result.startsWith('L') ? 'game-loss' : '';
+
+    // Matchup with grid structure for alignment
+    let matchup;
+    if (isPast) {
+        matchup = isMinHome
+            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score">${oppScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score">${minScore}</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
+    } else {
+        matchup = isMinHome
+            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score"></span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score"></span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result"></span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score"></span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score"></span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result"></span>`;
+    }
 
     // TV
     const tvNetwork = getTVBroadcast(game);
@@ -237,8 +241,6 @@ function createGameRow(game) {
             <td class="hide-mobile">${dayOfWeek}</td>
             <td>${time}</td>
             <td class="matchup-cell">${matchup}</td>
-            <td class="center"><strong>${score}</strong></td>
-            <td class="center ${resultClass}">${result}</td>
             <td class="hide-mobile">${tvNetwork}</td>
             <td class="hide-mobile center">${links}</td>
         </tr>

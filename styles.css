@@ -1363,6 +1363,41 @@ footer {
     margin-bottom: 2.5rem;
 }
 
+.schedule-table table {
+    table-layout: fixed;
+    width: 100%;
+}
+
+.schedule-table th:nth-child(1),
+.schedule-table td:nth-child(1) {
+    width: 70px; /* Date */
+}
+
+.schedule-table th:nth-child(2),
+.schedule-table td:nth-child(2) {
+    width: 50px; /* Day */
+}
+
+.schedule-table th:nth-child(3),
+.schedule-table td:nth-child(3) {
+    width: 140px; /* Time */
+}
+
+.schedule-table th:nth-child(4),
+.schedule-table td:nth-child(4) {
+    width: 340px; /* Matchup - includes scores and result */
+}
+
+.schedule-table th:nth-child(5),
+.schedule-table td:nth-child(5) {
+    width: 110px; /* TV */
+}
+
+.schedule-table th:nth-child(6),
+.schedule-table td:nth-child(6) {
+    width: 95px; /* Links */
+}
+
 .schedule-month:first-child h2 {
     display: inline-block;
 }
@@ -1436,9 +1471,38 @@ footer {
 }
 
 .matchup-cell {
-    display: flex;
+    display: grid;
+    grid-template-columns: 28px 42px 28px 24px 42px 28px 28px 1fr;
     align-items: center;
-    gap: 0.5rem;
+    gap: 4px;
+}
+
+.matchup-away-logo,
+.matchup-home-logo {
+    display: flex;
+    justify-content: center;
+}
+
+.matchup-away-team,
+.matchup-home-team {
+    font-weight: 500;
+    text-align: center;
+}
+
+.matchup-away-score,
+.matchup-home-score {
+    text-align: center;
+    font-weight: 600;
+}
+
+.matchup-at {
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.matchup-result {
+    font-weight: 600;
+    padding-left: 8px;
 }
 
 .matchup-cell .team-logo {
@@ -1480,11 +1544,39 @@ footer {
 @media (max-width: 1024px) {
     .matchup-cell {
         font-size: 0.8rem;
+        grid-template-columns: 24px 38px 24px 20px 38px 24px 24px 1fr;
+        gap: 3px;
     }
 
     .matchup-cell .team-logo {
         width: 20px;
         height: 20px;
+    }
+
+    /* Adjust schedule table column widths for tablets */
+    .schedule-table th:nth-child(1),
+    .schedule-table td:nth-child(1) {
+        width: 65px; /* Date */
+    }
+
+    .schedule-table th:nth-child(3),
+    .schedule-table td:nth-child(3) {
+        width: 130px; /* Time */
+    }
+
+    .schedule-table th:nth-child(4),
+    .schedule-table td:nth-child(4) {
+        width: 310px; /* Matchup - includes scores and result */
+    }
+
+    .schedule-table th:nth-child(5),
+    .schedule-table td:nth-child(5) {
+        width: 100px; /* TV */
+    }
+
+    .schedule-table th:nth-child(6),
+    .schedule-table td:nth-child(6) {
+        width: 90px; /* Links */
     }
 }
 
@@ -1514,9 +1606,24 @@ footer {
     }
 
     .matchup-cell {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.25rem;
-        font-size: 0.75rem;
+        font-size: 0.7rem;
+        grid-template-columns: 20px 32px 22px 18px 32px 22px 20px 1fr;
+        gap: 2px;
+    }
+
+    /* Adjust schedule table column widths for mobile */
+    .schedule-table th:nth-child(1),
+    .schedule-table td:nth-child(1) {
+        width: 55px; /* Date */
+    }
+
+    .schedule-table th:nth-child(3),
+    .schedule-table td:nth-child(3) {
+        width: 95px; /* Time */
+    }
+
+    .schedule-table th:nth-child(4),
+    .schedule-table td:nth-child(4) {
+        width: auto; /* Matchup - takes remaining space, includes scores and result */
     }
 }
