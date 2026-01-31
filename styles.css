@@ -860,9 +860,11 @@ footer {
         display: inline;
     }
 
-    /* Hide rank column on small screens */
-    th:first-child,
-    td.rank {
+    /* Hide rank column on small screens in standings tables only */
+    #dashboard-view th:first-child,
+    #dashboard-view td.rank,
+    #standings-view th:first-child,
+    #standings-view td.rank {
         display: none;
     }
 }

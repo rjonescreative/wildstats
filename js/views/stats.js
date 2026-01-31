@@ -102,7 +102,6 @@ function renderSkaters() {
         <table>
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>Player</th>
                     <th class="center" data-tooltip="Position">POS</th>
                     <th class="center sortable ${state.skaterSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played">GP${getSortIcon('gamesPlayed')}</th>
@@ -122,7 +121,6 @@ function renderSkaters() {
             <tbody>
                 ${skaters.map((player, index) => `
                     <tr class="player-hoverable" data-player-id="${player.playerId}">
-                        <td class="center">${index + 1}</td>
                         <td class="player-name">
                             <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
                             <span class="player-full-name">${player.firstName.default} ${player.lastName.default}</span>
@@ -169,7 +167,6 @@ function renderGoalies() {
         <table>
             <thead>
                 <tr>
-                    <th>#</th>
                     <th>Player</th>
                     <th class="center sortable ${state.goalieSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played">GP${getSortIcon('gamesPlayed')}</th>
                     <th class="center sortable ${state.goalieSort === 'gamesStarted' ? 'sorted' : ''}" data-sort="gamesStarted" data-tooltip="Games Started">GS${getSortIcon('gamesStarted')}</th>
@@ -186,7 +183,6 @@ function renderGoalies() {
             <tbody>
                 ${goalies.map((player, index) => `
                     <tr class="player-hoverable" data-player-id="${player.playerId}">
-                        <td class="center">${index + 1}</td>
                         <td class="player-name">
                             <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
                             <span class="player-full-name">${player.firstName.default} ${player.lastName.default}</span>
