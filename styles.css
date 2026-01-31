@@ -1477,6 +1477,10 @@ footer {
     gap: 4px;
 }
 
+.matchup-cell.future-game {
+    grid-template-columns: 28px 42px 24px 42px 28px;
+}
+
 .matchup-away-logo,
 .matchup-home-logo {
     display: flex;
@@ -1512,12 +1516,10 @@ footer {
 
 .game-win {
     color: var(--wild-green);
-    font-weight: 600;
 }
 
 .game-loss {
     color: var(--wild-red);
-    font-weight: 600;
 }
 
 .game-home {
@@ -1546,6 +1548,10 @@ footer {
         font-size: 0.8rem;
         grid-template-columns: 24px 38px 24px 20px 38px 24px 24px 1fr;
         gap: 3px;
+    }
+
+    .matchup-cell.future-game {
+        grid-template-columns: 24px 38px 20px 38px 24px;
     }
 
     .matchup-cell .team-logo {
@@ -1609,6 +1615,10 @@ footer {
         font-size: 0.7rem;
         grid-template-columns: 20px 32px 22px 18px 32px 22px 20px 1fr;
         gap: 2px;
+    }
+
+    .matchup-cell.future-game {
+        grid-template-columns: 20px 32px 18px 32px 20px;
     }
 
     /* Adjust schedule table column widths for mobile */

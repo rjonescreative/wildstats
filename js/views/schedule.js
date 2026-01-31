@@ -218,8 +218,8 @@ function createGameRow(game) {
             : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
     } else {
         matchup = isMinHome
-            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score"></span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score"></span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result"></span>`
-            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score"></span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score"></span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result"></span>`;
+            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span>`;
     }
 
     // TV
@@ -235,12 +235,14 @@ function createGameRow(game) {
 
     const homeAwayClass = isMinHome ? 'game-home' : 'game-away';
 
+    const gameStateClass = isPast ? 'past-game' : 'future-game';
+
     return `
         <tr class="${resultClass} ${homeAwayClass}">
             <td>${date}</td>
             <td class="hide-mobile">${dayOfWeek}</td>
             <td>${time}</td>
-            <td class="matchup-cell">${matchup}</td>
+            <td class="matchup-cell ${gameStateClass}">${matchup}</td>
             <td class="hide-mobile">${tvNetwork}</td>
             <td class="hide-mobile center">${links}</td>
         </tr>
