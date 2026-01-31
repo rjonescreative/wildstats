@@ -14,14 +14,16 @@ export async function onRequest() {
             fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=shutouts&limit=100')
         ]);
 
-        const goals = await goalsRes.json();
-        const assists = await assistsRes.json();
-        const points = await pointsRes.json();
-        const plusMinus = await plusMinusRes.json();
-        const wins = await winsRes.json();
-        const savePctg = await savePctgRes.json();
-        const goalsAgainstAverage = await gaaRes.json();
-        const shutouts = await shutoutsRes.json();
+        const [goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts] = await Promise.all([
+            goalsRes.json(),
+            assistsRes.json(),
+            pointsRes.json(),
+            plusMinusRes.json(),
+            winsRes.json(),
+            savePctgRes.json(),
+            gaaRes.json(),
+            shutoutsRes.json()
+        ]);
 
         const data = { goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts };
 
@@ -33,7 +35,8 @@ export async function onRequest() {
             }
         });
     } catch (error) {
-        return new Response(JSON.stringify({ error: 'Failed to fetch league leaders' }), {
+        console.error('League leaders error:', error);
+        return new Response(JSON.stringify({ error: 'Failed to fetch league leaders', details: error.message }), {
             status: 500,
             headers: {
                 'Content-Type': 'application/json',
