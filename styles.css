@@ -1552,6 +1552,18 @@ footer {
     color: var(--wild-red);
 }
 
+.opp-in-playoffs {
+    text-decoration: underline;
+    text-decoration-color: var(--wild-green);
+    text-underline-offset: 3px;
+}
+
+.opp-out-playoffs {
+    text-decoration: underline;
+    text-decoration-color: var(--wild-red);
+    text-underline-offset: 3px;
+}
+
 .game-home {
     background-color: rgba(255, 255, 255, 0.02);
 }
@@ -1570,6 +1582,24 @@ footer {
 .game-link:hover {
     opacity: 0.8;
     text-decoration: underline;
+}
+
+/* Playoff position key */
+.schedule-playoff-key {
+    display: flex;
+    gap: 1.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.schedule-playoff-key .key-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
 }
 
 /* Mobile adjustments for schedule */
