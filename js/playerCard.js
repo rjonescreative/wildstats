@@ -358,7 +358,7 @@ function generateCardHTML(data) {
                         <td class="stat-number">${last10Stats.assists}</td>
                         <td class="stat-separator">-</td>
                         <td class="stat-number">${last10Stats.points}</td>
-                        <td class="stat-ppg ${ppgClass}">${last10PPG.toFixed(2)} PPG ${ppgArrow}</td>
+                        <td class="stat-ppg ${ppgClass}">${ppgArrow} ${last10PPG.toFixed(2)} PPG</td>
                     </tr>
                     <tr>
                         <td class="stat-label">Pace/82</td>
