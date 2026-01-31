@@ -9,7 +9,8 @@ const routes = {
     '/standings/wildcard': 'standings',
     '/standings/division': 'standings',
     '/standings/conference': 'standings',
-    '/standings/league': 'standings'
+    '/standings/league': 'standings',
+    '/schedule': 'schedule'
 };
 
 // View modules (will be set by main.js)
@@ -70,7 +71,8 @@ function updateNavStates(viewName) {
         if (
             (href === '/' && viewName === 'dashboard') ||
             (href === '/stats' && viewName === 'stats') ||
-            (href === '/standings' && viewName === 'standings')
+            (href === '/standings' && viewName === 'standings') ||
+            (href === '/schedule' && viewName === 'schedule')
         ) {
             link.classList.add('active');
         }

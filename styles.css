@@ -810,6 +810,15 @@ footer {
         font-size: 1.15rem;
     }
 
+    .nav-link {
+        padding: 0.4rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .main-nav {
+        gap: 0.35rem;
+    }
+
     .standings-controls {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -834,6 +843,15 @@ footer {
 }
 
 @media (max-width: 440px) {
+    .nav-link {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.7rem;
+    }
+
+    .main-nav {
+        gap: 0.25rem;
+    }
+
     .team-name {
         gap: 0.25rem;
     }
@@ -1143,5 +1161,178 @@ footer {
     .player-card-popup {
         /* Allow on mobile since click is better than hover */
         max-width: calc(100vw - 2rem);
+    }
+}
+
+/* Schedule-specific styles */
+#schedule-container {
+    position: relative;
+}
+
+.schedule-header {
+    position: absolute;
+    top: 0;
+    right: 0;
+    z-index: 10;
+}
+
+.schedule-month {
+    margin-bottom: 2.5rem;
+}
+
+.schedule-month:first-child h2 {
+    display: inline-block;
+}
+
+.schedule-toggle {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+}
+
+.schedule-toggle .toggle-label {
+    font-weight: 500;
+}
+
+.schedule-toggle:hover .toggle-label {
+    color: var(--text-primary);
+}
+
+/* Hide default checkbox */
+.schedule-toggle input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+/* Toggle slider (pill background) */
+.toggle-slider {
+    position: relative;
+    display: inline-block;
+    width: 48px;
+    height: 24px;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-radius: 24px;
+    transition: background-color 0.4s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-medium);
+}
+
+/* Toggle slider circle */
+.toggle-slider::before {
+    content: '';
+    position: absolute;
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    top: 2px;
+    background-color: white;
+    border-radius: 50%;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Checked state - green background */
+.schedule-toggle input[type="checkbox"]:checked + .toggle-slider {
+    background-color: var(--wild-green);
+    border-color: var(--wild-green);
+}
+
+/* Checked state - slide circle to the right */
+.schedule-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(24px);
+}
+
+/* Hover effect */
+.schedule-toggle:hover .toggle-slider {
+    opacity: 0.9;
+}
+
+.matchup-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.matchup-cell .team-logo {
+    width: 24px;
+    height: 24px;
+}
+
+.game-win {
+    color: var(--wild-green);
+    font-weight: 600;
+}
+
+.game-loss {
+    color: var(--text-secondary);
+}
+
+.game-home {
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.game-away {
+    background-color: rgba(0, 0, 0, 0.15);
+}
+
+.game-link {
+    color: var(--wild-gold);
+    font-size: 0.8rem;
+    text-decoration: none;
+    transition: opacity 0.2s ease;
+}
+
+.game-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
+}
+
+/* Mobile adjustments for schedule */
+@media (max-width: 1024px) {
+    .matchup-cell {
+        font-size: 0.8rem;
+    }
+
+    .matchup-cell .team-logo {
+        width: 20px;
+        height: 20px;
+    }
+}
+
+@media (max-width: 768px) {
+    .schedule-month h2 {
+        font-size: 0.9rem;
+    }
+
+    .schedule-toggle {
+        font-size: 0.75rem;
+        gap: 0.5rem;
+    }
+
+    .toggle-slider {
+        width: 42px;
+        height: 22px;
+    }
+
+    .toggle-slider::before {
+        height: 16px;
+        width: 16px;
+        top: 2px;
+    }
+
+    .schedule-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+        transform: translateX(20px);
+    }
+
+    .matchup-cell {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.25rem;
+        font-size: 0.75rem;
     }
 }

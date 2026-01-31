@@ -48,3 +48,8 @@ export async function getWildStats(forceRefresh = false) {
 export async function getLeagueLeaders(forceRefresh = false) {
     return fetchWithCache('/api/league/leaders', 'leagueLeaders', forceRefresh);
 }
+
+// Get Minnesota Wild schedule
+export async function getSchedule(season = '20252026', forceRefresh = false) {
+    return fetchWithCache(`/api/schedule/${season}`, `schedule_${season}`, forceRefresh);
+}

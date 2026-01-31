@@ -3,6 +3,7 @@ import * as router from './router.js';
 import * as dashboard from './views/dashboard.js';
 import * as stats from './views/stats.js';
 import * as standings from './views/standings.js';
+import * as schedule from './views/schedule.js';
 import * as playerCard from './playerCard.js';
 
 // Goal horn audio
@@ -15,7 +16,8 @@ document.addEventListener('DOMContentLoaded', () => {
     router.setViewModules({
         dashboard,
         stats,
-        standings
+        standings,
+        schedule
     });
 
     // Initialize the router

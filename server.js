@@ -159,6 +159,28 @@ app.get('/api/player/:id/game-log', async (req, res) => {
     }
 });
 
+// Wild schedule endpoint
+app.get('/api/schedule/:season', async (req, res) => {
+    const season = req.params.season;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(
+            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`,
+            { signal: controller.signal, redirect: 'follow' }
+        );
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        res.set('Cache-Control', 'public, max-age=300');
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching schedule:', error);
+        res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+});
+
 // SPA catch-all route - serve index.html for all non-API routes
 app.get('*', (req, res) => {
     // Don't serve index.html for API routes

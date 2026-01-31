@@ -6,6 +6,7 @@ const state = {
         standings: { data: null, timestamp: null },
         wildStats: { data: null, timestamp: null },
         leagueLeaders: { data: null, timestamp: null },
+        schedule_20252026: { data: null, timestamp: null },
         playerCards: new Map() // Map<playerId, { data, timestamp }>
     },
     ui: {
@@ -24,6 +25,11 @@ const state = {
             currentView: 'wildcard',
             sortBy: 'points',
             sortDirection: 'desc'
+        },
+        schedule: {
+            filterType: 'all',
+            showPreseason: false,
+            hidePastGames: false
         }
     }
 };
