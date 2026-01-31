@@ -67,7 +67,6 @@ header {
     height: 65px;
     width: 97.5px;
     object-fit: contain;
-    object-position: left;
 }
 
 .header-text h1 {
