@@ -150,6 +150,8 @@ function processPlayerData(details, gameLog) {
 
     // Get season stats - different paths for goalies vs skaters
     let seasonStats = {};
+    let prevSeasonPoints = null;
+
     if (isGoalie && details.seasonTotals) {
         // For goalies, find current season in seasonTotals array
         const currentSeasonStats = details.seasonTotals
@@ -173,6 +175,16 @@ function processPlayerData(details, gameLog) {
         seasonStats = details.featuredStats?.regularSeason?.subSeason || {};
     }
 
+    // Get previous season points (for all players)
+    if (details.seasonTotals) {
+        const prevSeason = details.seasonTotals.find(
+            s => s.season === 20242025 && s.leagueAbbrev === 'NHL' && s.gameTypeId === 2
+        );
+        if (prevSeason && prevSeason.points !== undefined) {
+            prevSeasonPoints = prevSeason.points;
+        }
+    }
+
     return {
         playerId: details.playerId,
         name: `${firstName} ${lastName}`,
@@ -186,6 +198,7 @@ function processPlayerData(details, gameLog) {
         seasonStats,
         last10Stats,
         streak,
+        prevSeasonPoints,
         rankings: extractRankings(details),
         nhlUrl: `https://www.nhl.com/player/${details.playerId}`
     };
@@ -309,19 +322,59 @@ function generateCardHTML(data) {
                 <span class="stat-value">${seasonStats.shutouts || 0}</span>
             </div>
             ` : `
-            <div class="stat-row">
-                <span class="stat-label">Season</span>
-                <span class="stat-value">${seasonStats.goals || 0}-${seasonStats.assists || 0}-${seasonStats.points || 0}</span>
-            </div>
-            <div class="stat-row">
-                <span class="stat-label">Last 10</span>
-                <span class="stat-value">${last10Stats.goals}-${last10Stats.assists}-${last10Stats.points}</span>
-            </div>
-            ${streak ? `
-            <div class="stat-row highlight">
-                <span class="stat-label">Streak</span>
-                <span class="stat-value">${streak} game point streak</span>
-            </div>` : ''}
+            ${(() => {
+                const seasonPPG = seasonStats.gamesPlayed > 0 ? seasonStats.points / seasonStats.gamesPlayed : 0;
+                const last10Games = Math.min(10, seasonStats.gamesPlayed);
+                const last10PPG = last10Games > 0 ? last10Stats.points / last10Games : 0;
+                const ppgDiff = last10PPG - seasonPPG;
+                const ppgClass = ppgDiff > 0 ? 'ppg-up' : ppgDiff < 0 ? 'ppg-down' : 'ppg-neutral';
+                const ppgArrow = ppgDiff > 0 ? '↑' : ppgDiff < 0 ? '↓' : '';
+
+                // Calculate 82-game pace
+                const paceGoals = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.goals / seasonStats.gamesPlayed) * 82) : 0;
+                const paceAssists = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.assists / seasonStats.gamesPlayed) * 82) : 0;
+                const pacePoints = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.points / seasonStats.gamesPlayed) * 82) : 0;
+                const pacePPG = pacePoints / 82;
+
+                return `
+            <table class="stat-table">
+                <tbody>
+                    <tr>
+                        <td class="stat-label">Season</td>
+                        <td class="stat-number">${seasonStats.goals || 0}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${seasonStats.assists || 0}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${seasonStats.points || 0}</td>
+                        <td class="stat-ppg">${seasonPPG.toFixed(2)} PPG</td>
+                    </tr>
+                    <tr>
+                        <td class="stat-label">Last 10</td>
+                        <td class="stat-number">${last10Stats.goals}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${last10Stats.assists}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${last10Stats.points}</td>
+                        <td class="stat-ppg ${ppgClass}">${last10PPG.toFixed(2)} PPG ${ppgArrow}</td>
+                    </tr>
+                    <tr>
+                        <td class="stat-label">Pace/82</td>
+                        <td class="stat-number">${paceGoals}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${paceAssists}</td>
+                        <td class="stat-separator">-</td>
+                        <td class="stat-number">${pacePoints}</td>
+                        <td class="stat-ppg">${data.prevSeasonPoints !== null ? `${data.prevSeasonPoints} prev` : ''}</td>
+                    </tr>
+                    ${streak ? `
+                    <tr class="stat-streak">
+                        <td class="stat-label">Streak</td>
+                        <td colspan="6" class="stat-streak-value">${streak} game point streak</td>
+                    </tr>` : ''}
+                </tbody>
+            </table>
+                `;
+            })()}
             `}
         </div>
 

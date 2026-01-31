@@ -1031,6 +1031,67 @@ footer {
     color: var(--text-primary);
 }
 
+.stat-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+.stat-table td {
+    padding: 0.25rem 0.15rem;
+}
+
+.stat-table .stat-label {
+    color: var(--text-secondary);
+    text-align: left;
+    padding-right: 0.5rem;
+}
+
+.stat-table .stat-number {
+    font-weight: 600;
+    color: var(--text-primary);
+    text-align: center;
+    width: 2ch;
+}
+
+.stat-table .stat-separator {
+    color: var(--text-secondary);
+    opacity: 0.5;
+    text-align: center;
+    padding: 0 0.15rem;
+}
+
+.stat-table .stat-streak {
+    color: var(--wild-gold);
+}
+
+.stat-table .stat-streak-value {
+    text-align: right;
+    font-weight: 600;
+}
+
+.stat-ppg {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin-left: 0.5rem;
+    white-space: nowrap;
+    text-align: right;
+}
+
+.ppg-up {
+    color: #10b981;
+    font-weight: 600;
+}
+
+.ppg-down {
+    color: #ef4444;
+    font-weight: 600;
+}
+
+.ppg-neutral {
+    color: var(--text-secondary);
+}
+
 .player-card-rankings {
     padding: 0.75rem 1rem;
     border-bottom: 1px solid var(--border-subtle);
