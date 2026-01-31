@@ -1,5 +1,5 @@
 // Standings view module
-import { getStandings } from '../api.js';
+import { getStandings, getLeagueLeaders } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
@@ -18,8 +18,11 @@ const TEAM_SLUGS = {
 
 export async function init(view = 'wildcard') {
     try {
-        // Fetch standings (cached if available)
+        // Fetch standings and league leaders (cached if available)
         standingsData = await getStandings();
+
+        // Fetch league leaders for player card rankings
+        await getLeagueLeaders();
 
         // Update UI state with initial view
         const state = getUIState('standings');
