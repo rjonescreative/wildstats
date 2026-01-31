@@ -747,8 +747,12 @@ td {
     color: var(--text-primary);
 }
 
-.wild-team .team-abbrev {
+.game-card.game-win .wild-team .team-abbrev {
     color: var(--wild-green);
+}
+
+.game-card.game-loss .wild-team .team-abbrev {
+    color: var(--wild-red);
 }
 
 .game-at {
