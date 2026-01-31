@@ -194,8 +194,7 @@ function createMonthTable(monthName, games) {
                     <thead>
                         <tr>
                             <th>Date</th>
-                            <th class="hide-mobile">Day</th>
-                            <th>Time</th>
+                            <th></th>
                             <th>Matchup</th>
                             <th class="hide-mobile">TV</th>
                             <th class="hide-mobile center">Links</th>
@@ -220,7 +219,8 @@ function createGameRow(game) {
     const date = formatGameDate(game.gameDate);
     const dayOfWeek = new Date(game.gameDate + 'T00:00:00')
         .toLocaleDateString('en-US', { weekday: 'short' });
-    const time = isFuture ? formatGameTime(game.startTimeUTC) : 'Final';
+    const dateDisplay = `${dayOfWeek}, ${date}`;
+    const timeDisplay = isFuture ? formatGameTime(game.startTimeUTC) : '';
 
     // Scores
     const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
@@ -261,9 +261,8 @@ function createGameRow(game) {
 
     return `
         <tr class="${resultClass} ${homeAwayClass}">
-            <td>${date}</td>
-            <td class="hide-mobile">${dayOfWeek}</td>
-            <td>${time}</td>
+            <td>${dateDisplay}</td>
+            <td>${timeDisplay}</td>
             <td class="matchup-cell ${gameStateClass}">${matchup}</td>
             <td class="hide-mobile">${tvNetwork}</td>
             <td class="hide-mobile center">${links}</td>
