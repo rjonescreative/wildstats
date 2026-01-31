@@ -65,7 +65,9 @@ header {
 
 .header-logo {
     height: 65px;
-    width: auto;
+    width: 97.5px;
+    object-fit: contain;
+    object-position: left;
 }
 
 .header-text h1 {
@@ -842,6 +844,7 @@ footer {
 
     .header-logo {
         height: 50px;
+        width: 75px;
     }
 
     .header-text h1 {
@@ -1099,6 +1102,21 @@ footer {
     #standings-view th.rank,
     #standings-view td.rank {
         display: none;
+    }
+
+    .schedule-table td:nth-child(1),
+    .schedule-table td:nth-child(2) {
+        font-size: 0.6rem;
+    }
+
+    .schedule-table th:nth-child(1),
+    .schedule-table td:nth-child(1) {
+        width: 65px; /* Date */
+    }
+
+    .schedule-table th:nth-child(2),
+    .schedule-table td:nth-child(2) {
+        width: 68px; /* Time */
     }
 }
 
@@ -1400,31 +1418,26 @@ footer {
 
 .schedule-table th:nth-child(1),
 .schedule-table td:nth-child(1) {
-    width: 70px; /* Date */
+    width: 120px; /* Date */
 }
 
 .schedule-table th:nth-child(2),
 .schedule-table td:nth-child(2) {
-    width: 50px; /* Day */
+    width: 130px; /* Time */
 }
 
 .schedule-table th:nth-child(3),
 .schedule-table td:nth-child(3) {
-    width: 140px; /* Time */
+    width: 340px; /* Matchup - includes scores and result */
 }
 
 .schedule-table th:nth-child(4),
 .schedule-table td:nth-child(4) {
-    width: 340px; /* Matchup - includes scores and result */
+    width: 110px; /* TV */
 }
 
 .schedule-table th:nth-child(5),
 .schedule-table td:nth-child(5) {
-    width: 110px; /* TV */
-}
-
-.schedule-table th:nth-child(6),
-.schedule-table td:nth-child(6) {
     width: 95px; /* Links */
 }
 
@@ -1622,26 +1635,26 @@ footer {
     /* Adjust schedule table column widths for tablets */
     .schedule-table th:nth-child(1),
     .schedule-table td:nth-child(1) {
-        width: 65px; /* Date */
+        width: 110px; /* Date */
+    }
+
+    .schedule-table th:nth-child(2),
+    .schedule-table td:nth-child(2) {
+        width: 120px; /* Time */
     }
 
     .schedule-table th:nth-child(3),
     .schedule-table td:nth-child(3) {
-        width: 130px; /* Time */
+        width: 310px; /* Matchup - includes scores and result */
     }
 
     .schedule-table th:nth-child(4),
     .schedule-table td:nth-child(4) {
-        width: 310px; /* Matchup - includes scores and result */
+        width: 100px; /* TV */
     }
 
     .schedule-table th:nth-child(5),
     .schedule-table td:nth-child(5) {
-        width: 100px; /* TV */
-    }
-
-    .schedule-table th:nth-child(6),
-    .schedule-table td:nth-child(6) {
         width: 90px; /* Links */
     }
 }
@@ -1671,29 +1684,39 @@ footer {
         transform: translateX(20px);
     }
 
+    .matchup-away-logo,
+    .matchup-home-logo {
+        display: none;
+    }
+
     .matchup-cell {
         font-size: 0.7rem;
-        grid-template-columns: 20px 32px 22px 18px 32px 22px 20px 1fr;
+        grid-template-columns: 32px 22px 18px 32px 22px 1fr;
         gap: 2px;
     }
 
     .matchup-cell.future-game {
-        grid-template-columns: 20px 32px 18px 32px 20px;
+        grid-template-columns: 32px 18px 32px;
     }
 
     /* Adjust schedule table column widths for mobile */
     .schedule-table th:nth-child(1),
     .schedule-table td:nth-child(1) {
-        width: 55px; /* Date */
+        width: 80px; /* Date */
+    }
+
+    .schedule-table th:nth-child(2),
+    .schedule-table td:nth-child(2) {
+        width: 80px; /* Time */
     }
 
     .schedule-table th:nth-child(3),
     .schedule-table td:nth-child(3) {
-        width: 95px; /* Time */
+        width: auto; /* Matchup - takes remaining space */
     }
 
-    .schedule-table th:nth-child(4),
-    .schedule-table td:nth-child(4) {
-        width: auto; /* Matchup - takes remaining space, includes scores and result */
+    .schedule-table td:nth-child(1),
+    .schedule-table td:nth-child(2) {
+        font-size: 0.65rem;
     }
 }

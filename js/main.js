@@ -29,13 +29,11 @@ document.addEventListener('DOMContentLoaded', () => {
     // Original logo state, captured once before any swap
     let originalLogoSrc = null;
     let originalLogoStyle = null;
-    let originalLogoWidth = null;
 
     function captureOriginalLogo(headerLogo) {
         if (originalLogoSrc === null) {
             originalLogoSrc = headerLogo.src;
             originalLogoStyle = headerLogo.style.cssText;
-            originalLogoWidth = headerLogo.offsetWidth;
         }
     }
 
@@ -53,9 +51,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const headerLogo = document.querySelector('.header-logo');
             if (headerLogo) {
                 captureOriginalLogo(headerLogo);
-
-                headerLogo.style.width = `${originalLogoWidth}px`;
-                headerLogo.style.objectFit = window.innerWidth <= 1024 ? 'cover' : 'contain';
                 headerLogo.src = '/images/goal-light.gif';
 
                 goalHorn.currentTime = 0;
@@ -83,9 +78,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const headerLogo = document.querySelector('.header-logo');
             if (headerLogo) {
                 captureOriginalLogo(headerLogo);
-
-                headerLogo.style.width = `${originalLogoWidth}px`;
-                headerLogo.style.objectFit = window.innerWidth <= 1024 ? 'cover' : 'contain';
                 headerLogo.src = '/images/opa.gif';
 
                 opponentGoal.currentTime = 0;
