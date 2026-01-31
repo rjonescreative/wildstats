@@ -1,9 +1,10 @@
 // Dashboard view module
-import { getStandings, getWildStats, getLeagueLeaders } from '../api.js';
+import { getStandings, getWildStats, getLeagueLeaders, getSchedule } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
 let leagueLeaders = null;
+let scheduleData = null;
 
 // NHL.com team slug mapping
 const TEAM_SLUGS = {
@@ -20,16 +21,19 @@ const TEAM_SLUGS = {
 export async function init() {
     try {
         // Fetch data (cached if available)
-        const [standings, wildData, leaders] = await Promise.all([
+        const [standings, wildData, leaders, schedule] = await Promise.all([
             getStandings(),
             getWildStats(),
-            getLeagueLeaders()
+            getLeagueLeaders(),
+            getSchedule('20252026')
         ]);
 
         standingsData = standings;
         leagueLeaders = leaders;
+        scheduleData = schedule;
 
         // Render views
+        renderGames();
         renderStatLeaders(wildData);
         renderCentralDivision();
     } catch (error) {
@@ -48,6 +52,106 @@ export function render() {
 
 export function cleanup() {
     // Clean up event listeners if needed
+}
+
+function renderGames() {
+    if (!scheduleData || !scheduleData.games) {
+        document.getElementById('dashboard-games').innerHTML =
+            '<div class="loading">Loading games...</div>';
+        return;
+    }
+
+    // Filter to regular season games only
+    const regularSeasonGames = scheduleData.games.filter(g => g.gameType === 2);
+
+    // Find last game (most recent completed game)
+    const completedGames = regularSeasonGames.filter(g =>
+        g.gameState === 'FINAL' || g.gameState === 'OFF'
+    );
+    const lastGame = completedGames[completedGames.length - 1];
+
+    // Find current/next games
+    const futureGames = regularSeasonGames.filter(g =>
+        g.gameState === 'FUT' || g.gameState === 'LIVE'
+    );
+    const currentOrNextGame = futureGames[0];
+    const upcomingGame = futureGames[1];
+
+    const gamesHtml = `
+        <div class="games-grid">
+            ${lastGame ? renderGameCard('Last', lastGame, true) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
+            ${currentOrNextGame ? renderGameCard(currentOrNextGame.gameState === 'LIVE' ? 'Current' : 'Next', currentOrNextGame, false) : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
+            ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
+        </div>
+        <div class="section-footer">
+            <a href="/schedule" class="text-link" data-link>View full schedule →</a>
+        </div>
+    `;
+
+    document.getElementById('dashboard-games').innerHTML = gamesHtml;
+}
+
+function renderGameCard(label, game, isPast) {
+    const isMinHome = game.homeTeam.abbrev === 'MIN';
+    const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
+
+    // Format date
+    const gameDate = new Date(game.gameDate + 'T00:00:00');
+    const dateStr = gameDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric'
+    });
+
+    // Format time for future games
+    let timeStr = '';
+    if (!isPast && game.startTimeUTC) {
+        const time = new Date(game.startTimeUTC);
+        timeStr = new Intl.DateTimeFormat('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+            hour12: true,
+            timeZoneName: 'short'
+        }).format(time);
+    }
+
+    // Get scores and result for past games
+    let awayScore = '';
+    let homeScore = '';
+    let resultText = '';
+    let resultClass = '';
+
+    if (isPast) {
+        const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
+        const oppScore = isMinHome ? game.awayTeam.score : game.homeTeam.score;
+        awayScore = ` ${isMinHome ? oppScore : minScore}`;
+        homeScore = ` ${isMinHome ? minScore : oppScore}`;
+
+        const didWin = minScore > oppScore;
+        const periodType = game.periodDescriptor?.periodType || 'REG';
+
+        resultClass = didWin ? 'game-win' : 'game-loss';
+        let resultLabel = didWin ? 'W' : 'L';
+        if (periodType === 'OT') resultLabel += ' (OT)';
+        if (periodType === 'SO') resultLabel += ' (SO)';
+        resultText = `<span class="${resultClass}">${resultLabel}</span>`;
+    }
+
+    return `
+        <div class="game-card ${resultClass}">
+            <div class="game-label">${label} • ${dateStr}${timeStr ? ' • ' + timeStr : ''}${resultText ? ' • ' + resultText : ''}</div>
+            <div class="game-matchup">
+                <div class="team-display ${isMinHome ? 'opponent-team' : 'wild-team'}">
+                    <img src="/logos/${isMinHome ? oppTeam.abbrev : 'MIN'}_dark.svg" alt="${isMinHome ? oppTeam.abbrev : 'MIN'}" class="game-team-logo">
+                    <div class="team-abbrev">${isMinHome ? oppTeam.abbrev : 'MIN'}${awayScore}</div>
+                </div>
+                <div class="game-at">@</div>
+                <div class="team-display ${isMinHome ? 'wild-team' : 'opponent-team'}">
+                    <img src="/logos/${isMinHome ? 'MIN' : oppTeam.abbrev}_dark.svg" alt="${isMinHome ? 'MIN' : oppTeam.abbrev}" class="game-team-logo">
+                    <div class="team-abbrev">${isMinHome ? 'MIN' : oppTeam.abbrev}${homeScore}</div>
+                </div>
+            </div>
+        </div>
+    `;
 }
 
 function setupSortListeners() {

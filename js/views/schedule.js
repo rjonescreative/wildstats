@@ -110,10 +110,10 @@ function groupGamesByMonth(games) {
 function formatGameTime(startTimeUTC) {
     const date = new Date(startTimeUTC);
     return new Intl.DateTimeFormat('en-US', {
-        timeZone: 'America/Chicago',
         hour: 'numeric',
         minute: '2-digit',
-        hour12: true
+        hour12: true,
+        timeZoneName: 'short'
     }).format(date);
 }
 

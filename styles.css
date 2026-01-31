@@ -69,7 +69,7 @@ header {
 }
 
 .header-text h1 {
-    font-size: 1.5rem;
+    font-size: 2rem;
     font-weight: 600;
     margin-bottom: 0.25rem;
     color: var(--text-primary);
@@ -78,7 +78,7 @@ header {
 
 .subtitle {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     font-weight: 400;
     letter-spacing: 0.01em;
 }
@@ -365,7 +365,7 @@ main {
 }
 
 .standings-section {
-    margin-bottom: 2rem;
+    margin-bottom: 1rem;
     overflow: visible;
 }
 
@@ -658,6 +658,97 @@ td {
     letter-spacing: 0.05em;
 }
 
+/* Dashboard Games Section */
+.games-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.game-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+    transition: border-color 0.2s ease;
+}
+
+.game-card:hover {
+    border-color: var(--wild-green);
+}
+
+.game-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-secondary);
+}
+
+.game-matchup {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    justify-content: center;
+}
+
+.team-display {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.game-team-logo {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+}
+
+.team-abbrev {
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.wild-team .team-abbrev {
+    color: var(--wild-green);
+}
+
+.game-at {
+    font-size: 1.25rem;
+    font-weight: 300;
+    color: var(--text-secondary);
+    margin: 0 0.5rem;
+}
+
+.game-score {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+}
+
+.score-line {
+    font-size: 1.5rem;
+    font-weight: 700;
+}
+
+.game-result {
+    font-size: 0.875rem;
+    font-weight: 600;
+}
+
+.game-date {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
 footer {
     background-color: var(--bg-secondary);
     border-top: 1px solid var(--border-subtle);
@@ -675,6 +766,33 @@ footer {
 
     header {
         padding: 1.5rem 0 1rem 0;
+    }
+
+    /* Stack games on medium screens */
+    .games-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .game-card {
+        padding: 1rem;
+    }
+
+    .game-team-logo {
+        width: 64px;
+        height: 64px;
+    }
+
+    .team-abbrev {
+        font-size: 0.9rem;
+    }
+
+    .score-line {
+        font-size: 1.25rem;
+    }
+
+    .game-at {
+        font-size: 1rem;
     }
 
     .header-content {
@@ -697,7 +815,7 @@ footer {
     }
 
     .header-text h1 {
-        font-size: 1.35rem;
+        font-size: 1.75rem;
     }
 
     .standings-controls {
@@ -807,7 +925,7 @@ footer {
 
 @media (max-width: 768px) {
     header h1 {
-        font-size: 1.15rem;
+        font-size: 1.4rem;
     }
 
     .nav-link {
@@ -840,6 +958,38 @@ footer {
     .team-logo {
         display: none;
     }
+
+    /* Further reduce game card sizes */
+    .game-card {
+        padding: 0.75rem;
+        gap: 0.75rem;
+    }
+
+    .game-team-logo {
+        width: 52px;
+        height: 52px;
+    }
+
+    .team-abbrev {
+        font-size: 0.85rem;
+    }
+
+    .score-line {
+        font-size: 1.1rem;
+    }
+
+    .game-label {
+        font-size: 0.7rem;
+    }
+
+    .game-date {
+        font-size: 0.8rem;
+    }
+
+    .game-at {
+        font-size: 0.9rem;
+        margin: 0 0.25rem;
+    }
 }
 
 @media (max-width: 440px) {
@@ -850,6 +1000,41 @@ footer {
 
     .main-nav {
         gap: 0.25rem;
+    }
+
+    /* Very small game cards for tiny screens */
+    .game-card {
+        padding: 0.5rem;
+        gap: 0.5rem;
+    }
+
+    .game-team-logo {
+        width: 44px;
+        height: 44px;
+    }
+
+    .team-abbrev {
+        font-size: 0.75rem;
+    }
+
+    .score-line {
+        font-size: 1rem;
+    }
+
+    .game-result {
+        font-size: 0.75rem;
+    }
+
+    .game-label {
+        font-size: 0.65rem;
+    }
+
+    .game-date {
+        font-size: 0.75rem;
+    }
+
+    .game-at {
+        font-size: 0.85rem;
     }
 
     .team-name {
@@ -1269,7 +1454,8 @@ footer {
 }
 
 .game-loss {
-    color: var(--text-secondary);
+    color: var(--wild-red);
+    font-weight: 600;
 }
 
 .game-home {
