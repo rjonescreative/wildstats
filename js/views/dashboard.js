@@ -258,7 +258,7 @@ function createStandingsTable(teams, state) {
         <table>
             <thead>
                 <tr>
-                    <th class="center">#</th>
+                    <th class="center rank">#</th>
                     <th>Team</th>
                     <th class="center" data-tooltip="Games Played">GP</th>
                     <th class="center" data-tooltip="Wins">W</th>

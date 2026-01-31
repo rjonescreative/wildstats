@@ -505,6 +505,36 @@ td {
     gap: 0.75rem;
 }
 
+/* Fix team column width for consistent alignment across standings tables */
+#standings-view .standings-table table {
+    table-layout: fixed;
+}
+
+#standings-view th.team-col {
+    width: 24%;
+}
+
+@media (max-width: 1400px) {
+    #standings-view .standings-table table {
+        table-layout: auto;
+    }
+
+    #standings-view th.team-col {
+        width: auto;
+    }
+
+    #standings-view .team-full-name {
+        display: none;
+    }
+
+    #standings-view .team-abbrev-text {
+        display: inline;
+        font-weight: 600;
+        font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+        font-size: 0.8rem;
+    }
+}
+
 .team-link {
     display: flex;
     align-items: center;
@@ -1064,9 +1094,9 @@ footer {
     }
 
     /* Hide rank column on small screens in standings tables only */
-    #dashboard-view th:first-child,
+    #dashboard-view th.rank,
     #dashboard-view td.rank,
-    #standings-view th:first-child,
+    #standings-view th.rank,
     #standings-view td.rank {
         display: none;
     }

@@ -254,8 +254,8 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
         <table>
             <thead>
                 <tr>
-                    <th class="center">#</th>
-                    <th>Team</th>
+                    <th class="center rank">#</th>
+                    <th class="team-col">Team</th>
                     <th class="center" data-tooltip="Games Played">GP</th>
                     <th class="center" data-tooltip="Wins">W</th>
                     <th class="center" data-tooltip="Losses">L</th>
@@ -413,7 +413,7 @@ function createWildcardTable(teams, state) {
         <table>
             <thead>
                 <tr>
-                    <th>Team</th>
+                    <th class="team-col">Team</th>
                     <th class="center" data-tooltip="Games Played">GP</th>
                     <th class="center" data-tooltip="Wins">W</th>
                     <th class="center" data-tooltip="Losses">L</th>
