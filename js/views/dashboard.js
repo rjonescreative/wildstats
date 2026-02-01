@@ -85,14 +85,14 @@ async function renderGames() {
 
     // Find current/next games
     const futureGames = regularSeasonGames.filter(g =>
-        g.gameState === 'FUT' || g.gameState === 'LIVE'
+        g.gameState === 'FUT' || g.gameState === 'LIVE' || g.gameState === 'CRIT'
     );
     const currentOrNextGame = futureGames[0];
     const upcomingGame = futureGames[1];
 
-    // Fetch live game data if there's a live game
+    // Fetch live game data if there's a live or starting game
     liveGameData = null;
-    if (currentOrNextGame && currentOrNextGame.gameState === 'LIVE') {
+    if (currentOrNextGame && (currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT')) {
         currentLiveGameId = currentOrNextGame.id;
         try {
             liveGameData = await getLiveGame(currentOrNextGame.id);
@@ -114,7 +114,7 @@ async function renderGames() {
     const gamesHtml = `
         <div class="games-grid">
             ${lastGame ? renderGameCard('Last', lastGame, true, false) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
-            ${currentOrNextGame ? renderGameCard(currentOrNextGame.gameState === 'LIVE' ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
+            ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
             ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
         </div>
         <div class="section-footer">
@@ -147,10 +147,12 @@ function startLiveGamePolling(game) {
             updateLiveGameCard(game);
 
             // Check if game has ended
-            if (newData.gameState !== 'LIVE') {
+            if (newData.gameState !== 'LIVE' && newData.gameState !== 'CRIT') {
                 clearInterval(liveGameInterval);
                 liveGameInterval = null;
                 currentLiveGameId = null;
+                // Refresh the full games section after a delay to show Final state
+                setTimeout(() => renderGames(), 5000);
             }
         } catch (error) {
             console.error('Error polling live game:', error);

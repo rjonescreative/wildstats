@@ -67,7 +67,7 @@ function renderTables() {
     // Filter games based on toggle
     let gamesToShow = allGames;
     if (hidePastGames) {
-        gamesToShow = allGames.filter(g => g.gameState === 'FUT' || g.gameState === 'LIVE');
+        gamesToShow = allGames.filter(g => g.gameState === 'FUT' || g.gameState === 'LIVE' || g.gameState === 'CRIT');
     }
 
     // Group games by month
@@ -213,7 +213,7 @@ function createMonthTable(monthName, games) {
 function createGameRow(game) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
-    const isFuture = game.gameState === 'FUT' || game.gameState === 'LIVE';
+    const isFuture = game.gameState === 'FUT' || game.gameState === 'LIVE' || game.gameState === 'CRIT';
     const isPast = game.gameState === 'FINAL' || game.gameState === 'OFF';
 
     const date = formatGameDate(game.gameDate);
