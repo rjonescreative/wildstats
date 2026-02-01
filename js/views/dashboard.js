@@ -194,7 +194,8 @@ function updateLiveGameCard(game) {
     let periodStr = '';
     if (period) {
         if (period.periodType === 'REG') {
-            periodStr = `P${period.number}`;
+            const ordinals = ['1ST', '2ND', '3RD'];
+            periodStr = ordinals[period.number - 1] || `${period.number}TH`;
         } else if (period.periodType === 'OT') {
             periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
         } else if (period.periodType === 'SO') {
@@ -207,7 +208,7 @@ function updateLiveGameCard(game) {
         timeRemaining = 'INT';
     }
 
-    liveInfo.textContent = `${periodStr} ${timeRemaining}`;
+    liveInfo.innerHTML = `<span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span>`;
 }
 
 function renderGameCard(label, game, isPast, isLive) {
@@ -265,7 +266,8 @@ function renderGameCard(label, game, isPast, isLive) {
         let periodStr = '';
         if (period) {
             if (period.periodType === 'REG') {
-                periodStr = `P${period.number}`;
+                const ordinals = ['1ST', '2ND', '3RD'];
+                periodStr = ordinals[period.number - 1] || `${period.number}TH`;
             } else if (period.periodType === 'OT') {
                 periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
             } else if (period.periodType === 'SO') {
@@ -278,7 +280,7 @@ function renderGameCard(label, game, isPast, isLive) {
             timeRemaining = 'INT';
         }
 
-        liveInfo = `<div class="live-game-info">${periodStr} ${timeRemaining}</div>`;
+        liveInfo = `<div class="live-game-info"><span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span></div>`;
     }
 
     return `

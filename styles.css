@@ -788,10 +788,26 @@ td {
     text-align: center;
     font-size: 0.875rem;
     font-weight: 600;
-    color: var(--wild-green);
     margin-top: 0.5rem;
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--border-subtle);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.period-badge {
+    background-color: #ffffff;
+    color: #000000;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+}
+
+.time-remaining {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
 }
 
 footer {

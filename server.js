@@ -276,11 +276,23 @@ app.get('/api/news/wild', async (req, res) => {
             }
         }
 
-        // Sort by date (newest first) and take top 6
+        // Sort by date (newest first) and take top 6, max 3 per source
         articles.sort((a, b) => b.date - a.date);
-        const topArticles = articles.slice(0, 6).map(({ title, link, image, source }) => ({
-            title, link, image, source
-        }));
+        const sourceCounts = {};
+        const topArticles = [];
+        for (const article of articles) {
+            const count = sourceCounts[article.source] || 0;
+            if (count < 3) {
+                topArticles.push({
+                    title: article.title,
+                    link: article.link,
+                    image: article.image,
+                    source: article.source
+                });
+                sourceCounts[article.source] = count + 1;
+            }
+            if (topArticles.length >= 6) break;
+        }
 
         res.set('Cache-Control', 'public, max-age=1800');
         res.json(topArticles);
