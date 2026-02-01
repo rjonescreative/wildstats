@@ -58,3 +58,12 @@ export async function getSchedule(season = '20252026', forceRefresh = false) {
 export async function getNews(forceRefresh = false) {
     return fetchWithCache('/api/news/wild', 'news', forceRefresh);
 }
+
+// Get live game data (no caching - always fresh)
+export async function getLiveGame(gameId) {
+    const response = await fetch(`/api/game/${gameId}/live`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}

@@ -784,6 +784,16 @@ td {
     color: var(--text-secondary);
 }
 
+.live-game-info {
+    text-align: center;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--wild-green);
+    margin-top: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid var(--border-subtle);
+}
+
 footer {
     background-color: var(--bg-secondary);
     border-top: 1px solid var(--border-subtle);

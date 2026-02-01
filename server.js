@@ -181,6 +181,41 @@ app.get('/api/schedule/:season', async (req, res) => {
     }
 });
 
+// Live game data endpoint
+app.get('/api/game/:id/live', async (req, res) => {
+    const gameId = req.params.id;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`, {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        // Return only the fields needed for live score display
+        res.set('Cache-Control', 'public, max-age=10'); // Short cache for live data
+        res.json({
+            gameState: data.gameState,
+            period: data.periodDescriptor,
+            clock: data.clock,
+            awayTeam: {
+                abbrev: data.awayTeam?.abbrev,
+                score: data.awayTeam?.score
+            },
+            homeTeam: {
+                abbrev: data.homeTeam?.abbrev,
+                score: data.homeTeam?.score
+            }
+        });
+    } catch (error) {
+        console.error('Error fetching live game:', error);
+        res.status(500).json({ error: 'Failed to fetch live game data' });
+    }
+});
+
 // Wild news endpoint (combines The Athletic RSS + NHL.com)
 app.get('/api/news/wild', async (req, res) => {
     try {

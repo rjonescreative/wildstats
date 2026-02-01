@@ -1,10 +1,13 @@
 // Dashboard view module
-import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews } from '../api.js';
+import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
 let leagueLeaders = null;
 let scheduleData = null;
+let liveGameData = null;
+let liveGameInterval = null;
+let currentLiveGameId = null;
 
 // NHL.com team slug mapping
 const TEAM_SLUGS = {
@@ -56,10 +59,15 @@ export function render() {
 }
 
 export function cleanup() {
-    // Clean up event listeners if needed
+    // Stop live game polling when leaving dashboard
+    if (liveGameInterval) {
+        clearInterval(liveGameInterval);
+        liveGameInterval = null;
+    }
+    currentLiveGameId = null;
 }
 
-function renderGames() {
+async function renderGames() {
     if (!scheduleData || !scheduleData.games) {
         document.getElementById('dashboard-games').innerHTML =
             '<div class="loading">Loading games...</div>';
@@ -82,11 +90,32 @@ function renderGames() {
     const currentOrNextGame = futureGames[0];
     const upcomingGame = futureGames[1];
 
+    // Fetch live game data if there's a live game
+    liveGameData = null;
+    if (currentOrNextGame && currentOrNextGame.gameState === 'LIVE') {
+        currentLiveGameId = currentOrNextGame.id;
+        try {
+            liveGameData = await getLiveGame(currentOrNextGame.id);
+        } catch (error) {
+            console.error('Error fetching live game data:', error);
+        }
+
+        // Start polling for live updates (every 10 seconds)
+        startLiveGamePolling(currentOrNextGame);
+    } else {
+        // No live game, stop any existing polling
+        if (liveGameInterval) {
+            clearInterval(liveGameInterval);
+            liveGameInterval = null;
+        }
+        currentLiveGameId = null;
+    }
+
     const gamesHtml = `
         <div class="games-grid">
-            ${lastGame ? renderGameCard('Last', lastGame, true) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
-            ${currentOrNextGame ? renderGameCard(currentOrNextGame.gameState === 'LIVE' ? 'Current' : 'Next', currentOrNextGame, false) : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
-            ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
+            ${lastGame ? renderGameCard('Last', lastGame, true, false) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
+            ${currentOrNextGame ? renderGameCard(currentOrNextGame.gameState === 'LIVE' ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
+            ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
         </div>
         <div class="section-footer">
             <a href="/schedule" class="text-link" data-link>View full schedule →</a>
@@ -96,7 +125,92 @@ function renderGames() {
     document.getElementById('dashboard-games').innerHTML = gamesHtml;
 }
 
-function renderGameCard(label, game, isPast) {
+function startLiveGamePolling(game) {
+    // Clear any existing interval
+    if (liveGameInterval) {
+        clearInterval(liveGameInterval);
+    }
+
+    // Poll every 10 seconds
+    liveGameInterval = setInterval(async () => {
+        if (!currentLiveGameId) {
+            clearInterval(liveGameInterval);
+            liveGameInterval = null;
+            return;
+        }
+
+        try {
+            const newData = await getLiveGame(currentLiveGameId);
+
+            // Check if game has ended
+            if (newData.gameState !== 'LIVE') {
+                clearInterval(liveGameInterval);
+                liveGameInterval = null;
+                currentLiveGameId = null;
+                // Refresh the full games section to update states
+                renderGames();
+                return;
+            }
+
+            // Update the live game data and refresh just the live card
+            liveGameData = newData;
+            updateLiveGameCard(game);
+        } catch (error) {
+            console.error('Error polling live game:', error);
+        }
+    }, 10000);
+}
+
+function updateLiveGameCard(game) {
+    const liveCard = document.querySelector('.games-grid > .game-card:nth-child(2)');
+    if (!liveCard || !liveGameData) return;
+
+    const isMinHome = game.homeTeam.abbrev === 'MIN';
+
+    // Update scores
+    const awayScore = liveGameData.awayTeam?.score ?? 0;
+    const homeScore = liveGameData.homeTeam?.score ?? 0;
+
+    const teamAbbrevs = liveCard.querySelectorAll('.team-abbrev');
+    if (teamAbbrevs.length >= 2) {
+        teamAbbrevs[0].textContent = `${isMinHome ? game.awayTeam.abbrev : 'MIN'} ${isMinHome ? awayScore : (isMinHome ? homeScore : awayScore)}`;
+        teamAbbrevs[1].textContent = `${isMinHome ? 'MIN' : game.homeTeam.abbrev} ${isMinHome ? homeScore : (isMinHome ? awayScore : homeScore)}`;
+
+        // Fix: correctly assign scores based on position
+        teamAbbrevs[0].textContent = `${isMinHome ? game.awayTeam.abbrev : 'MIN'} ${awayScore}`;
+        teamAbbrevs[1].textContent = `${isMinHome ? 'MIN' : game.homeTeam.abbrev} ${homeScore}`;
+    }
+
+    // Update period and time
+    let liveInfo = liveCard.querySelector('.live-game-info');
+    if (!liveInfo) {
+        liveInfo = document.createElement('div');
+        liveInfo.className = 'live-game-info';
+        liveCard.appendChild(liveInfo);
+    }
+
+    const period = liveGameData.period;
+    const clock = liveGameData.clock;
+    let periodStr = '';
+    if (period) {
+        if (period.periodType === 'REG') {
+            periodStr = `P${period.number}`;
+        } else if (period.periodType === 'OT') {
+            periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
+        } else if (period.periodType === 'SO') {
+            periodStr = 'SO';
+        }
+    }
+
+    let timeRemaining = clock?.timeRemaining || '';
+    if (clock?.inIntermission) {
+        timeRemaining = 'INT';
+    }
+
+    liveInfo.textContent = `${periodStr} ${timeRemaining}`;
+}
+
+function renderGameCard(label, game, isPast, isLive) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
 
@@ -109,7 +223,7 @@ function renderGameCard(label, game, isPast) {
 
     // Format time for future games
     let timeStr = '';
-    if (!isPast && game.startTimeUTC) {
+    if (!isPast && !isLive && game.startTimeUTC) {
         const time = new Date(game.startTimeUTC);
         timeStr = new Intl.DateTimeFormat('en-US', {
             hour: 'numeric',
@@ -124,6 +238,7 @@ function renderGameCard(label, game, isPast) {
     let homeScore = '';
     let resultText = '';
     let resultClass = '';
+    let liveInfo = '';
 
     if (isPast) {
         const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
@@ -139,6 +254,31 @@ function renderGameCard(label, game, isPast) {
         if (periodType === 'OT') resultLabel += ' (OT)';
         if (periodType === 'SO') resultLabel += ' (SO)';
         resultText = `<span class="${resultClass}">${resultLabel}</span>`;
+    } else if (isLive && liveGameData) {
+        // Show live score (no color highlighting)
+        awayScore = ` ${liveGameData.awayTeam?.score ?? 0}`;
+        homeScore = ` ${liveGameData.homeTeam?.score ?? 0}`;
+
+        // Format period and time
+        const period = liveGameData.period;
+        const clock = liveGameData.clock;
+        let periodStr = '';
+        if (period) {
+            if (period.periodType === 'REG') {
+                periodStr = `P${period.number}`;
+            } else if (period.periodType === 'OT') {
+                periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
+            } else if (period.periodType === 'SO') {
+                periodStr = 'SO';
+            }
+        }
+
+        let timeRemaining = clock?.timeRemaining || '';
+        if (clock?.inIntermission) {
+            timeRemaining = 'INT';
+        }
+
+        liveInfo = `<div class="live-game-info">${periodStr} ${timeRemaining}</div>`;
     }
 
     return `
@@ -155,6 +295,7 @@ function renderGameCard(label, game, isPast) {
                     <div class="team-abbrev">${isMinHome ? 'MIN' : oppTeam.abbrev}${homeScore}</div>
                 </div>
             </div>
+            ${liveInfo}
         </div>
     `;
 }
