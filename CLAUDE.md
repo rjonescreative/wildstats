@@ -13,6 +13,8 @@
 
 4. **Local server restarts are permitted.** You may stop and restart the local Express server as needed without additional permission.
 
+5. **Include all changed files in commits.** When committing, always include all modified/staged files, even if they weren't part of the most recent changes, unless told otherwise.
+
 ## Project Structure
 
 - `server.js` - Local Express development server
