@@ -11,6 +11,8 @@
    - Create/update the corresponding Cloudflare Function in `functions/api/`
    - Cloudflare Functions use the pattern: `functions/api/[path]/[file].js` with `export async function onRequest(context)`
 
+4. **Local server restarts are permitted.** You may stop and restart the local Express server as needed without additional permission.
+
 ## Project Structure
 
 - `server.js` - Local Express development server
