@@ -216,19 +216,23 @@ app.get('/api/game/:id/live', async (req, res) => {
     }
 });
 
-// Wild news endpoint (combines The Athletic RSS + NHL.com)
+// Wild news endpoint (combines The Athletic RSS + NHL.com + Star Tribune)
 app.get('/api/news/wild', async (req, res) => {
     try {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        // Fetch from both sources in parallel
-        const [athleticResponse, nhlResponse] = await Promise.all([
+        // Fetch from all sources in parallel
+        const [athleticResponse, nhlResponse, stribResponse] = await Promise.all([
             fetch('https://www.nytimes.com/athletic/rss/nhl/wild/', {
                 signal: controller.signal,
                 redirect: 'follow'
             }).catch(() => null),
             fetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=5', {
+                signal: controller.signal,
+                redirect: 'follow'
+            }).catch(() => null),
+            fetch('https://www.startribune.com/sports/index.rss2', {
                 signal: controller.signal,
                 redirect: 'follow'
             }).catch(() => null)
@@ -274,6 +278,30 @@ app.get('/api/news/wild', async (req, res) => {
                     });
                 });
             }
+        }
+
+        // Parse Star Tribune RSS (only Wild articles)
+        if (stribResponse && stribResponse.ok) {
+            const xml = await stribResponse.text();
+            const items = xml.split('<item>').slice(1);
+            items.forEach(item => {
+                // Only include items with Wild category
+                if (!item.includes('domain="/sports/wild"')) return;
+
+                const title = (item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || [])[1] || '';
+                const link = (item.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
+                const pubDate = (item.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '';
+                // Star Tribune doesn't include images in RSS, use empty string
+                if (title && link) {
+                    articles.push({
+                        title,
+                        link,
+                        image: '',
+                        source: 'Star Tribune',
+                        date: pubDate ? new Date(pubDate) : new Date(0)
+                    });
+                }
+            });
         }
 
         // Sort by date (newest first) and take top 6, max 3 per source

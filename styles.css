@@ -706,6 +706,7 @@ td {
     align-items: center;
     gap: 1rem;
     transition: border-color 0.2s ease;
+    position: relative;
 }
 
 .game-card:hover {
@@ -785,13 +786,17 @@ td {
 }
 
 .live-game-info {
-    text-align: center;
     font-size: 0.875rem;
     font-weight: 600;
     margin-top: 0.5rem;
     display: flex;
     align-items: center;
-    justify-content: center;
+    justify-content: space-between;
+}
+
+.live-status {
+    display: flex;
+    align-items: center;
     gap: 0.5rem;
 }
 
@@ -1671,6 +1676,14 @@ footer {
 .game-link:hover {
     opacity: 0.8;
     text-decoration: underline;
+}
+
+.game-link.live-link {
+    color: var(--wild-green);
+    font-weight: 600;
+    position: absolute;
+    bottom: 0.75rem;
+    right: 0.75rem;
 }
 
 /* Playoff position key */

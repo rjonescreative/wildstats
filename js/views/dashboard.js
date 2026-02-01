@@ -142,19 +142,16 @@ function startLiveGamePolling(game) {
         try {
             const newData = await getLiveGame(currentLiveGameId);
 
+            // Update the live game data and refresh just the live card
+            liveGameData = newData;
+            updateLiveGameCard(game);
+
             // Check if game has ended
             if (newData.gameState !== 'LIVE') {
                 clearInterval(liveGameInterval);
                 liveGameInterval = null;
                 currentLiveGameId = null;
-                // Refresh the full games section to update states
-                renderGames();
-                return;
             }
-
-            // Update the live game data and refresh just the live card
-            liveGameData = newData;
-            updateLiveGameCard(game);
         } catch (error) {
             console.error('Error polling live game:', error);
         }
@@ -191,24 +188,40 @@ function updateLiveGameCard(game) {
 
     const period = liveGameData.period;
     const clock = liveGameData.clock;
+    const isGameOver = liveGameData.gameState === 'FINAL' || liveGameData.gameState === 'OFF';
+
     let periodStr = '';
-    if (period) {
-        if (period.periodType === 'REG') {
-            const ordinals = ['1ST', '2ND', '3RD'];
-            periodStr = ordinals[period.number - 1] || `${period.number}TH`;
-        } else if (period.periodType === 'OT') {
-            periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
-        } else if (period.periodType === 'SO') {
-            periodStr = 'SO';
+    let timeRemaining = '';
+
+    if (isGameOver) {
+        // Game has ended - show Final with OT/SO if applicable
+        periodStr = 'Final';
+        if (period?.periodType === 'OT') {
+            timeRemaining = 'OT';
+        } else if (period?.periodType === 'SO') {
+            timeRemaining = 'SO';
+        }
+    } else {
+        // Game is still live
+        if (period) {
+            if (period.periodType === 'REG') {
+                const ordinals = ['1ST', '2ND', '3RD'];
+                periodStr = ordinals[period.number - 1] || `${period.number}TH`;
+            } else if (period.periodType === 'OT') {
+                periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
+            } else if (period.periodType === 'SO') {
+                periodStr = 'SO';
+            }
+        }
+
+        timeRemaining = clock?.timeRemaining || '';
+        if (clock?.inIntermission) {
+            timeRemaining = 'INT';
         }
     }
 
-    let timeRemaining = clock?.timeRemaining || '';
-    if (clock?.inIntermission) {
-        timeRemaining = 'INT';
-    }
-
-    liveInfo.innerHTML = `<span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span>`;
+    const liveLink = isGameOver ? '' : (game.gameCenterLink ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>` : '');
+    liveInfo.innerHTML = `<span class="live-status"><span class="period-badge">${periodStr}</span>${timeRemaining ? ` <span class="time-remaining">${timeRemaining}</span>` : ''}</span>${liveLink}`;
 }
 
 function renderGameCard(label, game, isPast, isLive) {
@@ -280,7 +293,8 @@ function renderGameCard(label, game, isPast, isLive) {
             timeRemaining = 'INT';
         }
 
-        liveInfo = `<div class="live-game-info"><span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span></div>`;
+        const liveLink = game.gameCenterLink ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>` : '';
+        liveInfo = `<div class="live-game-info"><span class="live-status"><span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span></span>${liveLink}</div>`;
     }
 
     return `

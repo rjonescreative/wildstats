@@ -249,7 +249,10 @@ function createGameRow(game) {
 
     // Links
     let links = '';
-    if (isPast && game.gameCenterLink) {
+    const isLive = game.gameState === 'LIVE';
+    if (isLive && game.gameCenterLink) {
+        links = `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>`;
+    } else if (isPast && game.gameCenterLink) {
         links = `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link">Recap ↗</a>`;
     } else if (isFuture && game.ticketsLink) {
         links = `<a href="${game.ticketsLink}" target="_blank" rel="noopener" class="game-link">Tickets ↗</a>`;
