@@ -53,3 +53,8 @@ export async function getLeagueLeaders(forceRefresh = false) {
 export async function getSchedule(season = '20252026', forceRefresh = false) {
     return fetchWithCache(`/api/schedule/${season}`, `schedule_${season}`, forceRefresh);
 }
+
+// Get Wild news from The Athletic
+export async function getNews(forceRefresh = false) {
+    return fetchWithCache('/api/news/wild', 'news', forceRefresh);
+}

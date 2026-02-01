@@ -1,5 +1,5 @@
 // Dashboard view module
-import { getStandings, getWildStats, getLeagueLeaders, getSchedule } from '../api.js';
+import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
@@ -36,6 +36,11 @@ export async function init() {
         renderGames();
         renderStatLeaders(wildData);
         renderCentralDivision();
+
+        // News fetched independently so a failure doesn't block the dashboard
+        getNews().then(renderNews).catch(() => {
+            document.getElementById('news-section').innerHTML = '';
+        });
     } catch (error) {
         console.error('Error loading dashboard:', error);
         document.getElementById('stat-leaders').innerHTML =
@@ -150,6 +155,26 @@ function renderGameCard(label, game, isPast) {
                     <div class="team-abbrev">${isMinHome ? 'MIN' : oppTeam.abbrev}${homeScore}</div>
                 </div>
             </div>
+        </div>
+    `;
+}
+
+function renderNews(articles) {
+    const container = document.getElementById('news-section');
+    if (!articles || articles.length === 0) {
+        container.innerHTML = '<div class="loading">No news available.</div>';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="news-grid">
+            ${articles.map(article => `
+                <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-card">
+                    <img src="${article.image}" alt="${article.title}" class="news-card-image">
+                    <div class="news-card-title">${article.title}</div>
+                    <div class="news-card-source">${article.source}</div>
+                </a>
+            `).join('')}
         </div>
     `;
 }

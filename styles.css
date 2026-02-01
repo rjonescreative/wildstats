@@ -803,8 +803,9 @@ footer {
         padding: 1.5rem 0 1rem 0;
     }
 
-    /* Stack games on medium screens */
-    .games-grid {
+    /* Stack games and news on medium screens */
+    .games-grid,
+    .news-grid {
         grid-template-columns: 1fr;
         gap: 0.5rem;
     }
@@ -1566,6 +1567,52 @@ footer {
 
 .game-loss {
     color: var(--wild-red);
+}
+
+/* Dashboard News Section */
+.news-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.news-card {
+    background-color: var(--bg-secondary);
+    border: 1px solid var(--border-medium);
+    border-radius: 8px;
+    overflow: hidden;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    transition: border-color 0.2s ease;
+}
+
+.news-card:hover {
+    border-color: var(--wild-green);
+}
+
+.news-card-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+    display: block;
+}
+
+.news-card-title {
+    padding: 0.75rem 0.75rem 0.25rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    line-height: 1.4;
+}
+
+.news-card-source {
+    padding: 0 0.75rem 0.75rem;
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    text-align: right;
+    margin-top: auto;
 }
 
 .opp-in-playoffs {
