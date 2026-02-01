@@ -1646,6 +1646,12 @@ footer {
     margin-top: auto;
 }
 
+@media (max-width: 768px) {
+    .news-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
 .opp-in-playoffs {
     text-decoration: underline;
     text-decoration-color: var(--wild-green);

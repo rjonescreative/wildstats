@@ -331,7 +331,7 @@ function renderNews(articles) {
                 <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-card">
                     <img src="${article.image}" alt="${article.title}" class="news-card-image">
                     <div class="news-card-title">${article.title}</div>
-                    <div class="news-card-source">${article.source}</div>
+                    <div class="news-card-source">${article.source} ↗</div>
                 </a>
             `).join('')}
         </div>

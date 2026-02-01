@@ -60,12 +60,12 @@ export async function onRequest() {
                 const title = (item.match(/<title><!\[CDATA\[([\s\S]*?)\]\]><\/title>/) || [])[1] || '';
                 const link = (item.match(/<link>([\s\S]*?)<\/link>/) || [])[1] || '';
                 const pubDate = (item.match(/<pubDate>([\s\S]*?)<\/pubDate>/) || [])[1] || '';
-                // Star Tribune doesn't include images in RSS, use empty string
+                // Star Tribune doesn't include images in RSS, use placeholder
                 if (title && link) {
                     articles.push({
                         title,
                         link,
-                        image: '',
+                        image: '/images/startribune-placeholder.gif',
                         source: 'Star Tribune',
                         date: pubDate ? new Date(pubDate) : new Date(0)
                     });
