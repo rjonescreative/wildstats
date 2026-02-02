@@ -5,6 +5,7 @@ import * as stats from './views/stats.js';
 import * as standings from './views/standings.js';
 import * as schedule from './views/schedule.js';
 import * as playerCard from './playerCard.js';
+import * as analytics from './analytics.js';
 
 // Goal horn audio
 const goalHorn = new Audio('/sounds/goal-horn.mp3');
@@ -25,6 +26,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize player card hover functionality
     playerCard.init();
+
+    // Initialize analytics (outbound link tracking)
+    analytics.init();
 
     // Original logo state, captured once before any swap
     let originalLogoSrc = null;
@@ -53,6 +57,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 captureOriginalLogo(headerLogo);
                 headerLogo.src = '/images/goal-light.gif';
 
+                // Track easter egg usage
+                analytics.trackEasterEgg('goal_horn');
+
                 goalHorn.currentTime = 0;
                 goalHorn.play().catch(err => {
                     console.log('Error playing goal horn:', err);
@@ -79,6 +86,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (headerLogo) {
                 captureOriginalLogo(headerLogo);
                 headerLogo.src = '/images/opa.gif';
+
+                // Track easter egg usage
+                analytics.trackEasterEgg('opponent_goal');
 
                 opponentGoal.currentTime = 0;
                 opponentGoal.play().catch(err => {

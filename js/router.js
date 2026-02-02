@@ -1,5 +1,6 @@
 // Client-side router using History API
-import { setCurrentView } from './state.js';
+import { setCurrentView, getCurrentView } from './state.js';
+import { trackPageView, trackNavigation, trackStandingsView } from './analytics.js';
 
 // Route configuration
 const routes = {
@@ -81,14 +82,40 @@ function updateNavStates(viewName) {
 
 // Navigate to a path
 export async function navigateTo(path) {
+    const previousView = getCurrentView();
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
 
     // Update URL
     history.pushState({ path, viewName, standingsView }, '', path);
 
+    // Track navigation
+    if (previousView && previousView !== viewName) {
+        trackNavigation(previousView, viewName);
+    }
+
+    // Track standings sub-view changes
+    if (viewName === 'standings' && standingsView) {
+        trackStandingsView(standingsView);
+    }
+
+    // Track page view
+    const pageTitle = getPageTitle(viewName, standingsView);
+    trackPageView(path, pageTitle);
+
     // Show the view
     await showView(viewName, standingsView);
+}
+
+// Get page title for analytics
+function getPageTitle(viewName, standingsView = null) {
+    const titles = {
+        dashboard: 'Dashboard - Wild Hockey Hub',
+        stats: 'Team Stats - Wild Hockey Hub',
+        standings: `Standings (${standingsView || 'wildcard'}) - Wild Hockey Hub`,
+        schedule: 'Schedule - Wild Hockey Hub'
+    };
+    return titles[viewName] || 'Wild Hockey Hub';
 }
 
 // Handle navigation link clicks
@@ -135,6 +162,10 @@ export function init() {
 
     // Replace current state to set initial state
     history.replaceState({ path, viewName, standingsView }, '', path);
+
+    // Track initial page view
+    const pageTitle = getPageTitle(viewName, standingsView);
+    trackPageView(path, pageTitle);
 
     // Show initial view
     showView(viewName, standingsView);

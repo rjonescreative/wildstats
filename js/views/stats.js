@@ -1,6 +1,7 @@
 // Stats view module
 import { getWildStats, getLeagueLeaders } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
+import { trackTableSort } from '../analytics.js';
 
 let wildStats = null;
 
@@ -52,6 +53,7 @@ function setupSkaterSortListeners() {
                 state.skaterSortDirection = 'desc';
             }
 
+            trackTableSort('skaters', field);
             setUIState('stats', state);
             renderSkaters();
         });
@@ -71,6 +73,7 @@ function setupGoalieSortListeners() {
                 state.goalieSortDirection = field === 'goalsAgainstAverage' ? 'asc' : 'desc';
             }
 
+            trackTableSort('goalies', field);
             setUIState('stats', state);
             renderGoalies();
         });

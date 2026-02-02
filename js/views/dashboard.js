@@ -1,6 +1,7 @@
 // Dashboard view module
 import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
+import { trackTableSort, trackNewsClick } from '../analytics.js';
 
 let standingsData = null;
 let leagueLeaders = null;
@@ -328,7 +329,7 @@ function renderNews(articles) {
     container.innerHTML = `
         <div class="news-grid">
             ${articles.map(article => `
-                <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-card">
+                <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-card" data-news-title="${article.title.replace(/"/g, '&quot;')}">
                     <img src="${article.image}" alt="${article.title}" class="news-card-image">
                     <div class="news-card-title">${article.title}</div>
                     <div class="news-card-source">${article.source} ↗</div>
@@ -336,6 +337,13 @@ function renderNews(articles) {
             `).join('')}
         </div>
     `;
+
+    // Add click tracking for news articles
+    container.querySelectorAll('.news-card').forEach(card => {
+        card.addEventListener('click', () => {
+            trackNewsClick(card.dataset.newsTitle);
+        });
+    });
 }
 
 function setupSortListeners() {
@@ -351,6 +359,9 @@ function setupSortListeners() {
 
             state.sortBy = field;
             state.sortDirection = 'desc';
+
+            // Track table sort
+            trackTableSort('central-standings', field);
 
             setUIState('dashboard', state);
             renderCentralDivision();

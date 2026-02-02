@@ -1,4 +1,5 @@
 import { getCachedPlayerCard, setCachedPlayerCard, getCachedData } from './state.js';
+import { trackPlayerCardView } from './analytics.js';
 
 // State
 let hoverTimeout = null;
@@ -281,6 +282,9 @@ function positionCard(mouseX, mouseY) {
 function renderCard(data) {
     const container = document.getElementById('player-card-container');
     container.innerHTML = generateCardHTML(data);
+
+    // Track player card view
+    trackPlayerCardView(data.name);
 }
 
 // Generate card HTML
