@@ -99,21 +99,28 @@ export async function navigateTo(path) {
         trackStandingsView(standingsView);
     }
 
-    // Track page view
+    // Update page title and track page view
     const pageTitle = getPageTitle(viewName, standingsView);
+    document.title = pageTitle;
     trackPageView(path, pageTitle);
 
     // Show the view
     await showView(viewName, standingsView);
 }
 
-// Get page title for analytics
+// Get page title for browser and analytics
 function getPageTitle(viewName, standingsView = null) {
+    const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+    if (viewName === 'standings') {
+        const view = capitalize(standingsView || 'wildcard');
+        return `Wild Hockey Hub | Standings | ${view}`;
+    }
+
     const titles = {
-        dashboard: 'Dashboard - Wild Hockey Hub',
-        stats: 'Team Stats - Wild Hockey Hub',
-        standings: `Standings (${standingsView || 'wildcard'}) - Wild Hockey Hub`,
-        schedule: 'Schedule - Wild Hockey Hub'
+        dashboard: 'Wild Hockey Hub | Dashboard',
+        stats: 'Wild Hockey Hub | Stats',
+        schedule: 'Wild Hockey Hub | Schedule'
     };
     return titles[viewName] || 'Wild Hockey Hub';
 }
@@ -145,6 +152,11 @@ function handlePopState(e) {
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
 
+    // Update page title and track page view
+    const pageTitle = getPageTitle(viewName, standingsView);
+    document.title = pageTitle;
+    trackPageView(path, pageTitle);
+
     // Show the view without pushing to history (already in history)
     showView(viewName, standingsView);
 }
@@ -163,8 +175,9 @@ export function init() {
     // Replace current state to set initial state
     history.replaceState({ path, viewName, standingsView }, '', path);
 
-    // Track initial page view
+    // Update page title and track initial page view
     const pageTitle = getPageTitle(viewName, standingsView);
+    document.title = pageTitle;
     trackPageView(path, pageTitle);
 
     // Show initial view
