@@ -15,6 +15,11 @@
 
 5. **Include all changed files in commits.** When committing, always include all modified/staged files, even if they weren't part of the most recent changes, unless told otherwise.
 
+6. **Update page titles and analytics when adding pages.** When adding new pages or views:
+   - Add the page title to `getPageTitle()` in `js/router.js` using format: `Wild Hockey Hub | Page Name`
+   - Ensure GTM tracks the new page with a unique URL and page view event
+   - For sub-views (like standings tabs), use format: `Wild Hockey Hub | Parent | Child`
+
 ## Project Structure
 
 - `server.js` - Local Express development server

@@ -99,9 +99,10 @@ export async function navigateTo(path) {
         trackStandingsView(standingsView);
     }
 
-    // Update page title and track page view
+    // Update page title, meta tags, and track page view
     const pageTitle = getPageTitle(viewName, standingsView);
     document.title = pageTitle;
+    updateMetaTags(path, viewName, standingsView);
     trackPageView(path, pageTitle);
 
     // Show the view
@@ -123,6 +124,55 @@ function getPageTitle(viewName, standingsView = null) {
         schedule: 'Wild Hockey Hub | Schedule'
     };
     return titles[viewName] || 'Wild Hockey Hub';
+}
+
+// Get meta description for SEO
+function getMetaDescription(viewName, standingsView = null) {
+    const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
+
+    if (viewName === 'standings') {
+        const view = capitalize(standingsView || 'wildcard');
+        return `Minnesota Wild ${view.toLowerCase()} standings. View current NHL ${view.toLowerCase()} standings, points, wins, losses, and playoff positioning.`;
+    }
+
+    const descriptions = {
+        dashboard: 'Minnesota Wild stats, standings, schedules, and news. Your hub for Wild hockey with live game updates, player statistics, and NHL standings.',
+        stats: 'Minnesota Wild player statistics. View skater and goalie stats including goals, assists, points, save percentage, and more.',
+        schedule: 'Minnesota Wild game schedule. See upcoming games, past results, and the full season schedule for the Wild.'
+    };
+    return descriptions[viewName] || descriptions.dashboard;
+}
+
+// Update SEO meta tags
+function updateMetaTags(path, viewName, standingsView = null) {
+    const description = getMetaDescription(viewName, standingsView);
+    const title = getPageTitle(viewName, standingsView);
+    const url = `https://wildhockeyhub.com${path}`;
+
+    // Update meta description
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc) metaDesc.setAttribute('content', description);
+
+    // Update canonical URL
+    const canonical = document.querySelector('link[rel="canonical"]');
+    if (canonical) canonical.setAttribute('href', url);
+
+    // Update Open Graph tags
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute('content', url);
+
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute('content', title);
+
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute('content', description);
+
+    // Update Twitter tags
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle) twitterTitle.setAttribute('content', title);
+
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc) twitterDesc.setAttribute('content', description);
 }
 
 // Handle navigation link clicks
@@ -152,9 +202,10 @@ function handlePopState(e) {
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
 
-    // Update page title and track page view
+    // Update page title, meta tags, and track page view
     const pageTitle = getPageTitle(viewName, standingsView);
     document.title = pageTitle;
+    updateMetaTags(path, viewName, standingsView);
     trackPageView(path, pageTitle);
 
     // Show the view without pushing to history (already in history)
@@ -175,9 +226,10 @@ export function init() {
     // Replace current state to set initial state
     history.replaceState({ path, viewName, standingsView }, '', path);
 
-    // Update page title and track initial page view
+    // Update page title, meta tags, and track initial page view
     const pageTitle = getPageTitle(viewName, standingsView);
     document.title = pageTitle;
+    updateMetaTags(path, viewName, standingsView);
     trackPageView(path, pageTitle);
 
     // Show initial view
