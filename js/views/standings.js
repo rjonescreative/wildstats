@@ -159,7 +159,7 @@ function renderLeagueStandings(state) {
 
     return `
         <div class="standings-section">
-            <h2>NHL League Standings</h2>
+            <h2>League</h2>
             <div class="standings-table">
                 ${createStandingsTable(allTeams, state, true)}
             </div>
