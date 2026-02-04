@@ -126,7 +126,7 @@ header {
     text-decoration: underline;
     text-decoration-color: var(--wild-gold);
     text-underline-offset: 6px;
-    text-decoration-thickness: 2px;
+    text-decoration-thickness: 1px;
 }
 
 .nav-link.active:hover {
@@ -355,7 +355,7 @@ main {
     text-decoration: underline;
     text-decoration-color: var(--wild-gold);
     text-underline-offset: 6px;
-    text-decoration-thickness: 2px;
+    text-decoration-thickness: 1px;
 }
 
 .view-btn.active:hover {
