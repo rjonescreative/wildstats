@@ -9,7 +9,7 @@ import * as analytics from './analytics.js';
 
 // Goal horn audio
 const goalHorn = new Audio('/sounds/goal-horn.mp3');
-const opponentGoal = new Audio('/sounds/opponent-goal.mp3');
+const opa = new Audio('/sounds/opa.mp3');
 
 // Set random background image on site load
 const backgrounds = [
@@ -100,22 +100,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 headerLogo.src = '/images/opa.gif';
 
                 // Track easter egg usage
-                analytics.trackEasterEgg('opponent_goal');
+                analytics.trackEasterEgg('opa');
 
-                opponentGoal.currentTime = 0;
-                opponentGoal.play().catch(err => {
-                    console.log('Error playing opponent goal sound:', err);
+                opa.currentTime = 0;
+                opa.play().catch(err => {
+                    console.log('Error playing opa sound:', err);
                 });
 
-                opponentGoal.onended = () => resetLogo(headerLogo);
+                opa.onended = () => resetLogo(headerLogo);
 
                 setTimeout(() => {
-                    if (!opponentGoal.paused && opponentGoal.currentTime > 0) {
+                    if (!opa.paused && opa.currentTime > 0) {
                         // Still playing, will swap back on ended event
                     } else {
                         resetLogo(headerLogo);
                     }
-                }, opponentGoal.duration * 1000 + 100);
+                }, opa.duration * 1000 + 100);
             }
         }
     });
