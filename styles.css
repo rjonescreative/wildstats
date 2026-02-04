@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
+
 :root {
     --wild-green: #069234;
     --wild-red: #A6192E;
@@ -22,8 +24,12 @@
 }
 
 body {
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, 'Helvetica Neue', sans-serif;
+    font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
     background-color: var(--bg-primary);
+    background-position: top center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.5;
     font-size: 14px;
@@ -38,7 +44,6 @@ body {
 }
 
 header {
-    background-color: var(--bg-primary);
     padding: 2rem 0 1.5rem 0;
 }
 
@@ -64,54 +69,68 @@ header {
 }
 
 .header-logo {
-    height: 65px;
-    width: 97.5px;
+    height: 90px;
+    width: 135px;
     object-fit: contain;
+    object-position: center;
 }
 
-.header-text h1 {
-    font-size: 2rem;
-    font-weight: 600;
-    margin-bottom: 0.25rem;
-    color: var(--text-primary);
-    letter-spacing: -0.03em;
+.header-wordmark {
+    height: 48px;
+    width: auto;
+    display: block;
+}
+
+.header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.header-divider {
+    width: 100%;
+    height: 2px;
+    background-color: var(--wild-red);
 }
 
 .subtitle {
     color: var(--text-secondary);
     font-size: 0.75rem;
     font-weight: 400;
-    letter-spacing: 0.01em;
+    letter-spacing: 8px;
 }
 
 .main-nav {
     display: flex;
-    gap: 0.5rem;
+    gap: 30px;
 }
 
 .nav-link {
-    padding: 0.5rem 1.25rem;
+    padding: 0;
     background-color: transparent;
-    color: var(--text-secondary);
-    border: 1px solid var(--border-medium);
-    border-radius: 6px;
-    font-size: 0.875rem;
+    color: var(--text-primary);
+    border: none;
+    font-size: 16px;
     font-weight: 500;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: color 0.2s ease;
     white-space: nowrap;
 }
 
 .nav-link:hover {
-    background-color: var(--bg-tertiary);
-    color: var(--text-primary);
-    border-color: var(--wild-green);
+    color: var(--wild-gold);
 }
 
 .nav-link.active {
-    background-color: var(--bg-tertiary);
     color: var(--text-primary);
-    border-color: var(--wild-green);
+    text-decoration: underline;
+    text-decoration-color: var(--wild-gold);
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
+}
+
+.nav-link.active:hover {
+    color: var(--wild-gold);
 }
 
 main {
@@ -130,7 +149,7 @@ main {
 }
 
 .stat-leader-card {
-    background-color: var(--bg-secondary);
+    background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     padding: 0.75rem;
@@ -216,8 +235,8 @@ main {
 
 .standings-controls {
     display: flex;
-    gap: 0.75rem;
-    margin: 0 0 2rem 0;
+    gap: 30px;
+    margin: 1.5rem 0 2rem 0;
     padding: 0;
 }
 
@@ -293,7 +312,7 @@ main {
 }
 
 .stats-table-container {
-    background-color: var(--bg-secondary);
+    background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     overflow: visible;
@@ -314,48 +333,33 @@ main {
 }
 
 .view-btn {
-    position: relative;
-    padding: 0.65rem 1.5rem;
+    padding: 0;
     background-color: transparent;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     border: none;
-    border-radius: 8px;
-    font-size: 0.9rem;
+    font-size: 14px;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    letter-spacing: 0.01em;
+    transition: color 0.2s ease;
     text-decoration: none;
     display: inline-block;
-}
-
-.view-btn::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(2, 73, 48, 0.05), rgba(234, 170, 0, 0.05));
-    border-radius: 8px;
-    opacity: 0;
-    transition: opacity 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    white-space: nowrap;
 }
 
 .view-btn:hover {
-    color: var(--text-primary);
-    transform: translateY(-1px);
-}
-
-.view-btn:hover::before {
-    opacity: 1;
+    color: var(--wild-gold);
 }
 
 .view-btn.active {
     color: var(--text-primary);
-    background: linear-gradient(135deg, rgba(2, 73, 48, 0.15), rgba(234, 170, 0, 0.1));
-    box-shadow: 0 0 0 1px rgba(2, 73, 48, 0.3), 0 2px 8px rgba(0, 0, 0, 0.2);
+    text-decoration: underline;
+    text-decoration-color: var(--wild-gold);
+    text-underline-offset: 6px;
+    text-decoration-thickness: 2px;
 }
 
-.view-btn.active::before {
-    opacity: 0;
+.view-btn.active:hover {
+    color: var(--wild-gold);
 }
 
 .loading {
@@ -382,7 +386,7 @@ main {
 
 .standings-table {
     width: 100%;
-    background-color: var(--bg-secondary);
+    background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
     overflow: visible;
@@ -697,7 +701,7 @@ td {
 }
 
 .game-card {
-    background-color: var(--bg-secondary);
+    background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-medium);
     border-radius: 8px;
     padding: 1.5rem;
@@ -870,25 +874,34 @@ footer {
 
     .main-nav {
         width: 100%;
+        justify-content: flex-start;
+        gap: 24px;
     }
 
     .nav-link {
-        flex: 1;
-        text-align: center;
+        font-size: 15px;
     }
 
     .header-logo {
-        height: 50px;
-        width: 75px;
+        height: 60px;
+        width: 90px;
     }
 
-    .header-text h1 {
-        font-size: 1.75rem;
+    .subtitle {
+        letter-spacing: 5px;
+    }
+
+    .header-wordmark {
+        height: 32px;
     }
 
     .standings-controls {
-        margin: 2rem 0;
-        gap: 0.5rem;
+        margin: 1rem 0 1.5rem 0;
+        gap: 24px;
+    }
+
+    .view-btn {
+        font-size: 13px;
     }
 
     .stat-leaders {
@@ -933,11 +946,6 @@ footer {
 
     .league-rank-inline {
         font-size: 0.6rem;
-    }
-
-    .view-btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.85rem;
     }
 
     table {
@@ -992,27 +1000,35 @@ footer {
 }
 
 @media (max-width: 768px) {
-    header h1 {
-        font-size: 1.4rem;
+    .header-logo {
+        height: 50px;
+        width: 75px;
+    }
+
+    .subtitle {
+        letter-spacing: 3px;
+    }
+
+    .header-wordmark {
+        height: 26px;
     }
 
     .nav-link {
-        padding: 0.4rem 0.75rem;
-        font-size: 0.75rem;
+        font-size: 14px;
     }
 
     .main-nav {
-        gap: 0.35rem;
+        gap: 20px;
     }
 
     .standings-controls {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
+        display: flex;
+        margin: 0.75rem 0 1.25rem 0;
+        gap: 20px;
     }
 
     .view-btn {
-        padding: 0.6rem 1rem;
-        text-align: center;
+        font-size: 12px;
     }
 
     table {
@@ -1061,13 +1077,34 @@ footer {
 }
 
 @media (max-width: 440px) {
+    .header-logo {
+        height: 40px;
+        width: 60px;
+    }
+
+    .subtitle {
+        letter-spacing: 2px;
+    }
+
+    .header-wordmark {
+        height: 20px;
+    }
+
     .nav-link {
-        padding: 0.35rem 0.5rem;
-        font-size: 0.7rem;
+        font-size: 13px;
     }
 
     .main-nav {
-        gap: 0.25rem;
+        gap: 16px;
+    }
+
+    .standings-controls {
+        margin: 0.5rem 0 1rem 0;
+        gap: 16px;
+    }
+
+    .view-btn {
+        font-size: 11px;
     }
 
     /* Very small game cards for tiny screens */
@@ -1608,7 +1645,7 @@ footer {
 }
 
 .news-card {
-    background-color: var(--bg-secondary);
+    background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-medium);
     border-radius: 8px;
     overflow: hidden;

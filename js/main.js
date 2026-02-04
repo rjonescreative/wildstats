@@ -11,6 +11,17 @@ import * as analytics from './analytics.js';
 const goalHorn = new Audio('/sounds/goal-horn.mp3');
 const opponentGoal = new Audio('/sounds/opponent-goal.mp3');
 
+// Set random background image on site load
+const backgrounds = [
+    '/backgrounds/background_boldy_kaprizov.jpg',
+    '/backgrounds/background_boldy.jpg',
+    '/backgrounds/background_hughes.jpg',
+    '/backgrounds/background_kaprizov.jpg',
+    '/backgrounds/background_wallstedt.jpg'
+];
+const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
+document.body.style.backgroundImage = `url('${randomBackground}')`;
+
 // Initialize the application
 document.addEventListener('DOMContentLoaded', () => {
     // Register view modules with the router
