@@ -1074,6 +1074,16 @@ footer {
         font-size: 0.9rem;
         margin: 0 0.25rem;
     }
+
+    /* Hide upcoming game card on mobile */
+    .games-grid > .game-card:nth-child(3) {
+        display: none;
+    }
+
+    /* Limit news to 3 articles on mobile */
+    .news-grid > .news-card:nth-child(n+4) {
+        display: none;
+    }
 }
 
 @media (max-width: 440px) {

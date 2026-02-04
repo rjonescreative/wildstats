@@ -17,7 +17,8 @@ const backgrounds = [
     '/backgrounds/background_boldy.jpg',
     '/backgrounds/background_hughes.jpg',
     '/backgrounds/background_kaprizov.jpg',
-    '/backgrounds/background_wallstedt.jpg'
+    '/backgrounds/background_wallstedt.jpg',
+    '/backgrounds/background_boldy_hughes_kaprizov_ek.jpg',
 ];
 const randomBackground = backgrounds[Math.floor(Math.random() * backgrounds.length)];
 document.body.style.backgroundImage = `url('${randomBackground}')`;
