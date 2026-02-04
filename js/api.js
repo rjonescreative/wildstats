@@ -54,9 +54,14 @@ export async function getSchedule(season = '20252026', forceRefresh = false) {
     return fetchWithCache(`/api/schedule/${season}`, `schedule_${season}`, forceRefresh);
 }
 
-// Get Wild news from The Athletic
-export async function getNews(forceRefresh = false) {
-    return fetchWithCache('/api/news/wild', 'news', forceRefresh);
+// Get Wild news from multiple sources (supports pagination)
+export async function getNews(offset = 0, limit = 6) {
+    // News pagination doesn't use cache - each page is a separate request
+    const response = await fetch(`/api/news/wild?offset=${offset}&limit=${limit}`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
 }
 
 // Get live game data (no caching - always fresh)

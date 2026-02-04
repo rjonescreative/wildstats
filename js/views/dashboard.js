@@ -9,6 +9,9 @@ let scheduleData = null;
 let liveGameData = null;
 let liveGameInterval = null;
 let currentLiveGameId = null;
+let newsArticles = [];
+let newsHasMore = false;
+let newsOffset = 0;
 
 // NHL.com team slug mapping
 const TEAM_SLUGS = {
@@ -42,9 +45,11 @@ export async function init() {
         renderCentralDivision();
 
         // News fetched independently so a failure doesn't block the dashboard
-        getNews().then(renderNews).catch(() => {
-            document.getElementById('news-section').innerHTML = '';
-        });
+        // Reset news state and load initial articles
+        newsArticles = [];
+        newsOffset = 0;
+        newsHasMore = false;
+        loadNews(true);
     } catch (error) {
         console.error('Error loading dashboard:', error);
         document.getElementById('stat-leaders').innerHTML =
@@ -319,16 +324,38 @@ function renderGameCard(label, game, isPast, isLive) {
     `;
 }
 
-function renderNews(articles) {
+async function loadNews(initial = false) {
     const container = document.getElementById('news-section');
-    if (!articles || articles.length === 0) {
+    const limit = 6;
+
+    if (initial) {
+        container.innerHTML = '<div class="loading">Loading news...</div>';
+    }
+
+    try {
+        const data = await getNews(newsOffset, limit);
+        newsArticles = initial ? data.articles : [...newsArticles, ...data.articles];
+        newsHasMore = data.hasMore;
+        newsOffset += data.articles.length;
+        renderNews();
+    } catch (error) {
+        console.error('Error loading news:', error);
+        if (initial) {
+            container.innerHTML = '';
+        }
+    }
+}
+
+function renderNews() {
+    const container = document.getElementById('news-section');
+    if (!newsArticles || newsArticles.length === 0) {
         container.innerHTML = '<div class="loading">No news available.</div>';
         return;
     }
 
     container.innerHTML = `
         <div class="news-grid">
-            ${articles.map(article => `
+            ${newsArticles.map(article => `
                 <a href="${article.link}" target="_blank" rel="noopener noreferrer" class="news-card" data-news-title="${article.title.replace(/"/g, '&quot;')}">
                     <img src="${article.image}" alt="${article.title}" class="news-card-image">
                     <div class="news-card-title">${article.title}</div>
@@ -336,6 +363,11 @@ function renderNews(articles) {
                 </a>
             `).join('')}
         </div>
+        ${newsHasMore ? `
+            <div class="news-more-container">
+                <button class="news-more-btn" id="load-more-news">More</button>
+            </div>
+        ` : ''}
     `;
 
     // Add click tracking for news articles
@@ -344,6 +376,16 @@ function renderNews(articles) {
             trackNewsClick(card.dataset.newsTitle);
         });
     });
+
+    // Add load more handler
+    const loadMoreBtn = document.getElementById('load-more-news');
+    if (loadMoreBtn) {
+        loadMoreBtn.addEventListener('click', async () => {
+            loadMoreBtn.disabled = true;
+            loadMoreBtn.textContent = 'Loading...';
+            await loadNews(false);
+        });
+    }
 }
 
 function setupSortListeners() {
