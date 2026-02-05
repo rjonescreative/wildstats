@@ -216,6 +216,75 @@ app.get('/api/game/:id/live', async (req, res) => {
     }
 });
 
+// Wild videos endpoint
+app.get('/api/media/videos', async (req, res) => {
+    try {
+        const offset = parseInt(req.query.offset) || 0;
+        const limit = parseInt(req.query.limit) || 12;
+        const type = req.query.type || 'all';
+
+        // Build tags filter based on type
+        let tags = 'teamid-30';
+        if (type === 'highlights') {
+            tags = 'highlight,teamid-30';
+        } else if (type === 'recaps') {
+            tags = 'game-recap,teamid-30';
+        }
+
+        // Fetch extra for highlights to account for filtered recaps
+        const fetchLimit = type === 'highlights' ? limit * 2 : limit;
+
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(
+            `https://forge-dapi.d3.nhle.com/v2/content/en-us/videos?tags.slug=${encodeURIComponent(tags)}&$skip=${offset}&$limit=${fetchLimit}`,
+            { signal: controller.signal, redirect: 'follow' }
+        );
+        clearTimeout(timeout);
+
+        if (!response.ok) {
+            throw new Error(`NHL API error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        let items = data.items || [];
+        const fetchedCount = items.length;
+
+        // For highlights, exclude game recaps and trim to requested limit
+        if (type === 'highlights') {
+            items = items.filter(item => {
+                const title = (item.title || '').toLowerCase();
+                const description = (item.fields?.description || '').toLowerCase();
+                return !title.includes('recap') && !description.includes('recap');
+            });
+            items = items.slice(0, limit);
+        }
+
+        const videos = items.map(item => ({
+            id: item._entityId,
+            title: item.title || '',
+            description: item.fields?.description || '',
+            duration: item.fields?.duration || '',
+            brightcoveId: item.fields?.brightcoveId || '',
+            brightcoveAccountId: item.fields?.brightcoveAccountId || '6415718365001',
+            thumbnail: item.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size40/f_auto/') || '',
+            contentDate: item.contentDate || ''
+        }));
+
+        res.set('Cache-Control', 'public, max-age=300');
+        res.json({
+            videos,
+            total: data.pagination?.total || videos.length,
+            hasMore: fetchedCount === fetchLimit,
+            nextOffset: offset + fetchedCount
+        });
+    } catch (error) {
+        console.error('Error fetching videos:', error);
+        res.status(500).json({ error: 'Failed to fetch videos' });
+    }
+});
+
 // Wild news endpoint (combines The Athletic RSS + NHL.com + Star Tribune)
 app.get('/api/news/wild', async (req, res) => {
     try {

@@ -11,7 +11,10 @@ const routes = {
     '/standings/division': 'standings',
     '/standings/conference': 'standings',
     '/standings/league': 'standings',
-    '/schedule': 'schedule'
+    '/schedule': 'schedule',
+    '/media': 'media',
+    '/media/highlights': 'media',
+    '/media/recaps': 'media'
 };
 
 // View modules (will be set by main.js)
@@ -34,8 +37,15 @@ function getStandingsView(path) {
     return match ? match[1] : 'wildcard';
 }
 
+// Get media sub-view from path
+function getMediaView(path) {
+    if (path === '/media') return 'all';
+    const match = path.match(/^\/media\/(.+)$/);
+    return match ? match[1] : 'all';
+}
+
 // Show a specific view
-async function showView(viewName, standingsView = null) {
+async function showView(viewName, subView = null) {
     // Hide all views
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
@@ -56,8 +66,8 @@ async function showView(viewName, standingsView = null) {
     // Initialize/render the view
     const viewModule = viewModules[viewName];
     if (viewModule) {
-        if (viewName === 'standings' && standingsView) {
-            await viewModule.init(standingsView);
+        if ((viewName === 'standings' || viewName === 'media') && subView) {
+            await viewModule.init(subView);
         } else {
             await viewModule.init();
         }
@@ -73,7 +83,8 @@ function updateNavStates(viewName) {
             (href === '/' && viewName === 'dashboard') ||
             (href === '/stats' && viewName === 'stats') ||
             (href === '/standings' && viewName === 'standings') ||
-            (href === '/schedule' && viewName === 'schedule')
+            (href === '/schedule' && viewName === 'schedule') ||
+            (href === '/media' && viewName === 'media')
         ) {
             link.classList.add('active');
         }
@@ -85,9 +96,11 @@ export async function navigateTo(path) {
     const previousView = getCurrentView();
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const mediaView = viewName === 'media' ? getMediaView(path) : null;
+    const subView = standingsView || mediaView;
 
     // Update URL
-    history.pushState({ path, viewName, standingsView }, '', path);
+    history.pushState({ path, viewName, subView }, '', path);
 
     // Track navigation
     if (previousView && previousView !== viewName) {
@@ -100,22 +113,28 @@ export async function navigateTo(path) {
     }
 
     // Update page title, meta tags, and track page view
-    const pageTitle = getPageTitle(viewName, standingsView);
+    const pageTitle = getPageTitle(viewName, subView);
     document.title = pageTitle;
-    updateMetaTags(path, viewName, standingsView);
+    updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
     // Show the view
-    await showView(viewName, standingsView);
+    await showView(viewName, subView);
 }
 
 // Get page title for browser and analytics
-function getPageTitle(viewName, standingsView = null) {
+function getPageTitle(viewName, subView = null) {
     const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
     if (viewName === 'standings') {
-        const view = capitalize(standingsView || 'wildcard');
+        const view = capitalize(subView || 'wildcard');
         return `Wild Hockey Hub | Standings | ${view}`;
+    }
+
+    if (viewName === 'media') {
+        const mediaLabels = { all: 'All', highlights: 'Highlights', recaps: 'Game Recaps' };
+        const label = mediaLabels[subView] || 'All';
+        return `Wild Hockey Hub | Media | ${label}`;
     }
 
     const titles = {
@@ -127,12 +146,21 @@ function getPageTitle(viewName, standingsView = null) {
 }
 
 // Get meta description for SEO
-function getMetaDescription(viewName, standingsView = null) {
+function getMetaDescription(viewName, subView = null) {
     const capitalize = (str) => str.charAt(0).toUpperCase() + str.slice(1);
 
     if (viewName === 'standings') {
-        const view = capitalize(standingsView || 'wildcard');
+        const view = capitalize(subView || 'wildcard');
         return `Minnesota Wild ${view.toLowerCase()} standings. View current NHL ${view.toLowerCase()} standings, points, wins, losses, and playoff positioning.`;
+    }
+
+    if (viewName === 'media') {
+        const mediaDescriptions = {
+            all: 'Minnesota Wild videos. Watch highlights, game recaps, interviews, and more from the Wild.',
+            highlights: 'Minnesota Wild game highlights. Watch the best plays, goals, and saves from Wild games.',
+            recaps: 'Minnesota Wild game recaps. Watch condensed game recaps and full game summaries.'
+        };
+        return mediaDescriptions[subView] || mediaDescriptions.all;
     }
 
     const descriptions = {
@@ -201,15 +229,17 @@ function handlePopState(e) {
     const path = window.location.pathname;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const mediaView = viewName === 'media' ? getMediaView(path) : null;
+    const subView = standingsView || mediaView;
 
     // Update page title, meta tags, and track page view
-    const pageTitle = getPageTitle(viewName, standingsView);
+    const pageTitle = getPageTitle(viewName, subView);
     document.title = pageTitle;
-    updateMetaTags(path, viewName, standingsView);
+    updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
     // Show the view without pushing to history (already in history)
-    showView(viewName, standingsView);
+    showView(viewName, subView);
 }
 
 // Initialize router
@@ -222,16 +252,18 @@ export function init() {
     const path = window.location.pathname;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const mediaView = viewName === 'media' ? getMediaView(path) : null;
+    const subView = standingsView || mediaView;
 
     // Replace current state to set initial state
-    history.replaceState({ path, viewName, standingsView }, '', path);
+    history.replaceState({ path, viewName, subView }, '', path);
 
     // Update page title, meta tags, and track initial page view
-    const pageTitle = getPageTitle(viewName, standingsView);
+    const pageTitle = getPageTitle(viewName, subView);
     document.title = pageTitle;
-    updateMetaTags(path, viewName, standingsView);
+    updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
     // Show initial view
-    showView(viewName, standingsView);
+    showView(viewName, subView);
 }

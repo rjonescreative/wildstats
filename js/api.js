@@ -72,3 +72,12 @@ export async function getLiveGame(gameId) {
     }
     return response.json();
 }
+
+// Get Wild videos (supports pagination and filtering)
+export async function getVideos(offset = 0, limit = 12, type = 'all') {
+    const response = await fetch(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}

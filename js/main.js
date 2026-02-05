@@ -4,6 +4,7 @@ import * as dashboard from './views/dashboard.js';
 import * as stats from './views/stats.js';
 import * as standings from './views/standings.js';
 import * as schedule from './views/schedule.js';
+import * as media from './views/media.js';
 import * as playerCard from './playerCard.js';
 import * as analytics from './analytics.js';
 
@@ -30,7 +31,8 @@ document.addEventListener('DOMContentLoaded', () => {
         dashboard,
         stats,
         standings,
-        schedule
+        schedule,
+        media
     });
 
     // Initialize the router
