@@ -147,7 +147,7 @@ function getMetaDescription(viewName, standingsView = null) {
 function updateMetaTags(path, viewName, standingsView = null) {
     const description = getMetaDescription(viewName, standingsView);
     const title = getPageTitle(viewName, standingsView);
-    const url = `https://wildhockeyhub.com${path}`;
+    const url = `https://wildhockey.win${path}`;
 
     // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
