@@ -1,5 +1,5 @@
 // Dashboard view module
-import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getLiveGame } from '../api.js';
+import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getVideos, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort, trackNewsClick } from '../analytics.js';
 
@@ -50,6 +50,9 @@ export async function init() {
         newsOffset = 0;
         newsHasMore = false;
         loadNews(true);
+
+        // Load highlights independently
+        loadHighlights();
     } catch (error) {
         console.error('Error loading dashboard:', error);
         document.getElementById('stat-leaders').innerHTML =
@@ -386,6 +389,128 @@ function renderNews() {
             await loadNews(false);
         });
     }
+}
+
+async function loadHighlights() {
+    const container = document.getElementById('highlights-section');
+    if (!container) return;
+
+    container.innerHTML = '<div class="loading">Loading highlights...</div>';
+
+    try {
+        const data = await getVideos(0, 3, 'highlights');
+        renderHighlights(data.videos);
+    } catch (error) {
+        console.error('Error loading highlights:', error);
+        container.innerHTML = '';
+    }
+}
+
+function formatDuration(duration) {
+    if (!duration) return '';
+    const parts = duration.split(':');
+    if (parts.length === 3) {
+        const hours = parseInt(parts[0]);
+        const mins = parseInt(parts[1]);
+        const secs = parts[2];
+        if (hours > 0) {
+            return `${hours}:${mins.toString().padStart(2, '0')}:${secs}`;
+        }
+        return `${mins}:${secs}`;
+    }
+    return duration;
+}
+
+function renderHighlights(videos) {
+    const container = document.getElementById('highlights-section');
+    if (!container || !videos || videos.length === 0) {
+        if (container) container.innerHTML = '';
+        return;
+    }
+
+    container.innerHTML = `
+        <div class="highlights-grid">
+            ${videos.map(video => `
+                <div class="highlight-card" data-brightcove-id="${video.brightcoveId}" data-account-id="${video.brightcoveAccountId}">
+                    <div class="highlight-thumbnail-container">
+                        <img src="${video.thumbnail}" alt="${video.title}" class="highlight-thumbnail">
+                        <div class="highlight-play-overlay">
+                            <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8 5v14l11-7z"/>
+                            </svg>
+                        </div>
+                        ${video.duration ? `<span class="video-duration">${formatDuration(video.duration)}</span>` : ''}
+                    </div>
+                    <div class="highlight-title">${video.title}</div>
+                </div>
+            `).join('')}
+        </div>
+        <div class="section-footer">
+            <a href="/media" class="text-link" data-link>View all media →</a>
+        </div>
+    `;
+
+    // Add click handlers for video cards
+    container.querySelectorAll('.highlight-card').forEach(card => {
+        card.addEventListener('click', () => {
+            const brightcoveId = card.dataset.brightcoveId;
+            const accountId = card.dataset.accountId;
+            if (brightcoveId) {
+                openHighlightModal(brightcoveId, accountId);
+            }
+        });
+    });
+}
+
+function openHighlightModal(brightcoveId, accountId) {
+    // Remove existing modal if any
+    closeHighlightModal();
+
+    const modal = document.createElement('div');
+    modal.className = 'video-modal';
+    modal.innerHTML = `
+        <div class="video-modal-backdrop"></div>
+        <div class="video-modal-content">
+            <button class="video-modal-close">&times;</button>
+            <div class="video-player-container">
+                <iframe
+                    src="https://players.brightcove.net/${accountId}/EXtG1xJ7H_default/index.html?videoId=${brightcoveId}"
+                    allowfullscreen
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    class="video-player-iframe"
+                ></iframe>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    document.body.style.overflow = 'hidden';
+
+    requestAnimationFrame(() => {
+        modal.classList.add('visible');
+    });
+
+    modal.querySelector('.video-modal-backdrop').addEventListener('click', closeHighlightModal);
+    modal.querySelector('.video-modal-close').addEventListener('click', closeHighlightModal);
+    document.addEventListener('keydown', handleHighlightEscapeKey);
+}
+
+function handleHighlightEscapeKey(e) {
+    if (e.key === 'Escape') {
+        closeHighlightModal();
+    }
+}
+
+function closeHighlightModal() {
+    const modal = document.querySelector('.video-modal');
+    if (modal) {
+        modal.classList.remove('visible');
+        setTimeout(() => {
+            modal.remove();
+            document.body.style.overflow = '';
+        }, 200);
+    }
+    document.removeEventListener('keydown', handleHighlightEscapeKey);
 }
 
 function setupSortListeners() {
