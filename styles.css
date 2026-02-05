@@ -617,6 +617,11 @@ td {
     font-weight: 500;
 }
 
+.stat-best {
+    color: var(--wild-green);
+    font-weight: 600;
+}
+
 .magic-number {
     display: inline-flex;
     align-items: center;

@@ -80,6 +80,30 @@ function setupGoalieSortListeners() {
     });
 }
 
+function getSkaterBestValues(skaters) {
+    const best = {};
+    const fields = ['goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 'shorthandedGoals', 'shots', 'shootingPctg', 'faceoffWinPctg', 'avgTimeOnIcePerGame'];
+
+    fields.forEach(field => {
+        const values = skaters
+            .map(p => p[field])
+            .filter(v => v != null && v > 0);
+        if (values.length > 0) {
+            best[field] = Math.max(...values);
+        }
+    });
+
+    // Points per game (calculated field)
+    const ppgValues = skaters
+        .filter(p => p.gamesPlayed > 0)
+        .map(p => p.points / p.gamesPlayed);
+    if (ppgValues.length > 0) {
+        best.pointsPerGame = Math.max(...ppgValues);
+    }
+
+    return best;
+}
+
 function renderSkaters() {
     const state = getUIState('stats');
     const skaters = [...wildStats.skaters].sort((a, b) => {
@@ -94,6 +118,15 @@ function renderSkaters() {
 
         return state.skaterSortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
+
+    const best = getSkaterBestValues(wildStats.skaters);
+
+    const isBest = (value, field) => value != null && value > 0 && best[field] > 0 && value === best[field] ? 'stat-best' : '';
+    const isPPGBest = (player) => {
+        if (player.gamesPlayed === 0) return '';
+        const ppg = player.points / player.gamesPlayed;
+        return best.pointsPerGame && Math.abs(ppg - best.pointsPerGame) < 0.001 ? 'stat-best' : '';
+    };
 
     const getSortIcon = (field) => {
         if (state.skaterSort !== field) return '<span class="sort-arrow"> </span>';
@@ -131,17 +164,17 @@ function renderSkaters() {
                         </td>
                         <td class="center">${player.positionCode}</td>
                         <td class="center">${player.gamesPlayed}</td>
-                        <td class="center">${player.goals}</td>
-                        <td class="center">${player.assists}</td>
-                        <td class="center"><strong>${player.points}</strong></td>
-                        <td class="center hide-mobile">${player.gamesPlayed > 0 ? (player.points / player.gamesPlayed).toFixed(2) : '0.00'}</td>
-                        <td class="center">${player.plusMinus > 0 ? '+' : ''}${player.plusMinus ?? '--'}</td>
-                        <td class="center hide-mobile">${player.powerPlayGoals ?? '--'}</td>
-                        <td class="center hide-mobile">${player.shorthandedGoals ?? '--'}</td>
-                        <td class="center hide-mobile">${player.shots ?? '--'}</td>
-                        <td class="center hide-mobile">${player.shootingPctg != null ? (player.shootingPctg * 100).toFixed(1) : '--'}</td>
-                        <td class="center hide-mobile">${player.faceoffWinPctg != null && player.faceoffWinPctg > 0 ? (player.faceoffWinPctg * 100).toFixed(1) : '--'}</td>
-                        <td class="center hide-mobile">${player.avgTimeOnIcePerGame ? formatTimeOnIce(player.avgTimeOnIcePerGame) : '--'}</td>
+                        <td class="center ${isBest(player.goals, 'goals')}">${player.goals}</td>
+                        <td class="center ${isBest(player.assists, 'assists')}">${player.assists}</td>
+                        <td class="center ${isBest(player.points, 'points')}"><strong>${player.points}</strong></td>
+                        <td class="center hide-mobile ${isPPGBest(player)}">${player.gamesPlayed > 0 ? (player.points / player.gamesPlayed).toFixed(2) : '0.00'}</td>
+                        <td class="center ${isBest(player.plusMinus, 'plusMinus')}">${player.plusMinus > 0 ? '+' : ''}${player.plusMinus ?? '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.powerPlayGoals, 'powerPlayGoals')}">${player.powerPlayGoals ?? '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.shorthandedGoals, 'shorthandedGoals')}">${player.shorthandedGoals ?? '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.shots, 'shots')}">${player.shots ?? '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.shootingPctg, 'shootingPctg')}">${player.shootingPctg != null ? (player.shootingPctg * 100).toFixed(1) : '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.faceoffWinPctg, 'faceoffWinPctg')}">${player.faceoffWinPctg != null && player.faceoffWinPctg > 0 ? (player.faceoffWinPctg * 100).toFixed(1) : '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.avgTimeOnIcePerGame, 'avgTimeOnIcePerGame')}">${player.avgTimeOnIcePerGame ? formatTimeOnIce(player.avgTimeOnIcePerGame) : '--'}</td>
                     </tr>
                 `).join('')}
             </tbody>
@@ -152,6 +185,34 @@ function renderSkaters() {
     setupSkaterSortListeners();
 }
 
+function getGoalieBestValues(goalies) {
+    const best = {};
+    // Fields where highest is best (only SV% and SO)
+    const highestFields = ['savePercentage', 'shutouts'];
+    // Fields where lowest is best (only GAA)
+    const lowestFields = ['goalsAgainstAverage'];
+
+    highestFields.forEach(field => {
+        const values = goalies
+            .map(p => p[field])
+            .filter(v => v != null && v > 0);
+        if (values.length > 0) {
+            best[field] = { value: Math.max(...values), type: 'max' };
+        }
+    });
+
+    lowestFields.forEach(field => {
+        const values = goalies
+            .map(p => p[field])
+            .filter(v => v != null && v > 0);
+        if (values.length > 0) {
+            best[field] = { value: Math.min(...values), type: 'min' };
+        }
+    });
+
+    return best;
+}
+
 function renderGoalies() {
     const state = getUIState('stats');
     const goalies = [...wildStats.goalies].sort((a, b) => {
@@ -159,6 +220,17 @@ function renderGoalies() {
         const bVal = b[state.goalieSort] || 0;
         return state.goalieSortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
+
+    const best = getGoalieBestValues(wildStats.goalies);
+
+    const isBest = (value, field) => {
+        if (value == null || !best[field]) return '';
+        const bestInfo = best[field];
+        if (bestInfo.type === 'min') {
+            return value > 0 && value === bestInfo.value ? 'stat-best' : '';
+        }
+        return value > 0 && value === bestInfo.value ? 'stat-best' : '';
+    };
 
     const getSortIcon = (field) => {
         if (state.goalieSort !== field) return '<span class="sort-arrow"> </span>';
@@ -195,12 +267,12 @@ function renderGoalies() {
                         <td class="center">${player.gamesStarted ?? '--'}</td>
                         <td class="center">${player.wins ?? '--'}</td>
                         <td class="center">${player.losses ?? '--'}</td>
-                        <td class="center"><strong>${player.goalsAgainstAverage != null ? player.goalsAgainstAverage.toFixed(2) : '--'}</strong></td>
-                        <td class="center"><strong>${player.savePercentage != null ? player.savePercentage.toFixed(3) : '--'}</strong></td>
+                        <td class="center ${isBest(player.goalsAgainstAverage, 'goalsAgainstAverage')}"><strong>${player.goalsAgainstAverage != null ? player.goalsAgainstAverage.toFixed(2) : '--'}</strong></td>
+                        <td class="center ${isBest(player.savePercentage, 'savePercentage')}"><strong>${player.savePercentage != null ? player.savePercentage.toFixed(3) : '--'}</strong></td>
                         <td class="center hide-mobile">${player.shotsAgainst ?? '--'}</td>
                         <td class="center hide-mobile">${player.saves ?? '--'}</td>
                         <td class="center hide-mobile">${player.goalsAgainst ?? '--'}</td>
-                        <td class="center hide-mobile">${player.shutouts ?? '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.shutouts, 'shutouts')}">${player.shutouts ?? '--'}</td>
                     </tr>
                 `).join('')}
             </tbody>
