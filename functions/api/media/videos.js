@@ -15,7 +15,7 @@ export async function onRequest(context) {
         }
 
         // Fetch extra to account for filtered duplicates and recaps
-        const fetchLimit = type === 'highlights' ? limit * 2 : Math.ceil(limit * 1.5);
+        const fetchLimit = type === 'highlights' ? limit * 3 : limit * 2;
 
         const response = await fetch(
             `https://forge-dapi.d3.nhle.com/v2/content/en-us/videos?tags.slug=${encodeURIComponent(tags)}&$skip=${offset}&$limit=${fetchLimit}`
@@ -28,6 +28,29 @@ export async function onRequest(context) {
         const data = await response.json();
         let items = data.items || [];
         const fetchedCount = items.length;
+
+        // Filter out shorter duplicates (same title + same day, keep longer duration)
+        const durationToSeconds = (d) => {
+            if (!d) return 0;
+            const parts = d.split(':').map(Number);
+            if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
+            if (parts.length === 2) return parts[0] * 60 + parts[1];
+            return 0;
+        };
+
+        const sameDayTitleMap = new Map();
+        items.forEach(item => {
+            const title = item.title || '';
+            const date = (item.contentDate || '').split('T')[0];
+            const key = `${date}|${title}`;
+            const duration = durationToSeconds(item.fields?.duration);
+
+            if (!sameDayTitleMap.has(key) || duration > sameDayTitleMap.get(key).duration) {
+                sameDayTitleMap.set(key, { item, duration });
+            }
+        });
+        const longerVersionIds = new Set([...sameDayTitleMap.values()].map(v => v.item._entityId));
+        items = items.filter(item => longerVersionIds.has(item._entityId));
 
         // Filter out duplicates (matching duration + at least one other field)
         const seen = [];
