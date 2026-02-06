@@ -14,8 +14,8 @@ export async function onRequest(context) {
             tags = 'game-recap,teamid-30';
         }
 
-        // Fetch extra for highlights to account for filtered recaps
-        const fetchLimit = type === 'highlights' ? limit * 2 : limit;
+        // Fetch extra to account for filtered duplicates and recaps
+        const fetchLimit = type === 'highlights' ? limit * 2 : Math.ceil(limit * 1.5);
 
         const response = await fetch(
             `https://forge-dapi.d3.nhle.com/v2/content/en-us/videos?tags.slug=${encodeURIComponent(tags)}&$skip=${offset}&$limit=${fetchLimit}`
@@ -29,15 +29,40 @@ export async function onRequest(context) {
         let items = data.items || [];
         const fetchedCount = items.length;
 
-        // For highlights, exclude game recaps and trim to requested limit
+        // Filter out duplicates (matching duration + at least one other field)
+        const seen = [];
+        items = items.filter(item => {
+            const duration = item.fields?.duration || '';
+            const title = item.title || '';
+            const description = item.fields?.description || '';
+            const thumbnail = item.thumbnail?.templateUrl || '';
+
+            const isDuplicate = seen.some(s =>
+                s.duration === duration && (
+                    s.title === title ||
+                    s.description === description ||
+                    s.thumbnail === thumbnail
+                )
+            );
+
+            if (!isDuplicate) {
+                seen.push({ duration, title, description, thumbnail });
+                return true;
+            }
+            return false;
+        });
+
+        // For highlights, exclude game recaps
         if (type === 'highlights') {
             items = items.filter(item => {
                 const title = (item.title || '').toLowerCase();
                 const description = (item.fields?.description || '').toLowerCase();
                 return !title.includes('recap') && !description.includes('recap');
             });
-            items = items.slice(0, limit);
         }
+
+        // Trim to requested limit
+        items = items.slice(0, limit);
 
         const videos = items.map(item => ({
             id: item._entityId,
