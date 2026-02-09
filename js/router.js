@@ -102,6 +102,9 @@ export async function navigateTo(path) {
     // Update URL
     history.pushState({ path, viewName, subView }, '', path);
 
+    // Scroll to top of page
+    window.scrollTo(0, 0);
+
     // Track navigation
     if (previousView && previousView !== viewName) {
         trackNavigation(previousView, viewName);
@@ -231,6 +234,9 @@ function handlePopState(e) {
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
     const subView = standingsView || mediaView;
+
+    // Scroll to top of page
+    window.scrollTo(0, 0);
 
     // Update page title, meta tags, and track page view
     const pageTitle = getPageTitle(viewName, subView);
