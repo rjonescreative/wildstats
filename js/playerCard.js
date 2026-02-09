@@ -189,6 +189,17 @@ function processPlayerData(details, gameLog) {
         }
     }
 
+    // Get team's games played from cached standings
+    let teamGamesPlayed = 82;
+    const standings = getCachedData('standings');
+    if (standings?.standings) {
+        const teamAbbr = details.currentTeamAbbrev || 'MIN';
+        const teamData = standings.standings.find(t => t.teamAbbrev?.default === teamAbbr);
+        if (teamData) {
+            teamGamesPlayed = teamData.gamesPlayed || 82;
+        }
+    }
+
     return {
         playerId: details.playerId,
         name: `${firstName} ${lastName}`,
@@ -203,6 +214,7 @@ function processPlayerData(details, gameLog) {
         last10Stats,
         streak,
         prevSeasonPoints,
+        teamGamesPlayed,
         rankings: extractRankings(details),
         nhlUrl: `https://www.nhl.com/player/${details.playerId}`
     };
@@ -337,11 +349,15 @@ function generateCardHTML(data) {
                 const ppgClass = ppgDiff > 0 ? 'ppg-up' : ppgDiff < 0 ? 'ppg-down' : 'ppg-neutral';
                 const ppgArrow = ppgDiff > 0 ? '↑' : ppgDiff < 0 ? '↓' : '';
 
-                // Calculate 82-game pace
-                const paceGoals = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.goals / seasonStats.gamesPlayed) * 82) : 0;
-                const paceAssists = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.assists / seasonStats.gamesPlayed) * 82) : 0;
-                const pacePoints = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.points / seasonStats.gamesPlayed) * 82) : 0;
-                const pacePPG = pacePoints / 82;
+                // Calculate max games (82 minus games missed)
+                const missedGames = Math.max(0, data.teamGamesPlayed - seasonStats.gamesPlayed);
+                const maxGames = 82 - missedGames;
+
+                // Calculate pace based on max possible games
+                const paceGoals = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.goals / seasonStats.gamesPlayed) * maxGames) : 0;
+                const paceAssists = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.assists / seasonStats.gamesPlayed) * maxGames) : 0;
+                const pacePoints = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.points / seasonStats.gamesPlayed) * maxGames) : 0;
+                const pacePPG = maxGames > 0 ? pacePoints / maxGames : 0;
 
                 return `
             <table class="stat-table">
@@ -365,7 +381,7 @@ function generateCardHTML(data) {
                         <td class="stat-ppg ${ppgClass}">${ppgArrow} ${last10PPG.toFixed(2)} PPG</td>
                     </tr>
                     <tr>
-                        <td class="stat-label">Pace/82</td>
+                        <td class="stat-label">Pace/${maxGames}</td>
                         <td class="stat-number">${paceGoals}</td>
                         <td class="stat-separator">-</td>
                         <td class="stat-number">${paceAssists}</td>
