@@ -2244,3 +2244,22 @@ footer {
         font-size: 1.25rem;
     }
 }
+
+/* Landscape mode with limited height - overlay close button on video */
+@media (max-height: 500px) {
+    .video-modal-content {
+        max-height: calc(100vh - 20px);
+    }
+
+    .video-modal-close {
+        top: 8px;
+        right: 8px;
+        background: rgba(0, 0, 0, 0.7);
+        border-color: rgba(255, 255, 255, 0.3);
+        z-index: 10;
+    }
+
+    .video-modal-close:hover {
+        background: rgba(0, 0, 0, 0.9);
+    }
+}
