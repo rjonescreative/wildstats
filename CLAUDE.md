@@ -27,7 +27,9 @@ Cloudflare Functions pattern: `functions/api/[path]/[file].js` with `export asyn
 
 3. **Include all changed files in commits.** When committing, always include all modified/staged files, even if they weren't part of the most recent changes, unless told otherwise.
 
-4. **Update page titles and analytics when adding pages.** When adding new pages or views:
+4. **Always work on the main branch.** Do not create feature branches. All work should be done on `main` and pushed directly to `main`.
+
+5. **Update page titles and analytics when adding pages.** When adding new pages or views:
    - Add the page title to `getPageTitle()` in `js/router.js` using format: `Wild Hockey Hub | Page Name`
    - Ensure GTM tracks the new page with a unique URL and page view event
    - For sub-views (like standings tabs), use format: `Wild Hockey Hub | Parent | Child`
