@@ -139,19 +139,19 @@ function renderSkaters() {
             <thead>
                 <tr>
                     <th>Player</th>
-                    <th class="center" data-tooltip="Position">POS</th>
-                    <th class="center sortable ${state.skaterSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played">GP${getSortIcon('gamesPlayed')}</th>
-                    <th class="center sortable ${state.skaterSort === 'goals' ? 'sorted' : ''}" data-sort="goals" data-tooltip="Goals">G${getSortIcon('goals')}</th>
-                    <th class="center sortable ${state.skaterSort === 'assists' ? 'sorted' : ''}" data-sort="assists" data-tooltip="Assists">A${getSortIcon('assists')}</th>
-                    <th class="center sortable ${state.skaterSort === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points">PTS${getSortIcon('points')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'pointsPerGame' ? 'sorted' : ''}" data-sort="pointsPerGame" data-tooltip="Average Points Per Game">P/G${getSortIcon('pointsPerGame')}</th>
-                    <th class="center sortable ${state.skaterSort === 'plusMinus' ? 'sorted' : ''}" data-sort="plusMinus" data-tooltip="Plus/Minus">+/-${getSortIcon('plusMinus')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'powerPlayGoals' ? 'sorted' : ''}" data-sort="powerPlayGoals" data-tooltip="Power Play Goals">PPG${getSortIcon('powerPlayGoals')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'shorthandedGoals' ? 'sorted' : ''}" data-sort="shorthandedGoals" data-tooltip="Shorthanded Goals">SHG${getSortIcon('shorthandedGoals')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'shots' ? 'sorted' : ''}" data-sort="shots" data-tooltip="Shots on Goal">SOG${getSortIcon('shots')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'shootingPctg' ? 'sorted' : ''}" data-sort="shootingPctg" data-tooltip="Shooting Percentage">S%${getSortIcon('shootingPctg')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'faceoffWinPctg' ? 'sorted' : ''}" data-sort="faceoffWinPctg" data-tooltip="Faceoff Win Percentage">FOW%${getSortIcon('faceoffWinPctg')}</th>
-                    <th class="center hide-mobile sortable ${state.skaterSort === 'avgTimeOnIcePerGame' ? 'sorted' : ''}" data-sort="avgTimeOnIcePerGame" data-tooltip="Time on Ice per Game">TOI/G${getSortIcon('avgTimeOnIcePerGame')}</th>
+                    <th class="center" data-tooltip="Position" aria-label="Position">POS</th>
+                    <th class="center sortable ${state.skaterSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played" aria-label="Games Played">GP${getSortIcon('gamesPlayed')}</th>
+                    <th class="center sortable ${state.skaterSort === 'goals' ? 'sorted' : ''}" data-sort="goals" data-tooltip="Goals" aria-label="Goals">G${getSortIcon('goals')}</th>
+                    <th class="center sortable ${state.skaterSort === 'assists' ? 'sorted' : ''}" data-sort="assists" data-tooltip="Assists" aria-label="Assists">A${getSortIcon('assists')}</th>
+                    <th class="center sortable ${state.skaterSort === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points" aria-label="Points">PTS${getSortIcon('points')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'pointsPerGame' ? 'sorted' : ''}" data-sort="pointsPerGame" data-tooltip="Average Points Per Game" aria-label="Average Points Per Game">P/G${getSortIcon('pointsPerGame')}</th>
+                    <th class="center sortable ${state.skaterSort === 'plusMinus' ? 'sorted' : ''}" data-sort="plusMinus" data-tooltip="Plus/Minus" aria-label="Plus/Minus">+/-${getSortIcon('plusMinus')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'powerPlayGoals' ? 'sorted' : ''}" data-sort="powerPlayGoals" data-tooltip="Power Play Goals" aria-label="Power Play Goals">PPG${getSortIcon('powerPlayGoals')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'shorthandedGoals' ? 'sorted' : ''}" data-sort="shorthandedGoals" data-tooltip="Shorthanded Goals" aria-label="Shorthanded Goals">SHG${getSortIcon('shorthandedGoals')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'shots' ? 'sorted' : ''}" data-sort="shots" data-tooltip="Shots on Goal" aria-label="Shots on Goal">SOG${getSortIcon('shots')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'shootingPctg' ? 'sorted' : ''}" data-sort="shootingPctg" data-tooltip="Shooting Percentage" aria-label="Shooting Percentage">S%${getSortIcon('shootingPctg')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'faceoffWinPctg' ? 'sorted' : ''}" data-sort="faceoffWinPctg" data-tooltip="Faceoff Win Percentage" aria-label="Faceoff Win Percentage">FOW%${getSortIcon('faceoffWinPctg')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'avgTimeOnIcePerGame' ? 'sorted' : ''}" data-sort="avgTimeOnIcePerGame" data-tooltip="Time on Ice per Game" aria-label="Time on Ice per Game">TOI/G${getSortIcon('avgTimeOnIcePerGame')}</th>
                 </tr>
             </thead>
             <tbody>
@@ -243,16 +243,16 @@ function renderGoalies() {
             <thead>
                 <tr>
                     <th>Player</th>
-                    <th class="center sortable ${state.goalieSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played">GP${getSortIcon('gamesPlayed')}</th>
-                    <th class="center sortable ${state.goalieSort === 'gamesStarted' ? 'sorted' : ''}" data-sort="gamesStarted" data-tooltip="Games Started">GS${getSortIcon('gamesStarted')}</th>
-                    <th class="center sortable ${state.goalieSort === 'wins' ? 'sorted' : ''}" data-sort="wins" data-tooltip="Wins">W${getSortIcon('wins')}</th>
-                    <th class="center sortable ${state.goalieSort === 'losses' ? 'sorted' : ''}" data-sort="losses" data-tooltip="Losses">L${getSortIcon('losses')}</th>
-                    <th class="center sortable ${state.goalieSort === 'goalsAgainstAverage' ? 'sorted' : ''}" data-sort="goalsAgainstAverage" data-tooltip="Goals Against Average">GAA${getSortIcon('goalsAgainstAverage')}</th>
-                    <th class="center sortable ${state.goalieSort === 'savePercentage' ? 'sorted' : ''}" data-sort="savePercentage" data-tooltip="Save Percentage">SV%${getSortIcon('savePercentage')}</th>
-                    <th class="center hide-mobile" data-tooltip="Shots Against">SA</th>
-                    <th class="center hide-mobile" data-tooltip="Saves">SVS</th>
-                    <th class="center hide-mobile" data-tooltip="Goals Against">GA</th>
-                    <th class="center hide-mobile" data-tooltip="Shutouts">SO</th>
+                    <th class="center sortable ${state.goalieSort === 'gamesPlayed' ? 'sorted' : ''}" data-sort="gamesPlayed" data-tooltip="Games Played" aria-label="Games Played">GP${getSortIcon('gamesPlayed')}</th>
+                    <th class="center sortable ${state.goalieSort === 'gamesStarted' ? 'sorted' : ''}" data-sort="gamesStarted" data-tooltip="Games Started" aria-label="Games Started">GS${getSortIcon('gamesStarted')}</th>
+                    <th class="center sortable ${state.goalieSort === 'wins' ? 'sorted' : ''}" data-sort="wins" data-tooltip="Wins" aria-label="Wins">W${getSortIcon('wins')}</th>
+                    <th class="center sortable ${state.goalieSort === 'losses' ? 'sorted' : ''}" data-sort="losses" data-tooltip="Losses" aria-label="Losses">L${getSortIcon('losses')}</th>
+                    <th class="center sortable ${state.goalieSort === 'goalsAgainstAverage' ? 'sorted' : ''}" data-sort="goalsAgainstAverage" data-tooltip="Goals Against Average" aria-label="Goals Against Average">GAA${getSortIcon('goalsAgainstAverage')}</th>
+                    <th class="center sortable ${state.goalieSort === 'savePercentage' ? 'sorted' : ''}" data-sort="savePercentage" data-tooltip="Save Percentage" aria-label="Save Percentage">SV%${getSortIcon('savePercentage')}</th>
+                    <th class="center hide-mobile" data-tooltip="Shots Against" aria-label="Shots Against">SA</th>
+                    <th class="center hide-mobile" data-tooltip="Saves" aria-label="Saves">SVS</th>
+                    <th class="center hide-mobile" data-tooltip="Goals Against" aria-label="Goals Against">GA</th>
+                    <th class="center hide-mobile" data-tooltip="Shutouts" aria-label="Shutouts">SO</th>
                 </tr>
             </thead>
             <tbody>

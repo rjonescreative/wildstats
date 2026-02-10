@@ -256,20 +256,20 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                 <tr>
                     <th class="center rank">#</th>
                     <th class="team-col">Team</th>
-                    <th class="center" data-tooltip="Games Played">GP</th>
-                    <th class="center" data-tooltip="Wins">W</th>
-                    <th class="center" data-tooltip="Losses">L</th>
-                    <th class="center" data-tooltip="Overtime Losses">OT</th>
-                    <th class="center sortable ${state.sortBy === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points">PTS${getSortIcon('points')}</th>
-                    <th class="center sortable ${state.sortBy === 'pointPctg' ? 'sorted' : ''}" data-sort="pointPctg" data-tooltip="Points Percentage">P%${getSortIcon('pointPctg')}</th>
-                    <th class="center hide-mobile" data-tooltip="Regulation Wins">RW</th>
-                    <th class="center hide-mobile" data-tooltip="Regulation + Overtime Wins">ROW</th>
-                    <th class="center hide-mobile" data-tooltip="Goals For">GF</th>
-                    <th class="center hide-mobile" data-tooltip="Goals Against">GA</th>
-                    <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
-                    <th class="center" data-tooltip="Last 10 Games">L10</th>
-                    <th class="center" data-tooltip="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic Numbers">M#</th>
+                    <th class="center" data-tooltip="Games Played" aria-label="Games Played">GP</th>
+                    <th class="center" data-tooltip="Wins" aria-label="Wins">W</th>
+                    <th class="center" data-tooltip="Losses" aria-label="Losses">L</th>
+                    <th class="center" data-tooltip="Overtime Losses" aria-label="Overtime Losses">OT</th>
+                    <th class="center sortable ${state.sortBy === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points" aria-label="Points">PTS${getSortIcon('points')}</th>
+                    <th class="center sortable ${state.sortBy === 'pointPctg' ? 'sorted' : ''}" data-sort="pointPctg" data-tooltip="Points Percentage" aria-label="Points Percentage">P%${getSortIcon('pointPctg')}</th>
+                    <th class="center hide-mobile" data-tooltip="Regulation Wins" aria-label="Regulation Wins">RW</th>
+                    <th class="center hide-mobile" data-tooltip="Regulation + Overtime Wins" aria-label="Regulation + Overtime Wins">ROW</th>
+                    <th class="center hide-mobile" data-tooltip="Goals For" aria-label="Goals For">GF</th>
+                    <th class="center hide-mobile" data-tooltip="Goals Against" aria-label="Goals Against">GA</th>
+                    <th class="center hide-mobile" data-tooltip="Goal Differential" aria-label="Goal Differential">DIFF</th>
+                    <th class="center" data-tooltip="Last 10 Games" aria-label="Last 10 Games">L10</th>
+                    <th class="center" data-tooltip="Streak" aria-label="Streak">STRK</th>
+                    <th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
@@ -414,20 +414,20 @@ function createWildcardTable(teams, state) {
             <thead>
                 <tr>
                     <th class="team-col">Team</th>
-                    <th class="center" data-tooltip="Games Played">GP</th>
-                    <th class="center" data-tooltip="Wins">W</th>
-                    <th class="center" data-tooltip="Losses">L</th>
-                    <th class="center" data-tooltip="Overtime Losses">OT</th>
-                    <th class="center sortable ${state.sortBy === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points">PTS${getSortIcon('points')}</th>
-                    <th class="center sortable ${state.sortBy === 'pointPctg' ? 'sorted' : ''}" data-sort="pointPctg" data-tooltip="Points Percentage">P%${getSortIcon('pointPctg')}</th>
-                    <th class="center hide-mobile" data-tooltip="Regulation Wins">RW</th>
-                    <th class="center hide-mobile" data-tooltip="Regulation + Overtime Wins">ROW</th>
-                    <th class="center hide-mobile" data-tooltip="Goals For">GF</th>
-                    <th class="center hide-mobile" data-tooltip="Goals Against">GA</th>
-                    <th class="center hide-mobile" data-tooltip="Goal Differential">DIFF</th>
-                    <th class="center" data-tooltip="Last 10 Games">L10</th>
-                    <th class="center" data-tooltip="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic Numbers">M#</th>
+                    <th class="center" data-tooltip="Games Played" aria-label="Games Played">GP</th>
+                    <th class="center" data-tooltip="Wins" aria-label="Wins">W</th>
+                    <th class="center" data-tooltip="Losses" aria-label="Losses">L</th>
+                    <th class="center" data-tooltip="Overtime Losses" aria-label="Overtime Losses">OT</th>
+                    <th class="center sortable ${state.sortBy === 'points' ? 'sorted' : ''}" data-sort="points" data-tooltip="Points" aria-label="Points">PTS${getSortIcon('points')}</th>
+                    <th class="center sortable ${state.sortBy === 'pointPctg' ? 'sorted' : ''}" data-sort="pointPctg" data-tooltip="Points Percentage" aria-label="Points Percentage">P%${getSortIcon('pointPctg')}</th>
+                    <th class="center hide-mobile" data-tooltip="Regulation Wins" aria-label="Regulation Wins">RW</th>
+                    <th class="center hide-mobile" data-tooltip="Regulation + Overtime Wins" aria-label="Regulation + Overtime Wins">ROW</th>
+                    <th class="center hide-mobile" data-tooltip="Goals For" aria-label="Goals For">GF</th>
+                    <th class="center hide-mobile" data-tooltip="Goals Against" aria-label="Goals Against">GA</th>
+                    <th class="center hide-mobile" data-tooltip="Goal Differential" aria-label="Goal Differential">DIFF</th>
+                    <th class="center" data-tooltip="Last 10 Games" aria-label="Last 10 Games">L10</th>
+                    <th class="center" data-tooltip="Streak" aria-label="Streak">STRK</th>
+                    <th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>
                 </tr>
             </thead>
             <tbody>
