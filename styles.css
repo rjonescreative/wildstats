@@ -23,6 +23,44 @@
     box-sizing: border-box;
 }
 
+/* Skip link for keyboard navigation */
+.skip-link {
+    position: absolute;
+    top: -3rem;
+    left: 1rem;
+    background: var(--wild-gold);
+    color: var(--bg-primary);
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-weight: 600;
+    text-decoration: none;
+    z-index: 10000;
+    transition: top 0.2s ease;
+}
+
+.skip-link:focus {
+    top: 1rem;
+}
+
+/* Focus styles for interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+[tabindex="0"]:focus-visible {
+    outline: 2px solid var(--wild-gold);
+    outline-offset: 2px;
+}
+
+/* Remove default focus outline when not using keyboard */
+a:focus:not(:focus-visible),
+button:focus:not(:focus-visible),
+input:focus:not(:focus-visible),
+select:focus:not(:focus-visible),
+[tabindex="0"]:focus:not(:focus-visible) {
+    outline: none;
+}
+
 body {
     font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
     background-color: var(--bg-primary);
@@ -32,7 +70,7 @@ body {
     background-attachment: fixed;
     color: var(--text-primary);
     line-height: 1.5;
-    font-size: 14px;
+    font-size: 0.875rem;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
@@ -85,6 +123,8 @@ header {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
+    font-size: inherit;
+    font-weight: inherit;
 }
 
 .header-divider {
@@ -110,7 +150,7 @@ header {
     background-color: transparent;
     color: var(--text-primary);
     border: none;
-    font-size: 16px;
+    font-size: 1rem;
     font-weight: 500;
     text-decoration: none;
     transition: color 0.2s ease;
@@ -337,7 +377,7 @@ main {
     background-color: transparent;
     color: var(--text-primary);
     border: none;
-    font-size: 14px;
+    font-size: 0.875rem;
     font-weight: 500;
     cursor: pointer;
     transition: color 0.2s ease;
@@ -884,7 +924,7 @@ footer {
     }
 
     .nav-link {
-        font-size: 15px;
+        font-size: 0.9375rem;
     }
 
     .header-logo {
@@ -906,7 +946,7 @@ footer {
     }
 
     .view-btn {
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .stat-leaders {
@@ -1019,7 +1059,7 @@ footer {
     }
 
     .nav-link {
-        font-size: 14px;
+        font-size: 0.875rem;
     }
 
     .main-nav {
@@ -1033,7 +1073,7 @@ footer {
     }
 
     .view-btn {
-        font-size: 12px;
+        font-size: 0.75rem;
     }
 
     table {
@@ -1101,7 +1141,7 @@ footer {
     }
 
     .nav-link {
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 
     .main-nav {
@@ -1114,7 +1154,7 @@ footer {
     }
 
     .view-btn {
-        font-size: 11px;
+        font-size: 0.6875rem;
     }
 
     /* Very small game cards for tiny screens */
@@ -1545,12 +1585,18 @@ footer {
     color: var(--text-primary);
 }
 
-/* Hide default checkbox */
+/* Hide default checkbox visually but keep it focusable */
 .schedule-toggle input[type="checkbox"] {
     position: absolute;
     opacity: 0;
-    width: 0;
-    height: 0;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
 }
 
 /* Toggle slider (pill background) */
@@ -1593,6 +1639,12 @@ footer {
 /* Hover effect */
 .schedule-toggle:hover .toggle-slider {
     opacity: 0.9;
+}
+
+/* Focus style for keyboard navigation */
+.schedule-toggle input[type="checkbox"]:focus-visible + .toggle-slider {
+    outline: 2px solid var(--wild-gold);
+    outline-offset: 2px;
 }
 
 .matchup-cell {

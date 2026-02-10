@@ -156,9 +156,9 @@ function renderSkaters() {
             </thead>
             <tbody>
                 ${skaters.map((player, index) => `
-                    <tr class="player-hoverable" data-player-id="${player.playerId}">
+                    <tr class="player-hoverable" tabindex="0" role="button" aria-label="View ${player.firstName.default} ${player.lastName.default} stats" data-player-id="${player.playerId}">
                         <td class="player-name">
-                            <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
+                            <img src="${player.headshot}" alt="" class="player-photo-small">
                             <span class="player-full-name">${player.firstName.default} ${player.lastName.default}</span>
                             <span class="player-abbrev-text">${player.firstName.default.charAt(0)}. ${player.lastName.default}</span>
                         </td>
@@ -257,9 +257,9 @@ function renderGoalies() {
             </thead>
             <tbody>
                 ${goalies.map((player, index) => `
-                    <tr class="player-hoverable" data-player-id="${player.playerId}">
+                    <tr class="player-hoverable" tabindex="0" role="button" aria-label="View ${player.firstName.default} ${player.lastName.default} stats" data-player-id="${player.playerId}">
                         <td class="player-name">
-                            <img src="${player.headshot}" alt="${player.firstName.default} ${player.lastName.default}" class="player-photo-small">
+                            <img src="${player.headshot}" alt="" class="player-photo-small">
                             <span class="player-full-name">${player.firstName.default} ${player.lastName.default}</span>
                             <span class="player-abbrev-text">${player.firstName.default.charAt(0)}. ${player.lastName.default}</span>
                         </td>

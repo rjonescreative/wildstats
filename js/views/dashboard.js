@@ -431,10 +431,10 @@ function renderHighlights(videos) {
     container.innerHTML = `
         <div class="highlights-grid">
             ${videos.map(video => `
-                <div class="highlight-card" data-brightcove-id="${video.brightcoveId}" data-account-id="${video.brightcoveAccountId}">
+                <div class="highlight-card" tabindex="0" role="button" aria-label="Play video: ${video.title.replace(/"/g, '&quot;')}" data-brightcove-id="${video.brightcoveId}" data-account-id="${video.brightcoveAccountId}">
                     <div class="highlight-thumbnail-container">
-                        <img src="${video.thumbnail}" alt="${video.title}" class="highlight-thumbnail">
-                        <div class="highlight-play-overlay">
+                        <img src="${video.thumbnail}" alt="" class="highlight-thumbnail">
+                        <div class="highlight-play-overlay" aria-hidden="true">
                             <svg class="play-icon" viewBox="0 0 24 24" fill="currentColor">
                                 <path d="M8 5v14l11-7z"/>
                             </svg>
@@ -450,13 +450,21 @@ function renderHighlights(videos) {
         </div>
     `;
 
-    // Add click handlers for video cards
+    // Add click and keyboard handlers for video cards
     container.querySelectorAll('.highlight-card').forEach(card => {
-        card.addEventListener('click', () => {
+        const handleActivation = () => {
             const brightcoveId = card.dataset.brightcoveId;
             const accountId = card.dataset.accountId;
             if (brightcoveId) {
                 openHighlightModal(brightcoveId, accountId);
+            }
+        };
+
+        card.addEventListener('click', handleActivation);
+        card.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                handleActivation();
             }
         });
     });
@@ -466,18 +474,25 @@ function openHighlightModal(brightcoveId, accountId) {
     // Remove existing modal if any
     closeHighlightModal();
 
+    // Store the element that triggered the modal for focus restoration
+    const triggerElement = document.activeElement;
+
     const modal = document.createElement('div');
     modal.className = 'video-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-label', 'Video player');
     modal.innerHTML = `
         <div class="video-modal-backdrop"></div>
         <div class="video-modal-content">
-            <button class="video-modal-close">&times;</button>
+            <button class="video-modal-close" aria-label="Close video">&times;</button>
             <div class="video-player-container">
                 <iframe
                     src="https://players.brightcove.net/${accountId}/EXtG1xJ7H_default/index.html?videoId=${brightcoveId}"
                     allowfullscreen
                     allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                     class="video-player-iframe"
+                    title="Video player"
                 ></iframe>
             </div>
         </div>
@@ -486,13 +501,38 @@ function openHighlightModal(brightcoveId, accountId) {
     document.body.appendChild(modal);
     document.body.style.overflow = 'hidden';
 
+    // Store trigger element for focus restoration
+    modal._triggerElement = triggerElement;
+
     requestAnimationFrame(() => {
         modal.classList.add('visible');
+        // Focus the close button
+        modal.querySelector('.video-modal-close').focus();
     });
 
     modal.querySelector('.video-modal-backdrop').addEventListener('click', closeHighlightModal);
     modal.querySelector('.video-modal-close').addEventListener('click', closeHighlightModal);
     document.addEventListener('keydown', handleHighlightEscapeKey);
+    modal.addEventListener('keydown', handleHighlightFocusTrap);
+}
+
+function handleHighlightFocusTrap(e) {
+    if (e.key !== 'Tab') return;
+
+    const modal = document.querySelector('.video-modal');
+    if (!modal) return;
+
+    const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), iframe');
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey && document.activeElement === firstElement) {
+        lastElement.focus();
+        e.preventDefault();
+    } else if (!e.shiftKey && document.activeElement === lastElement) {
+        firstElement.focus();
+        e.preventDefault();
+    }
 }
 
 function handleHighlightEscapeKey(e) {
@@ -504,10 +544,15 @@ function handleHighlightEscapeKey(e) {
 function closeHighlightModal() {
     const modal = document.querySelector('.video-modal');
     if (modal) {
+        const triggerElement = modal._triggerElement;
         modal.classList.remove('visible');
         setTimeout(() => {
             modal.remove();
             document.body.style.overflow = '';
+            // Restore focus to trigger element
+            if (triggerElement && triggerElement.focus) {
+                triggerElement.focus();
+            }
         }, 200);
     }
     document.removeEventListener('keydown', handleHighlightEscapeKey);
@@ -724,12 +769,13 @@ function renderStatLeaders(data) {
         const rankText = rank ? `<span class="league-rank-inline">#${rank}</span> ` : '';
         const lastName = player.lastName.default;
         const firstInitial = player.firstName.default.charAt(0);
+        const fullName = `${player.firstName.default} ${lastName}`;
 
         return `
-            <div class="leader-row player-hoverable" data-player-id="${player.playerId}">
+            <div class="leader-row player-hoverable" tabindex="0" role="button" aria-label="View ${fullName} stats" data-player-id="${player.playerId}">
                 <span class="leader-rank">${index + 1}</span>
                 <div class="leader-player">
-                    <img src="${player.headshot}" alt="${firstInitial}. ${lastName}" class="player-photo-small">
+                    <img src="${player.headshot}" alt="" class="player-photo-small">
                     <span class="leader-name">${firstInitial}. ${lastName}</span>
                 </div>
                 <span class="leader-stat">${rankText}${player[statProp]}</span>

@@ -4,6 +4,8 @@ import { trackPlayerCardView } from './analytics.js';
 // State
 let hoverTimeout = null;
 let currentPlayerId = null;
+let triggerElement = null;
+let openedViaKeyboard = false;
 const pendingRequests = new Map();
 
 // Initialize
@@ -17,6 +19,9 @@ function createCardContainer() {
     const container = document.createElement('div');
     container.id = 'player-card-container';
     container.className = 'player-card-popup';
+    container.setAttribute('role', 'dialog');
+    container.setAttribute('aria-modal', 'true');
+    container.setAttribute('aria-label', 'Player statistics card');
     document.body.appendChild(container);
 
     // Add close button click handler
@@ -26,11 +31,73 @@ function createCardContainer() {
             hidePlayerCard();
         }
     });
+
+    // Add keyboard handlers for the card
+    container.addEventListener('keydown', handleCardKeydown);
+}
+
+// Handle keyboard events within the card
+function handleCardKeydown(e) {
+    const container = document.getElementById('player-card-container');
+    if (!container.classList.contains('visible')) return;
+
+    // Close on Escape
+    if (e.key === 'Escape') {
+        e.preventDefault();
+        e.stopPropagation();
+        hidePlayerCard();
+        return;
+    }
+
+    // Focus trap on Tab
+    if (e.key === 'Tab') {
+        const focusableElements = container.querySelectorAll(
+            'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+        );
+        const firstElement = focusableElements[0];
+        const lastElement = focusableElements[focusableElements.length - 1];
+
+        if (e.shiftKey && document.activeElement === firstElement) {
+            lastElement.focus();
+            e.preventDefault();
+        } else if (!e.shiftKey && document.activeElement === lastElement) {
+            firstElement.focus();
+            e.preventDefault();
+        }
+    }
 }
 
 // Event delegation
 function setupEventListeners() {
     document.addEventListener('click', handleClick, true);
+    document.addEventListener('keydown', handleKeydown, true);
+}
+
+// Keyboard activation for player cards
+function handleKeydown(e) {
+    if (e.key !== 'Enter') return;
+
+    const trigger = e.target.closest('.player-hoverable');
+    if (!trigger) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const playerId = trigger.dataset.playerId;
+
+    // If pressing Enter on the same player, close the card
+    if (currentPlayerId === playerId) {
+        hidePlayerCard();
+        return;
+    }
+
+    // Store trigger element for focus restoration
+    triggerElement = trigger;
+    openedViaKeyboard = true;
+
+    // Get position from element
+    const rect = trigger.getBoundingClientRect();
+    showPlayerCard(playerId, rect.right, rect.top);
 }
 
 // Click detection
@@ -49,6 +116,10 @@ function handleClick(e) {
             hidePlayerCard();
             return;
         }
+
+        // Mark as opened via click (not keyboard)
+        triggerElement = trigger;
+        openedViaKeyboard = false;
 
         // Show card for this player
         showPlayerCard(playerId, e.clientX, e.clientY);
@@ -72,12 +143,30 @@ async function showPlayerCard(playerId, x, y) {
     renderCard(cardData);
     positionCard(x, y);
 
-    document.getElementById('player-card-container').classList.add('visible');
+    const container = document.getElementById('player-card-container');
+    container.classList.add('visible');
+
+    // Focus the close button if opened via keyboard
+    if (openedViaKeyboard) {
+        const closeButton = container.querySelector('.player-card-close');
+        if (closeButton) {
+            closeButton.focus();
+        }
+    }
 }
 
 function hidePlayerCard() {
     document.getElementById('player-card-container').classList.remove('visible');
     currentPlayerId = null;
+
+    // Restore focus to the trigger element if opened via keyboard
+    if (openedViaKeyboard && triggerElement && triggerElement.focus) {
+        triggerElement.focus();
+    }
+
+    // Reset state
+    triggerElement = null;
+    openedViaKeyboard = false;
 }
 
 // Data fetching with caching and deduplication
