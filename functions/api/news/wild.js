@@ -69,7 +69,7 @@ export async function onRequest(context) {
                     articles.push({
                         title,
                         link,
-                        image: '/images/startribune-placeholder.gif',
+                        image: '/images/startribune-placeholder.png',
                         source: 'Star Tribune',
                         date: pubDate ? new Date(pubDate) : new Date(0)
                     });
