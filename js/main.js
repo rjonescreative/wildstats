@@ -44,6 +44,29 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize analytics (outbound link tracking)
     analytics.init();
 
+    // About modal
+    const aboutModal = document.getElementById('about-modal');
+    const openAboutBtn = document.getElementById('open-about-modal');
+    const closeAboutBtn = document.getElementById('about-modal-close');
+    const aboutBackdrop = document.getElementById('about-modal-backdrop');
+
+    function openAboutModal() {
+        aboutModal.classList.add('visible');
+    }
+
+    function closeAboutModal() {
+        aboutModal.classList.remove('visible');
+    }
+
+    openAboutBtn.addEventListener('click', (e) => { e.preventDefault(); openAboutModal(); });
+    closeAboutBtn.addEventListener('click', closeAboutModal);
+    aboutBackdrop.addEventListener('click', closeAboutModal);
+    document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && aboutModal.classList.contains('visible')) {
+            closeAboutModal();
+        }
+    });
+
     // Original logo state, captured once before any swap
     let originalLogoSrc = null;
     let originalLogoStyle = null;

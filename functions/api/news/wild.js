@@ -40,6 +40,8 @@ export async function onRequest(context) {
             const nhlData = await nhlResponse.json();
             if (nhlData.items && Array.isArray(nhlData.items)) {
                 nhlData.items.forEach(item => {
+                    // Skip non-news content (game day guides, etc.)
+                    if (item.slug && item.slug.startsWith('min-game-day-guide')) return;
                     // Get the thumbnail image
                     const thumbnail = item.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size40/f_auto/') || '';
                     articles.push({
