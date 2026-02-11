@@ -49,23 +49,53 @@ document.addEventListener('DOMContentLoaded', () => {
     const openAboutBtn = document.getElementById('open-about-modal');
     const closeAboutBtn = document.getElementById('about-modal-close');
     const aboutBackdrop = document.getElementById('about-modal-backdrop');
+    const aboutModalContent = aboutModal.querySelector('.about-modal-content');
+
+    function getModalFocusableElements() {
+        return aboutModalContent.querySelectorAll('button, a[href]');
+    }
 
     function openAboutModal() {
         aboutModal.classList.add('visible');
+        closeAboutBtn.focus();
     }
 
     function closeAboutModal() {
         aboutModal.classList.remove('visible');
+        openAboutBtn.focus();
+    }
+
+    function handleModalKeydown(e) {
+        if (!aboutModal.classList.contains('visible')) return;
+
+        if (e.key === 'Escape') {
+            closeAboutModal();
+            return;
+        }
+
+        if (e.key === 'Tab') {
+            const focusable = getModalFocusableElements();
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+
+            if (e.shiftKey) {
+                if (document.activeElement === first) {
+                    e.preventDefault();
+                    last.focus();
+                }
+            } else {
+                if (document.activeElement === last) {
+                    e.preventDefault();
+                    first.focus();
+                }
+            }
+        }
     }
 
     openAboutBtn.addEventListener('click', (e) => { e.preventDefault(); openAboutModal(); });
     closeAboutBtn.addEventListener('click', closeAboutModal);
     aboutBackdrop.addEventListener('click', closeAboutModal);
-    document.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape' && aboutModal.classList.contains('visible')) {
-            closeAboutModal();
-        }
-    });
+    document.addEventListener('keydown', handleModalKeydown);
 
     // Original logo state, captured once before any swap
     let originalLogoSrc = null;

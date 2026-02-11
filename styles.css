@@ -2396,6 +2396,15 @@ footer {
     color: var(--text-primary);
 }
 
+.about-modal-site-name {
+    color: var(--text-primary);
+    font-size: 1.2rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.25rem;
+}
+
 .about-modal-title {
     color: var(--text-primary);
     font-size: 1.1rem;
