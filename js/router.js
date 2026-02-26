@@ -14,7 +14,8 @@ const routes = {
     '/schedule': 'schedule',
     '/media': 'media',
     '/media/highlights': 'media',
-    '/media/recaps': 'media'
+    '/media/recaps': 'media',
+    '/media/condensed': 'media'
 };
 
 // View modules (will be set by main.js)
@@ -135,7 +136,7 @@ function getPageTitle(viewName, subView = null) {
     }
 
     if (viewName === 'media') {
-        const mediaLabels = { all: 'All', highlights: 'Highlights', recaps: 'Game Recaps' };
+        const mediaLabels = { all: 'All', highlights: 'Highlights', recaps: 'Game Recaps', condensed: 'Condensed Games' };
         const label = mediaLabels[subView] || 'All';
         return `Wild Hockey Hub | Media | ${label}`;
     }
@@ -161,7 +162,8 @@ function getMetaDescription(viewName, subView = null) {
         const mediaDescriptions = {
             all: 'Minnesota Wild videos. Watch highlights, game recaps, interviews, and more from the Wild.',
             highlights: 'Minnesota Wild game highlights. Watch the best plays, goals, and saves from Wild games.',
-            recaps: 'Minnesota Wild game recaps. Watch condensed game recaps and full game summaries.'
+            recaps: 'Minnesota Wild game recaps. Watch condensed game recaps and full game summaries.',
+            condensed: 'Minnesota Wild condensed games. Watch full condensed game replays for every Wild game this season.'
         };
         return mediaDescriptions[subView] || mediaDescriptions.all;
     }

@@ -12,6 +12,8 @@ export async function onRequest(context) {
             tags = 'highlight,teamid-30';
         } else if (type === 'recaps') {
             tags = 'game-recap,teamid-30';
+        } else if (type === 'condensed') {
+            tags = 'condensed-game,teamid-30';
         }
 
         // Fetch extra to account for filtered duplicates and recaps
