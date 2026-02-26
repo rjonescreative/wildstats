@@ -1702,6 +1702,10 @@ footer {
     padding-left: 8px;
 }
 
+.matchup-tv-mobile {
+    display: none;
+}
+
 .matchup-cell .team-logo {
     width: 24px;
     height: 24px;
@@ -1867,7 +1871,14 @@ footer {
     }
 
     .matchup-cell.future-game {
-        grid-template-columns: 24px 38px 20px 38px 24px;
+        grid-template-columns: 24px 38px 20px 38px 24px 1fr;
+    }
+
+    .matchup-cell.future-game .matchup-tv-mobile {
+        display: block;
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        padding-left: 6px;
     }
 
     .matchup-cell .team-logo {
@@ -1939,7 +1950,11 @@ footer {
     }
 
     .matchup-cell.future-game {
-        grid-template-columns: 32px 18px 32px;
+        grid-template-columns: 32px 18px 32px 1fr;
+    }
+
+    .matchup-cell.future-game .matchup-tv-mobile {
+        font-size: 0.6rem;
     }
 
     /* Adjust schedule table column widths for mobile */

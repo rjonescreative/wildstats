@@ -231,6 +231,9 @@ function createGameRow(game) {
     const resultClass = result.startsWith('W') ? 'game-win' :
                        result.startsWith('L') ? 'game-loss' : '';
 
+    // TV
+    const tvNetwork = getTVBroadcast(game);
+
     // Matchup with grid structure for alignment
     let matchup;
     if (isPast) {
@@ -240,12 +243,9 @@ function createGameRow(game) {
     } else {
         const oppPlayoffClass = playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs';
         matchup = isMinHome
-            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span>`
-            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span>`;
+            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`;
     }
-
-    // TV
-    const tvNetwork = getTVBroadcast(game);
 
     // Links
     let links = '';
