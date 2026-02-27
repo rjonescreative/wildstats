@@ -230,8 +230,8 @@ function processPlayerData(details, gameLog) {
     // Calculate stats
     const last10Stats = calculateStats(recentGames);
 
-    // Detect streak
-    const streak = detectPointStreak(recentGames);
+    // Detect streak (use full game log, not just last 10)
+    const streak = detectPointStreak(games);
 
     // Safe property access with defaults
     const firstName = details.firstName?.default || details.firstName || '';
