@@ -6,7 +6,12 @@
       "Bash(git add:*)",
       "Bash(git commit:*)",
       "Bash(git push:*)",
-      "mcp__Claude_Preview__preview_start"
+      "mcp__Claude_Preview__preview_start",
+      "WebFetch(domain:www.puckfeed.com)",
+      "Bash(node -e \"const d=require\\(''fs''\\).readFileSync\\(''/dev/stdin'',''utf8''\\); const j=JSON.parse\\(d\\); j.items?.slice\\(0,2\\).forEach\\(i => console.log\\(''TITLE:'', i.title, ''\\\\nTAGS:'', JSON.stringify\\(i.tags?.map\\(t=>t.slug\\)\\), ''\\\\n''\\)\\)\")",
+      "Bash(node -e \"const d=require\\(''fs''\\).readFileSync\\(''/dev/stdin'',''utf8''\\); const j=JSON.parse\\(d\\); j.videos?.slice\\(0,4\\).forEach\\(v => console.log\\(v.title\\)\\)\")",
+      "Bash(node -e \"const d=require\\(''fs''\\).readFileSync\\(''/dev/stdin'',''utf8''\\); const j=JSON.parse\\(d\\); j.videos?.forEach\\(v => console.log\\(v.title\\)\\)\")",
+      "Bash(node -e \":*)"
     ]
   }
 }

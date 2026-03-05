@@ -258,6 +258,24 @@ function renderGameCard(label, game, isPast, isLive) {
         }).format(time);
     }
 
+    // Build date/time display for the label
+    let labelDateTimePart = '';
+    if (isPast) {
+        labelDateTimePart = ` • ${dateStr}`;
+    } else if (!isLive) {
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        if (game.gameDate === todayStr) {
+            labelDateTimePart = ' • Today';
+        } else {
+            const dayStr = gameDate.toLocaleDateString('en-US', { weekday: 'short' });
+            labelDateTimePart = ` • ${dayStr}, ${dateStr}`;
+        }
+        if (timeStr) {
+            labelDateTimePart += ` • ${timeStr}`;
+        }
+    }
+
     // Get scores and result for past games
     let awayScore = '';
     let homeScore = '';
@@ -310,7 +328,7 @@ function renderGameCard(label, game, isPast, isLive) {
 
     return `
         <div class="game-card ${resultClass}">
-            <div class="game-label">${label} • ${dateStr}${timeStr ? ' • ' + timeStr : ''}${resultText ? ' • ' + resultText : ''}</div>
+            <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}</div>
             <div class="game-matchup">
                 <div class="team-display ${isMinHome ? 'opponent-team' : 'wild-team'}">
                     <img src="/logos/${isMinHome ? oppTeam.abbrev : 'MIN'}_dark.svg" alt="${isMinHome ? oppTeam.abbrev : 'MIN'}" class="game-team-logo">
