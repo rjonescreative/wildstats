@@ -93,8 +93,9 @@ async function renderGames() {
     const lastGame = completedGames[completedGames.length - 1];
 
     // Find current/next games
+    // Include PRE state (pre-game warmups) — puck drop is typically 8+ min after listed start time
     const futureGames = regularSeasonGames.filter(g =>
-        g.gameState === 'FUT' || g.gameState === 'LIVE' || g.gameState === 'CRIT'
+        g.gameState === 'FUT' || g.gameState === 'PRE' || g.gameState === 'LIVE' || g.gameState === 'CRIT'
     );
     const currentOrNextGame = futureGames[0];
     const upcomingGame = futureGames[1];
@@ -123,7 +124,7 @@ async function renderGames() {
     const gamesHtml = `
         <div class="games-grid">
             ${lastGame ? renderGameCard('Last', lastGame, true, false) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
-            ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
+            ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
             ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
         </div>
         <div class="section-footer">
