@@ -45,7 +45,7 @@ export async function onRequest(context) {
                     // Get the thumbnail image
                     const thumbnail = item.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size40/f_auto/') || '';
                     articles.push({
-                        title: item.title || '',
+                        title: item.headline || item.title || '',
                         link: `https://www.nhl.com/wild/news/${item.slug}`,
                         image: thumbnail,
                         source: 'NHL.com',
