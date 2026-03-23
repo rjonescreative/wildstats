@@ -53,24 +53,21 @@ const PAGE_META = {
     }
 };
 
+const SPA_ROUTES = new Set(Object.keys(PAGE_META));
+
 export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Let API requests pass through to their own function handlers
-    if (path.startsWith('/api/')) {
+    // Only intercept known SPA routes — pass everything else (static assets, API routes) straight through
+    if (!SPA_ROUTES.has(path)) {
         return env.ASSETS.fetch(request);
     }
 
     // Fetch index.html from static assets
     const assetRequest = new Request(new URL('/', url).href, request);
     const response = await env.ASSETS.fetch(assetRequest);
-
-    // Only transform HTML responses
-    if (!response.headers.get('content-type')?.includes('text/html')) {
-        return response;
-    }
 
     const meta = PAGE_META[path] || PAGE_META['/'];
     const canonicalUrl = `https://wildhockey.win${path}`;
