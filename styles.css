@@ -723,6 +723,28 @@ td {
     opacity: 0.4;
 }
 
+.clinch-mobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .clinch-mobile {
+        display: inline;
+    }
+}
+
+.clinch-key {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+    padding: 0.75rem 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 6px;
+    margin-top: 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
 .division-header {
     background-color: var(--bg-tertiary);
 }

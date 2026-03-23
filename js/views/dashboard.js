@@ -728,7 +728,7 @@ function createStandingsTable(teams, state) {
                             <td class="team-name">
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                                 <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
-                                    <span class="team-full-name">${team.teamName.default}</span>
+                                    <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
                                     <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
                                     <span class="external-link-icon">↗</span>
                                 </a>
@@ -746,7 +746,7 @@ function createStandingsTable(teams, state) {
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
-                            <td class="center">${magicDisplay}</td>
+                            <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
                         </tr>
                     `;
 

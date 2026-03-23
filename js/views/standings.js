@@ -154,6 +154,23 @@ function calculateMagicNumber(team, conferenceTeams) {
     }
 }
 
+const CLINCH_LABELS = {
+    'z': 'clinched Presidents\' Trophy',
+    'y': 'clinched division',
+    'x': 'clinched playoff spot',
+    'e': 'eliminated from playoff contention',
+};
+
+function renderClinchKey() {
+    const hasAny = standingsData.standings.some(t => t.clinchIndicator);
+    if (!hasAny) return '';
+
+    const items = Object.entries(CLINCH_LABELS).map(([ind, label]) =>
+        `<span class="key-item">${ind} \u2013 ${label}</span>`
+    ).join('');
+    return `<div class="clinch-key">${items}</div>`;
+}
+
 function renderLeagueStandings(state) {
     const allTeams = sortTeams(standingsData.standings, state);
 
@@ -164,6 +181,7 @@ function renderLeagueStandings(state) {
                 ${createStandingsTable(allTeams, state, true)}
             </div>
         </div>
+        ${renderClinchKey()}
     `;
 }
 
@@ -184,6 +202,7 @@ function renderConferenceStandings(state) {
                 ${createStandingsTable(eastern, state)}
             </div>
         </div>
+        ${renderClinchKey()}
     `;
 }
 
@@ -201,7 +220,7 @@ function renderDivisionStandings(state) {
                 </div>
             </div>
         `;
-    }).join('');
+    }).join('') + renderClinchKey();
 }
 
 function renderWildcardStandings(state) {
@@ -226,6 +245,7 @@ function renderWildcardStandings(state) {
                 ${createWildcardTable(eastern, state)}
             </div>
         </div>
+        ${renderClinchKey()}
     `;
 }
 
@@ -297,7 +317,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="team-name">
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                                 <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
-                                    <span class="team-full-name">${team.teamName.default}</span>
+                                    <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
                                     <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
                                     <span class="external-link-icon">↗</span>
                                 </a>
@@ -315,7 +335,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
-                            <td class="center">${magicDisplay}</td>
+                            <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
                         </tr>
                     `;
 
@@ -380,7 +400,7 @@ function createWildcardTable(teams, state) {
                 <td class="team-name">
                     <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                     <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
-                        <span class="team-full-name">${team.teamName.default}</span>
+                        <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
                         <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
                         <span class="external-link-icon">↗</span>
                     </a>
@@ -398,7 +418,7 @@ function createWildcardTable(teams, state) {
                 <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                 <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                 <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
-                <td class="center">${magicDisplay}</td>
+                <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
             </tr>
         `;
     };
