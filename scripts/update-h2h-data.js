@@ -6,9 +6,12 @@
  * and stores one JSON file per opponent in Cloudflare R2.
  *
  * Usage:
- *   node scripts/update-h2h-data.js           # incremental: current season only
- *   node scripts/update-h2h-data.js --seed    # full seed: all seasons, all opponents
- *   node scripts/update-h2h-data.js --opponent ANA  # single opponent (for testing)
+ *   node scripts/update-h2h-data.js                        # incremental: current season only
+ *   node scripts/update-h2h-data.js --seed                 # full seed: all seasons, all opponents
+ *   node scripts/update-h2h-data.js --refresh-schedules    # re-fetch all season schedules (finds
+ *                                                          #   new/playoff games) without discarding
+ *                                                          #   existing right-rail stats
+ *   node scripts/update-h2h-data.js --opponent=ANA         # single opponent (for testing)
  */
 
 import 'dotenv/config';
@@ -172,8 +175,8 @@ function parseTeamStats(stats, side) {
 function parseGame(scheduleGame) {
     const { id, season, gameDate, gameState, gameType, gameOutcome, homeTeam, awayTeam } = scheduleGame;
 
-    // Only completed regular season games
-    if (gameType !== 2) return null;
+    // Accept regular season (2) and playoff (3) games only
+    if (gameType !== 2 && gameType !== 3) return null;
     if (gameState !== 'OFF' && gameState !== 'FINAL') return null;
     if (!homeTeam?.score == null || !awayTeam?.score == null) return null;
 
@@ -183,6 +186,7 @@ function parseGame(scheduleGame) {
 
     return {
         gameId: id,
+        gameType,                                        // 2 = regular season, 3 = playoffs
         season: String(season),
         date: gameDate,
         isMinHome,
@@ -262,12 +266,40 @@ function aggregateGames(games) {
     };
 }
 
+// Groups playoff games by season to determine series wins/losses.
+// Each season = one series. The side that won more games won the series.
+function buildPlayoffSeries(playoffGames) {
+    if (!playoffGames.length) return null;
+
+    const bySeason = {};
+    for (const g of playoffGames) {
+        (bySeason[g.season] ??= []).push(g);
+    }
+
+    let seriesWins = 0, seriesLosses = 0;
+    for (const games of Object.values(bySeason)) {
+        const minWins = games.filter(g => g.minScore > g.oppScore).length;
+        const oppWins = games.filter(g => g.oppScore > g.minScore).length;
+        if (minWins > oppWins) seriesWins++;
+        else if (oppWins > minWins) seriesLosses++;
+        // tied = in-progress series, not counted
+    }
+
+    const agg = aggregateGames(playoffGames);
+    return agg ? { ...agg, seriesWins, seriesLosses } : null;
+}
+
 function buildPayload(oppAbbrev, allGames) {
     const currentSeason  = getCurrentSeason();
     const lastSeason     = getLastSeason();
     const last5Seasons   = getLast5Seasons();
 
-    const filter = (seasons) => allGames.filter(g => seasons.includes(g.season));
+    // Separate regular season from playoff games.
+    // Backward compat: games without gameType field are regular season (pre-playoff-support data).
+    const regGames     = allGames.filter(g => (g.gameType ?? 2) === 2);
+    const playoffGames = allGames.filter(g => (g.gameType ?? 2) === 3);
+
+    const filter = (seasons) => regGames.filter(g => seasons.includes(g.season));
 
     return {
         oppAbbrev,
@@ -276,7 +308,8 @@ function buildPayload(oppAbbrev, allGames) {
         thisSeason:   aggregateGames(filter([currentSeason])),
         lastSeason:   aggregateGames(filter([lastSeason])),
         last5Seasons: aggregateGames(filter(last5Seasons)),
-        allTime:      aggregateGames(allGames),
+        allTime:      aggregateGames(regGames),
+        playoffs:     buildPlayoffSeries(playoffGames),
     };
 }
 
@@ -327,15 +360,20 @@ async function batchProcess(items, fn, concurrency = 10, delayMs = 100) {
 // ─── Main pipeline ────────────────────────────────────────────────────────────
 
 async function main() {
-    const isSeed       = process.argv.includes('--seed');
-    const oppFilter    = process.argv.find(a => a.startsWith('--opponent='))?.split('=')[1]?.toUpperCase();
-    const targetTeams  = oppFilter
+    const isSeed             = process.argv.includes('--seed');
+    const isRefreshSchedules = process.argv.includes('--refresh-schedules');
+    const oppFilter          = process.argv.find(a => a.startsWith('--opponent='))?.split('=')[1]?.toUpperCase();
+    const targetTeams        = oppFilter
         ? NHL_TEAMS.filter(t => t.abbrev === oppFilter)
         : NHL_TEAMS;
-    const seasons      = isSeed ? getAllSeasons() : [getCurrentSeason()];
+    const seasons            = (isSeed || isRefreshSchedules) ? getAllSeasons() : [getCurrentSeason()];
+
+    const modeLabel = isSeed ? 'SEED (all seasons, fresh)'
+        : isRefreshSchedules ? 'REFRESH SCHEDULES (all seasons, preserve existing stats)'
+        : 'INCREMENTAL (current season)';
 
     console.log(`\n🏒 Wild H2H Data Pipeline`);
-    console.log(`   Mode:     ${isSeed ? 'SEED (all seasons)' : 'INCREMENTAL (current season)'}`);
+    console.log(`   Mode:     ${modeLabel}`);
     console.log(`   Seasons:  ${seasons[0]} → ${seasons[seasons.length - 1]} (${seasons.length} total)`);
     console.log(`   Opponents: ${oppFilter ?? `all ${targetTeams.length}`}\n`);
 
@@ -372,7 +410,8 @@ async function main() {
             continue;
         }
 
-        // Load existing data from R2 (incremental mode reuses already-fetched right-rail)
+        // Load existing data from R2.
+        // Seed mode starts fresh; incremental and refresh-schedules preserve existing right-rail.
         let existingGames = [];
         if (!isSeed) {
             const existing = await readFromR2(abbrev);

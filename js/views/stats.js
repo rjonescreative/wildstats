@@ -19,7 +19,10 @@ function getCurrentSeasonStartYear() {
 }
 
 function aggregateGamesSince(games, sinceStartYear) {
-    const filtered = games.filter(g => parseInt(g.season.slice(0, 4), 10) >= sinceStartYear);
+    // Only regular season games (gameType 2); backward compat: missing gameType = regular season
+    const filtered = games.filter(g =>
+        (g.gameType ?? 2) === 2 && parseInt(g.season.slice(0, 4), 10) >= sinceStartYear
+    );
     if (!filtered.length) return null;
 
     const side = (statsKey) => {
@@ -200,9 +203,9 @@ async function loadH2HMatchup(team) {
             const sinceYear = parseInt(e.target.value, 10);
             const section = document.getElementById('h2h-since-section');
             if (!section || !h2hCurrentData) return;
-            const allGames = h2hCurrentData.games ?? [];
-            const sinceGames = allGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= sinceYear);
-            const agg = aggregateGamesSince(allGames, sinceYear);
+            const regGames = (h2hCurrentData.games ?? []).filter(g => (g.gameType ?? 2) === 2);
+            const sinceGames = regGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= sinceYear);
+            const agg = aggregateGamesSince(regGames, sinceYear);
             section.outerHTML = buildH2HTable('SINCE', agg, team, {
                 titleHtml: buildSinceTitleHtml(sinceYear),
                 sectionId: 'h2h-since-section',
@@ -222,22 +225,26 @@ function buildH2HMatchup(team, data) {
     const defaultSince = currentYear - 4;
     const allGames = data.games ?? [];
 
+    // Split regular season vs playoff games (backward compat: no gameType field = regular season)
+    const regGames     = allGames.filter(g => (g.gameType ?? 2) === 2);
+    const playoffGames = allGames.filter(g => (g.gameType ?? 2) === 3);
+
     // Filter games per period for home/away record computation
     const curSeasonStr  = `${currentYear}${currentYear + 1}`;
     let prevYear = currentYear - 1;
     if (prevYear === 2004) prevYear--;
     const prevSeasonStr = `${prevYear}${prevYear + 1}`;
-    const sinceGames    = allGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= defaultSince);
+    const sinceGames    = regGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= defaultSince);
 
-    const sinceAgg = aggregateGamesSince(allGames, defaultSince);
+    const sinceAgg = aggregateGamesSince(regGames, defaultSince);
 
     const thisSeason = (data.thisSeason?.gamesPlayed > 0)
         ? buildH2HTable('THIS SEASON', data.thisSeason, team, {
-            games: allGames.filter(g => g.season === curSeasonStr),
+            games: regGames.filter(g => g.season === curSeasonStr),
           }) : '';
     const lastSeason = (data.lastSeason?.gamesPlayed > 0)
         ? buildH2HTable('LAST SEASON', data.lastSeason, team, {
-            games: allGames.filter(g => g.season === prevSeasonStr),
+            games: regGames.filter(g => g.season === prevSeasonStr),
           }) : '';
     const sinceSection = sinceAgg
         ? buildH2HTable('SINCE', sinceAgg, team, {
@@ -246,9 +253,11 @@ function buildH2HMatchup(team, data) {
             games: sinceGames,
           }) : '';
     const allTime = (data.allTime?.gamesPlayed > 0)
-        ? buildH2HTable('ALL TIME', data.allTime, team, { games: allGames }) : '';
+        ? buildH2HTable('ALL TIME', data.allTime, team, { games: regGames }) : '';
+    const playoffs = data.playoffs
+        ? buildPlayoffsTable(data.playoffs, team, playoffGames) : '';
 
-    const hasAny = thisSeason || lastSeason || sinceSection || allTime;
+    const hasAny = thisSeason || lastSeason || sinceSection || allTime || playoffs;
 
     return `
         <div class="h2h-matchup-header">
@@ -266,7 +275,127 @@ function buildH2HMatchup(team, data) {
         ${lastSeason}
         ${sinceSection}
         ${allTime}
+        ${playoffs}
         ${!hasAny ? '<div class="loading">No games found between these teams.</div>' : ''}
+    `;
+}
+
+// ─── Playoffs Table ───────────────────────────────────────────────────────────
+
+function buildPlayoffsTable(playoffsData, team, playoffGames = []) {
+    if (!playoffsData || playoffsData.gamesPlayed === 0) return '';
+
+    const { min, opp, gamesPlayed, seriesWins, seriesLosses } = playoffsData;
+    const hasDetailedStats = min.statsGamesCount > 0;
+    const na = '--';
+
+    // Home/away sub-records
+    const subRec = (gs, isMin) => {
+        if (!gs.length) return null;
+        const s = (g) => isMin ? g.minScore : g.oppScore;
+        const c = (g) => isMin ? g.oppScore : g.minScore;
+        return {
+            wins:      gs.filter(g => s(g) > c(g)).length,
+            regLosses: gs.filter(g => s(g) < c(g) && g.lastPeriodType === 'REG').length,
+            otLosses:  gs.filter(g => s(g) < c(g) && g.lastPeriodType !== 'REG').length,
+        };
+    };
+    const minHomeGames = playoffGames.filter(g => g.isMinHome);
+    const minAwayGames = playoffGames.filter(g => !g.isMinHome);
+    const minHome = subRec(minHomeGames, true);
+    const minAway = subRec(minAwayGames, true);
+    const oppHome = subRec(minAwayGames, false);
+    const oppAway = subRec(minHomeGames, false);
+    const subRecStr = (r) => r ? `${r.wins}-${r.regLosses}-${r.otLosses}` : na;
+    const subRecPts = (r) => r ? r.wins * 2 + r.otLosses : null;
+
+    const rec   = (s) => `${s.wins}-${s.regLosses}-${s.otLosses}`;
+    const otRec = (s) => `${s.otWins}-${s.otGameLosses}`;
+
+    const avgGp = (total, gp) =>
+        gp > 0 ? `<span class="h2h-sub">${(total / gp).toFixed(1)}/gm</span>` : '';
+    const goals = (s) => `${s.goalsFor} ${avgGp(s.goalsFor, gamesPlayed)}`;
+    const statVal = (s, field) => {
+        if (!hasDetailedStats || s[field] == null) return na;
+        return `${s[field]} ${avgGp(s[field], s.statsGamesCount)}`;
+    };
+    const ppVal = (s) => {
+        if (!hasDetailedStats || s.ppGoals == null || s.ppOpportunities == null) return na;
+        const pct = s.ppOpportunities > 0
+            ? ((s.ppGoals / s.ppOpportunities) * 100).toFixed(1)
+            : '0.0';
+        return `${s.ppGoals}/${s.ppOpportunities} <span class="h2h-sub">${pct}%</span>`;
+    };
+    const foVal = (s) => {
+        if (!hasDetailedStats || s.faceoffWins == null || !s.faceoffTotal) return na;
+        const pct = ((s.faceoffWins / s.faceoffTotal) * 100).toFixed(1);
+        return `${s.faceoffWins}/${s.faceoffTotal} <span class="h2h-sub">${pct}%</span>`;
+    };
+
+    const cmp = (minV, oppV, higherIsBetter = true) => {
+        if (minV == null || oppV == null) return null;
+        if (minV === oppV) return null;
+        return higherIsBetter ? (minV > oppV ? 'min' : 'opp') : (minV < oppV ? 'min' : 'opp');
+    };
+    const recPts = (s) => s.wins * 2 + s.otLosses;
+    const ppPct  = (s) => s.ppOpportunities > 0 ? s.ppGoals / s.ppOpportunities : 0;
+    const foPct  = (s) => s.faceoffTotal > 0 ? s.faceoffWins / s.faceoffTotal : 0;
+
+    const w = {
+        series:  cmp(seriesWins, seriesLosses),
+        record:  cmp(recPts(min),           recPts(opp)),
+        homeRec: cmp(subRecPts(minHome),     subRecPts(oppHome)),
+        awayRec: cmp(subRecPts(minAway),     subRecPts(oppAway)),
+        overtime:cmp(min.otWins,            opp.otWins),
+        goals:   cmp(min.goalsFor,          opp.goalsFor),
+        sog:     cmp(min.sog,               opp.sog),
+        pp:      cmp(ppPct(min),            ppPct(opp)),
+        fo:      cmp(foPct(min),            foPct(opp)),
+        hits:    cmp(min.hits,              opp.hits),
+        pim:     cmp(min.pim,               opp.pim,  false),
+        blocks:  cmp(min.blockedShots,      opp.blockedShots),
+        gaw:     cmp(min.giveaways,         opp.giveaways, false),
+        taw:     cmp(min.takeaways,         opp.takeaways),
+    };
+
+    const row = (oppVal, label, minVal, abbr = null, winner = null) => {
+        const oppClass = winner === 'opp' ? ' h2h-val-better' : '';
+        const minClass = winner === 'min' ? ' h2h-val-better' : '';
+        return `
+        <tr>
+            <td class="h2h-opp-val${oppClass}">${oppVal}</td>
+            <td class="h2h-cat">${abbr ? `<span class="h2h-cat-full">${label}</span><span class="h2h-cat-abbr">${abbr}</span>` : label}</td>
+            <td class="h2h-min-val${minClass}">${minVal}</td>
+        </tr>`;
+    };
+
+    const otGames = min.otWins + min.otGameLosses;
+
+    return `
+        <div class="h2h-section">
+            <div class="h2h-section-title">PLAYOFFS</div>
+            <div class="stats-table-container">
+                <table class="h2h-table">
+                    <tbody>
+                        ${row(`${seriesLosses}-${seriesWins}`, 'SERIES WINS', `${seriesWins}-${seriesLosses}`, null, w.series)}
+                        ${row(rec(opp),            'RECORD',       rec(min),            null,     w.record)}
+                        ${row(subRecStr(oppHome),  'HOME RECORD',  subRecStr(minHome),  'HOME',   w.homeRec)}
+                        ${row(subRecStr(oppAway),  'AWAY RECORD',  subRecStr(minAway),  'AWAY',   w.awayRec)}
+                        ${otGames > 0 ? row(otRec(opp), 'OVERTIME', otRec(min), null, w.overtime) : ''}
+                        ${row(goals(opp),                          'GOALS',             goals(min),                          null,     w.goals)}
+                        ${row(statVal(opp, 'sog'),                 'SHOTS ON GOAL',     statVal(min, 'sog'),                 'SOG',    w.sog)}
+                        ${row(ppVal(opp),                          'POWER PLAY',        ppVal(min),                          'PP',     w.pp)}
+                        ${row(foVal(opp),                          'FACEOFFS',          foVal(min),                          null,     w.fo)}
+                        ${row(statVal(opp, 'hits'),                'HITS',              statVal(min, 'hits'),                null,     w.hits)}
+                        ${row(statVal(opp, 'pim'),                 'PENALTY MINUTES',   statVal(min, 'pim'),                 'PIM',    w.pim)}
+                        ${row(statVal(opp, 'blockedShots'),        'BLOCKED SHOTS',     statVal(min, 'blockedShots'),        'BLOCKS', w.blocks)}
+                        ${row(statVal(opp, 'giveaways'),           'GIVEAWAYS',         statVal(min, 'giveaways'),           'GAW',    w.gaw)}
+                        ${row(statVal(opp, 'takeaways'),           'TAKEAWAYS',         statVal(min, 'takeaways'),           'TAW',    w.taw)}
+                    </tbody>
+                </table>
+                ${!hasDetailedStats ? `<div class="h2h-no-stats-note">Detailed game stats unavailable for this period</div>` : ''}
+            </div>
+        </div>
     `;
 }
 
