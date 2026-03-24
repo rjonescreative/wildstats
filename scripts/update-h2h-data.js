@@ -83,23 +83,30 @@ function getLast5Seasons() {
 // ─── NHL API fetchers ─────────────────────────────────────────────────────────
 
 async function fetchWithRetry(url, retries = 4) {
+    let lastErr;
     for (let attempt = 1; attempt <= retries; attempt++) {
-        const res = await fetch(url);
-        if (res.status === 429) {
-            // Rate limited — wait progressively longer before retrying
-            const wait = 5000 * attempt;
-            console.warn(`   ⚠️  Rate limited (429), waiting ${wait / 1000}s before retry ${attempt}/${retries}...`);
-            await sleep(wait);
-            continue;
+        try {
+            const res = await fetch(url);
+            if (res.status === 429) {
+                // Rate limited — back off progressively
+                const wait = 5000 * attempt;
+                console.warn(`   ⚠️  Rate limited (429), waiting ${wait / 1000}s before retry ${attempt}/${retries}...`);
+                await sleep(wait);
+                continue;
+            }
+            if (!res.ok) {
+                lastErr = new Error(`HTTP ${res.status}`);
+                if (attempt < retries) await sleep(1000 * attempt);
+                continue;
+            }
+            return await res.json();
+        } catch (err) {
+            // Network error (ECONNRESET, ETIMEDOUT, etc.) — retry with back-off
+            lastErr = err;
+            if (attempt < retries) await sleep(1000 * attempt);
         }
-        if (!res.ok) {
-            if (attempt === retries) throw new Error(`HTTP ${res.status} for ${url}`);
-            await sleep(1000 * attempt);
-            continue;
-        }
-        return await res.json();
     }
-    throw new Error(`Failed after ${retries} retries: ${url}`);
+    throw lastErr ?? new Error(`Failed after ${retries} retries: ${url}`);
 }
 
 async function fetchSchedule(season) {

@@ -29,18 +29,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Run incremental update
-        if: ${{ inputs.seed != 'true' }}
-        run: node scripts/update-h2h-data.js
-        env:
-          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
-          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
-          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
-          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}
-
-      - name: Run full seed
-        if: ${{ inputs.seed == 'true' }}
-        run: node scripts/update-h2h-data.js --seed
+      - name: Run H2H update
+        run: |
+          if [ "${{ inputs.seed }}" = "true" ]; then
+            echo "Running FULL SEED (all seasons, all opponents)..."
+            node scripts/update-h2h-data.js --seed
+          else
+            echo "Running INCREMENTAL update (current season only)..."
+            node scripts/update-h2h-data.js
+          fi
         env:
           CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
           R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
