@@ -2,8 +2,10 @@
 import { getWildStats, getLeagueLeaders } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
+import { NHL_TEAMS, teamBySlug } from '../teams.js';
 
 let wildStats = null;
+let h2hOutsideClickHandler = null;
 
 function formatTimeOnIce(seconds) {
     if (!seconds) return '--';
@@ -12,22 +14,101 @@ function formatTimeOnIce(seconds) {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export async function init() {
-    try {
-        // Fetch wild stats and league leaders (cached if available)
-        [wildStats] = await Promise.all([
-            getWildStats(),
-            getLeagueLeaders()
-        ]);
+export async function init(subView = 'player') {
+    updateSubViewButtons(subView);
+    showSubView(subView);
 
-        // Render both tables
-        renderSkaters();
-        renderGoalies();
-    } catch (error) {
-        console.error('Error loading stats:', error);
-        document.getElementById('skaters-table').innerHTML = '<div class="loading">Error loading stats.</div>';
-        document.getElementById('goalies-table').innerHTML = '<div class="loading">Error loading stats.</div>';
+    if (subView === 'player') {
+        try {
+            [wildStats] = await Promise.all([
+                getWildStats(),
+                getLeagueLeaders()
+            ]);
+            renderSkaters();
+            renderGoalies();
+        } catch (error) {
+            console.error('Error loading stats:', error);
+            document.getElementById('skaters-table').innerHTML = '<div class="loading">Error loading stats.</div>';
+            document.getElementById('goalies-table').innerHTML = '<div class="loading">Error loading stats.</div>';
+        }
+    } else if (subView === 'head-to-head') {
+        initHeadToHead();
     }
+}
+
+function updateSubViewButtons(subView) {
+    document.querySelectorAll('#stats-view .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === subView);
+    });
+}
+
+function showSubView(subView) {
+    document.getElementById('stats-player-view').style.display = subView === 'player' ? '' : 'none';
+    document.getElementById('stats-head-to-head-view').style.display = subView === 'head-to-head' ? '' : 'none';
+}
+
+function initHeadToHead() {
+    const pathMatch = window.location.pathname.match(/^\/stats\/head-to-head\/(.+)$/);
+    const slug = pathMatch ? pathMatch[1] : null;
+    const team = slug ? teamBySlug(slug) : NHL_TEAMS[0];
+
+    // If no team slug in URL, update it to default team
+    if (!slug) {
+        history.replaceState({}, '', `/stats/head-to-head/${team.slug}`);
+    }
+
+    renderH2HContent(team);
+}
+
+function renderH2HContent(team) {
+    // Clean up previous outside-click handler
+    if (h2hOutsideClickHandler) {
+        document.removeEventListener('click', h2hOutsideClickHandler);
+        h2hOutsideClickHandler = null;
+    }
+
+    const container = document.getElementById('h2h-content');
+    container.innerHTML = `
+        <div class="section-header">
+            <h2>Wild vs ${team.name}</h2>
+        </div>
+        <div class="h2h-picker">
+            <button class="h2h-picker-trigger" id="h2h-picker-trigger" aria-haspopup="listbox" aria-expanded="false">
+                <img src="/logos/${team.abbrev}_dark.svg" alt="${team.name}" class="h2h-picker-logo">
+                <span>${team.name}</span>
+                <svg class="h2h-picker-arrow" viewBox="0 0 10 6" width="10" height="6" aria-hidden="true">
+                    <path d="M0 0l5 6 5-6z" fill="currentColor"/>
+                </svg>
+            </button>
+            <ul class="h2h-picker-dropdown" id="h2h-picker-dropdown" role="listbox" aria-label="Select opponent team">
+                ${NHL_TEAMS.map(t => `
+                    <li role="option" aria-selected="${t.slug === team.slug}">
+                        <a href="/stats/head-to-head/${t.slug}" data-link class="h2h-team-option${t.slug === team.slug ? ' selected' : ''}">
+                            <img src="/logos/${t.abbrev}_dark.svg" alt="" class="h2h-picker-logo">
+                            <span>${t.name}</span>
+                        </a>
+                    </li>
+                `).join('')}
+            </ul>
+        </div>
+    `;
+
+    const trigger = document.getElementById('h2h-picker-trigger');
+    const dropdown = document.getElementById('h2h-picker-dropdown');
+
+    trigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const isOpen = dropdown.classList.toggle('open');
+        trigger.setAttribute('aria-expanded', String(isOpen));
+    });
+
+    h2hOutsideClickHandler = (e) => {
+        if (!e.target.closest('.h2h-picker')) {
+            dropdown.classList.remove('open');
+            trigger.setAttribute('aria-expanded', 'false');
+        }
+    };
+    document.addEventListener('click', h2hOutsideClickHandler);
 }
 
 export function render() {

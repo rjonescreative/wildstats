@@ -73,6 +73,15 @@ export async function getLiveGame(gameId) {
     return response.json();
 }
 
+// Get pre-aggregated H2H data for a given opponent (served from R2)
+export async function getH2HData(opponentAbbrev) {
+    const response = await fetch(`/api/h2h/${opponentAbbrev}`);
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return response.json();
+}
+
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
     const response = await fetch(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);

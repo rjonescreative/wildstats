@@ -1,11 +1,13 @@
 // Client-side router using History API
 import { setCurrentView, getCurrentView } from './state.js';
 import { trackPageView, trackNavigation, trackStandingsView } from './analytics.js';
+import { teamBySlug } from './teams.js';
 
 // Route configuration
 const routes = {
     '/': 'dashboard',
     '/stats': 'stats',
+    '/stats/head-to-head': 'stats',
     '/standings': 'standings',
     '/standings/wildcard': 'standings',
     '/standings/division': 'standings',
@@ -28,7 +30,9 @@ export function setViewModules(modules) {
 
 // Get view name from path
 function getViewFromPath(path) {
-    return routes[path] || 'dashboard';
+    if (routes[path]) return routes[path];
+    if (path.startsWith('/stats/')) return 'stats';
+    return 'dashboard';
 }
 
 // Get standings sub-view from path
@@ -36,6 +40,13 @@ function getStandingsView(path) {
     if (path === '/standings') return 'wildcard';
     const match = path.match(/^\/standings\/(.+)$/);
     return match ? match[1] : 'wildcard';
+}
+
+// Get stats sub-view from path
+function getStatsView(path) {
+    if (path === '/stats') return 'player';
+    if (path.startsWith('/stats/head-to-head')) return 'head-to-head';
+    return 'player';
 }
 
 // Get media sub-view from path
@@ -67,7 +78,7 @@ async function showView(viewName, subView = null) {
     // Initialize/render the view
     const viewModule = viewModules[viewName];
     if (viewModule) {
-        if ((viewName === 'standings' || viewName === 'media') && subView) {
+        if ((viewName === 'standings' || viewName === 'media' || viewName === 'stats') && subView) {
             await viewModule.init(subView);
         } else {
             await viewModule.init();
@@ -97,8 +108,9 @@ export async function navigateTo(path) {
     const previousView = getCurrentView();
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || mediaView;
+    const subView = standingsView || statsView || mediaView;
 
     // Update URL
     history.pushState({ path, viewName, subView }, '', path);
@@ -148,9 +160,21 @@ function getPageTitle(viewName, subView = null) {
         return mediaTitles[subView] || mediaTitles.all;
     }
 
+    if (viewName === 'stats') {
+        if (subView === 'head-to-head') {
+            const slug = typeof window !== 'undefined'
+                ? (window.location.pathname.match(/^\/stats\/head-to-head\/(.+)$/) || [])[1]
+                : null;
+            const team = slug ? teamBySlug(slug) : null;
+            return team
+                ? `Minnesota Wild vs ${team.name} Head-to-Head Stats | Wild Hockey Hub`
+                : 'Minnesota Wild Head-to-Head Stats | Wild Hockey Hub';
+        }
+        return 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub';
+    }
+
     const titles = {
         dashboard: 'Minnesota Wild Stats, Standings & Schedule 2025-26 | Wild Hockey Hub',
-        stats: 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub',
         schedule: 'Minnesota Wild 2025-26 Schedule – Upcoming Games & Results | Wild Hockey Hub'
     };
     return titles[viewName] || 'Minnesota Wild Stats, Standings & Schedule 2025-26 | Wild Hockey Hub';
@@ -244,8 +268,9 @@ function handlePopState(e) {
     const path = window.location.pathname;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || mediaView;
+    const subView = standingsView || statsView || mediaView;
 
     // Scroll to top of page
     window.scrollTo(0, 0);
@@ -270,8 +295,9 @@ export function init() {
     const path = window.location.pathname;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
+    const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || mediaView;
+    const subView = standingsView || statsView || mediaView;
 
     // Replace current state to set initial state
     history.replaceState({ path, viewName, subView }, '', path);

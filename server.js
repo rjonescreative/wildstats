@@ -1,7 +1,9 @@
+import 'dotenv/config';
 import express from 'express';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
+import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
 setDefaultResultOrder('ipv4first');
@@ -11,6 +13,16 @@ const __dirname = dirname(__filename);
 
 const app = express();
 const PORT = 3000;
+
+// R2 client for local dev (credentials from .env)
+const r2 = new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+});
 
 // Serve static files (CSS, JS, logos, etc.)
 app.use(express.static(__dirname));
@@ -448,6 +460,29 @@ app.get('/api/news/wild', async (req, res) => {
     } catch (error) {
         console.error('Error fetching news:', error);
         res.status(500).json({ error: 'Failed to fetch news' });
+    }
+});
+
+// H2H data endpoint — reads pre-aggregated JSON from R2
+app.get('/api/h2h/:opponent', async (req, res) => {
+    const opponent = req.params.opponent.toUpperCase();
+    try {
+        const command = new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: `h2h/MIN-${opponent}.json`,
+        });
+        const response = await r2.send(command);
+        const data = await response.Body.transformToString();
+        res.set('Content-Type', 'application/json');
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.send(data);
+    } catch (err) {
+        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+            res.status(404).json({ error: 'No H2H data available for this opponent yet. Run the seed script first.' });
+        } else {
+            console.error('R2 error:', err.message);
+            res.status(500).json({ error: 'Failed to fetch H2H data.' });
+        }
     }
 });
 

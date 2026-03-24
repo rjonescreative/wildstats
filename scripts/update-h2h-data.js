@@ -1,0 +1,371 @@
+#!/usr/bin/env node
+/**
+ * H2H Data Pipeline
+ *
+ * Fetches Wild head-to-head game data from the NHL API, aggregates stats,
+ * and stores one JSON file per opponent in Cloudflare R2.
+ *
+ * Usage:
+ *   node scripts/update-h2h-data.js           # incremental: current season only
+ *   node scripts/update-h2h-data.js --seed    # full seed: all seasons, all opponents
+ *   node scripts/update-h2h-data.js --opponent ANA  # single opponent (for testing)
+ */
+
+import 'dotenv/config';
+import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { NHL_TEAMS } from '../js/teams.js';
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+
+const TEAM = 'MIN';
+const NHL_API = 'https://api-web.nhle.com/v1';
+const BUCKET = process.env.R2_BUCKET_NAME;
+
+const r2 = new S3Client({
+    region: 'auto',
+    endpoint: `https://${process.env.CF_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    credentials: {
+        accessKeyId: process.env.R2_ACCESS_KEY_ID,
+        secretAccessKey: process.env.R2_SECRET_ACCESS_KEY,
+    },
+});
+
+// ─── Season helpers ───────────────────────────────────────────────────────────
+
+function getCurrentSeasonStartYear() {
+    const now = new Date();
+    const year = now.getFullYear();
+    return now.getMonth() + 1 >= 10 ? year : year - 1;
+}
+
+function getAllSeasons() {
+    const currentYear = getCurrentSeasonStartYear();
+    const seasons = [];
+    for (let y = 2000; y <= currentYear; y++) {
+        if (y === 2004) continue; // 2004-05 lockout — no games played
+        seasons.push(`${y}${y + 1}`);
+    }
+    return seasons;
+}
+
+function getCurrentSeason() {
+    const y = getCurrentSeasonStartYear();
+    return `${y}${y + 1}`;
+}
+
+function getLastSeason() {
+    const y = getCurrentSeasonStartYear() - 1;
+    if (y === 2004) return `${y - 1}${y}`;
+    return `${y}${y + 1}`;
+}
+
+function getLast5Seasons() {
+    const current = getCurrentSeasonStartYear();
+    const seasons = [];
+    for (let y = current - 4; y <= current; y++) {
+        if (y < 2000 || y === 2004) continue;
+        seasons.push(`${y}${y + 1}`);
+    }
+    return seasons;
+}
+
+// ─── NHL API fetchers ─────────────────────────────────────────────────────────
+
+async function fetchWithRetry(url, retries = 3) {
+    for (let attempt = 1; attempt <= retries; attempt++) {
+        try {
+            const res = await fetch(url);
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return await res.json();
+        } catch (err) {
+            if (attempt === retries) throw err;
+            await sleep(500 * attempt);
+        }
+    }
+}
+
+async function fetchSchedule(season) {
+    return fetchWithRetry(`${NHL_API}/club-schedule-season/${TEAM}/${season}`);
+}
+
+async function fetchRightRail(gameId) {
+    return fetchWithRetry(`${NHL_API}/gamecenter/${gameId}/right-rail`);
+}
+
+// ─── Parsing ──────────────────────────────────────────────────────────────────
+
+function parseTeamStats(teamGameStats, side) {
+    if (!teamGameStats || !Array.isArray(teamGameStats)) return null;
+
+    const get = (cat) => {
+        const entry = teamGameStats.find(s => s.category === cat);
+        return entry ? (side === 'home' ? entry.homeValue : entry.awayValue) : null;
+    };
+
+    const ppRaw = get('powerPlay'); // "1/4" format
+    let ppGoals = null, ppOpportunities = null;
+    if (ppRaw && ppRaw.includes('/')) {
+        const [g, o] = ppRaw.split('/').map(Number);
+        ppGoals = isNaN(g) ? null : g;
+        ppOpportunities = isNaN(o) ? null : o;
+    }
+
+    const n = (v) => (v != null && v !== '' ? parseInt(v, 10) : null);
+
+    return {
+        sog: n(get('sog')),
+        faceoffWins: n(get('faceoffWins')),
+        ppGoals,
+        ppOpportunities,
+        pim: n(get('pim')),
+        hits: n(get('hits')),
+        blockedShots: n(get('blockedShots')),
+        giveaways: n(get('giveaways')),
+        takeaways: n(get('takeaways')),
+    };
+}
+
+function parseGame(scheduleGame) {
+    const { id, season, gameDate, gameState, gameType, gameOutcome, homeTeam, awayTeam } = scheduleGame;
+
+    // Only completed regular season games
+    if (gameType !== 2) return null;
+    if (gameState !== 'OFF' && gameState !== 'FINAL') return null;
+    if (!homeTeam?.score == null || !awayTeam?.score == null) return null;
+
+    const isMinHome = homeTeam.abbrev === TEAM;
+    const oppAbbrev = isMinHome ? awayTeam.abbrev : homeTeam.abbrev;
+    if (oppAbbrev === TEAM) return null; // shouldn't happen
+
+    return {
+        gameId: id,
+        season: String(season),
+        date: gameDate,
+        isMinHome,
+        oppAbbrev,
+        minScore: isMinHome ? (homeTeam.score ?? 0) : (awayTeam.score ?? 0),
+        oppScore: isMinHome ? (awayTeam.score ?? 0) : (homeTeam.score ?? 0),
+        lastPeriodType: gameOutcome?.lastPeriodType ?? 'REG',
+        minStats: null,
+        oppStats: null,
+        faceoffTotal: null,
+    };
+}
+
+async function enrichWithRightRail(game) {
+    try {
+        const data = await fetchRightRail(game.gameId);
+        const stats = data.teamGameStats;
+        const side = game.isMinHome ? 'home' : 'away';
+        const oppSide = game.isMinHome ? 'away' : 'home';
+
+        game.minStats = parseTeamStats(stats, side);
+        game.oppStats = parseTeamStats(stats, oppSide);
+
+        // Faceoff total = sum of both sides' faceoff wins
+        const mfw = game.minStats?.faceoffWins;
+        const ofw = game.oppStats?.faceoffWins;
+        if (mfw != null && ofw != null) {
+            game.faceoffTotal = mfw + ofw;
+        }
+    } catch {
+        // Right-rail not available for this game — that's OK, we keep score data
+    }
+    return game;
+}
+
+// ─── Aggregation ──────────────────────────────────────────────────────────────
+
+function sumStat(games, statsKey, field) {
+    const vals = games.map(g => g[statsKey]?.[field]).filter(v => v != null);
+    return vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+}
+
+function aggregateSide(games, statsKey) {
+    const isMin = statsKey === 'minStats';
+    const scored = (g) => isMin ? g.minScore : g.oppScore;
+    const conceded = (g) => isMin ? g.oppScore : g.minScore;
+    const won = (g) => scored(g) > conceded(g);
+    const lost = (g) => scored(g) < conceded(g);
+
+    const statsGames = games.filter(g => g[statsKey] !== null);
+
+    return {
+        wins:         games.filter(won).length,
+        regLosses:    games.filter(g => lost(g) && g.lastPeriodType === 'REG').length,
+        otLosses:     games.filter(g => lost(g) && g.lastPeriodType !== 'REG').length,
+        otWins:       games.filter(g => won(g)  && g.lastPeriodType === 'OT').length,
+        otGameLosses: games.filter(g => lost(g) && g.lastPeriodType === 'OT').length,
+        soWins:       games.filter(g => won(g)  && g.lastPeriodType === 'SO').length,
+        soLosses:     games.filter(g => lost(g) && g.lastPeriodType === 'SO').length,
+        goalsFor:     games.reduce((s, g) => s + scored(g), 0),
+        statsGamesCount: statsGames.length,
+        sog:           sumStat(statsGames, statsKey, 'sog'),
+        faceoffWins:   sumStat(statsGames, statsKey, 'faceoffWins'),
+        faceoffTotal:  statsGames.reduce((s, g) => s + (g.faceoffTotal ?? 0), 0) || null,
+        ppGoals:       sumStat(statsGames, statsKey, 'ppGoals'),
+        ppOpportunities: sumStat(statsGames, statsKey, 'ppOpportunities'),
+        pim:           sumStat(statsGames, statsKey, 'pim'),
+        hits:          sumStat(statsGames, statsKey, 'hits'),
+        blockedShots:  sumStat(statsGames, statsKey, 'blockedShots'),
+        giveaways:     sumStat(statsGames, statsKey, 'giveaways'),
+        takeaways:     sumStat(statsGames, statsKey, 'takeaways'),
+    };
+}
+
+function aggregateGames(games) {
+    if (!games.length) return null;
+    return {
+        gamesPlayed: games.length,
+        min: aggregateSide(games, 'minStats'),
+        opp: aggregateSide(games, 'oppStats'),
+    };
+}
+
+function buildPayload(oppAbbrev, allGames) {
+    const currentSeason  = getCurrentSeason();
+    const lastSeason     = getLastSeason();
+    const last5Seasons   = getLast5Seasons();
+
+    const filter = (seasons) => allGames.filter(g => seasons.includes(g.season));
+
+    return {
+        oppAbbrev,
+        lastUpdated: new Date().toISOString(),
+        games: allGames,
+        thisSeason:   aggregateGames(filter([currentSeason])),
+        lastSeason:   aggregateGames(filter([lastSeason])),
+        last5Seasons: aggregateGames(filter(last5Seasons)),
+        allTime:      aggregateGames(allGames),
+    };
+}
+
+// ─── R2 helpers ───────────────────────────────────────────────────────────────
+
+function r2Key(oppAbbrev) {
+    return `h2h/MIN-${oppAbbrev}.json`;
+}
+
+async function readFromR2(oppAbbrev) {
+    try {
+        const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: r2Key(oppAbbrev) });
+        const res = await r2.send(cmd);
+        const text = await res.Body.transformToString();
+        return JSON.parse(text);
+    } catch {
+        return null; // Not found or first run
+    }
+}
+
+async function writeToR2(oppAbbrev, payload) {
+    const cmd = new PutObjectCommand({
+        Bucket: BUCKET,
+        Key: r2Key(oppAbbrev),
+        Body: JSON.stringify(payload),
+        ContentType: 'application/json',
+    });
+    await r2.send(cmd);
+}
+
+// ─── Concurrency helpers ──────────────────────────────────────────────────────
+
+function sleep(ms) {
+    return new Promise(r => setTimeout(r, ms));
+}
+
+async function batchProcess(items, fn, concurrency = 10, delayMs = 100) {
+    const results = [];
+    for (let i = 0; i < items.length; i += concurrency) {
+        const batch = items.slice(i, i + concurrency);
+        const batchResults = await Promise.all(batch.map(fn));
+        results.push(...batchResults);
+        if (i + concurrency < items.length) await sleep(delayMs);
+    }
+    return results;
+}
+
+// ─── Main pipeline ────────────────────────────────────────────────────────────
+
+async function main() {
+    const isSeed       = process.argv.includes('--seed');
+    const oppFilter    = process.argv.find(a => a.startsWith('--opponent='))?.split('=')[1]?.toUpperCase();
+    const targetTeams  = oppFilter
+        ? NHL_TEAMS.filter(t => t.abbrev === oppFilter)
+        : NHL_TEAMS;
+    const seasons      = isSeed ? getAllSeasons() : [getCurrentSeason()];
+
+    console.log(`\n🏒 Wild H2H Data Pipeline`);
+    console.log(`   Mode:     ${isSeed ? 'SEED (all seasons)' : 'INCREMENTAL (current season)'}`);
+    console.log(`   Seasons:  ${seasons[0]} → ${seasons[seasons.length - 1]} (${seasons.length} total)`);
+    console.log(`   Opponents: ${oppFilter ?? `all ${targetTeams.length}`}\n`);
+
+    // 1. Fetch all needed season schedules
+    console.log(`📅 Fetching ${seasons.length} season schedule(s)...`);
+    const schedules = await batchProcess(seasons, async (season) => {
+        try {
+            const data = await fetchSchedule(season);
+            return { season, games: data.games ?? [] };
+        } catch (err) {
+            console.warn(`   ⚠️  Failed to fetch schedule for ${season}: ${err.message}`);
+            return { season, games: [] };
+        }
+    }, 5);
+
+    // 2. Extract all completed H2H games from schedules
+    const allH2HGames = {}; // oppAbbrev → game[]
+    for (const { games } of schedules) {
+        for (const rawGame of games) {
+            const game = parseGame(rawGame);
+            if (!game) continue;
+            if (!allH2HGames[game.oppAbbrev]) allH2HGames[game.oppAbbrev] = [];
+            allH2HGames[game.oppAbbrev].push(game);
+        }
+    }
+
+    // 3. Process each opponent
+    for (const team of targetTeams) {
+        const { abbrev, name } = team;
+        const newGames = allH2HGames[abbrev] ?? [];
+
+        if (!newGames.length) {
+            console.log(`   ${abbrev.padEnd(4)} — no games found, skipping`);
+            continue;
+        }
+
+        // Load existing data from R2 (incremental mode reuses already-fetched right-rail)
+        let existingGames = [];
+        if (!isSeed) {
+            const existing = await readFromR2(abbrev);
+            existingGames = existing?.games ?? [];
+        }
+
+        // Determine which games need right-rail data fetched
+        const existingIds = new Set(existingGames.map(g => g.gameId));
+        const gamesToEnrich = newGames.filter(g => !existingIds.has(g.gameId));
+
+        if (gamesToEnrich.length) {
+            process.stdout.write(`   ${abbrev.padEnd(4)} — fetching right-rail for ${gamesToEnrich.length} game(s)...`);
+            await batchProcess(gamesToEnrich, enrichWithRightRail, 10, 100);
+            process.stdout.write(' done\n');
+        } else {
+            console.log(`   ${abbrev.padEnd(4)} — ${name} (${newGames.length} games, all up to date)`);
+        }
+
+        // Merge: new enriched games + existing games (by gameId, new wins on conflict)
+        const mergedMap = new Map();
+        for (const g of existingGames) mergedMap.set(g.gameId, g);
+        for (const g of newGames)      mergedMap.set(g.gameId, g); // new overwrites
+        const mergedGames = [...mergedMap.values()].sort((a, b) => a.date.localeCompare(b.date));
+
+        // Build and upload payload
+        const payload = buildPayload(abbrev, mergedGames);
+        await writeToR2(abbrev, payload);
+    }
+
+    console.log('\n✅ Done.\n');
+}
+
+main().catch(err => {
+    console.error('Fatal error:', err);
+    process.exit(1);
+});
