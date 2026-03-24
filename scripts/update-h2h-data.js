@@ -379,9 +379,14 @@ async function main() {
             existingGames = existing?.games ?? [];
         }
 
-        // Determine which games need right-rail data fetched
-        const existingIds = new Set(existingGames.map(g => g.gameId));
-        const gamesToEnrich = newGames.filter(g => !existingIds.has(g.gameId));
+        // Determine which games need right-rail data fetched:
+        // - Games not yet in R2 (new games)
+        // - Games already in R2 but with null stats (right-rail failed previously)
+        const existingMap = new Map(existingGames.map(g => [g.gameId, g]));
+        const gamesToEnrich = newGames.filter(g => {
+            const existing = existingMap.get(g.gameId);
+            return !existing || existing.minStats === null;
+        });
 
         if (gamesToEnrich.length) {
             process.stdout.write(`   ${abbrev.padEnd(4)} — fetching right-rail for ${gamesToEnrich.length} game(s)...`);
@@ -392,10 +397,9 @@ async function main() {
             console.log(`   ${abbrev.padEnd(4)} — ${name} (${newGames.length} games, all up to date)`);
         }
 
-        // Merge: new enriched games + existing games (by gameId, new wins on conflict)
-        const mergedMap = new Map();
-        for (const g of existingGames) mergedMap.set(g.gameId, g);
-        for (const g of newGames)      mergedMap.set(g.gameId, g); // new overwrites
+        // Merge: existing games as base, new (freshly enriched) games overwrite
+        const mergedMap = new Map(existingMap);
+        for (const g of newGames) mergedMap.set(g.gameId, g); // new overwrites (includes enriched stats)
         const mergedGames = [...mergedMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
         // Build and upload payload
