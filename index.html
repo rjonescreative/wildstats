@@ -106,16 +106,27 @@
                         <span class="subtitle">A Minnesota Wild Fan Site</span>
                     </h1>
                 </a>
-                <nav class="main-nav">
+                <nav class="main-nav" id="main-nav" aria-label="Main navigation">
+                    <button class="nav-close-btn" id="nav-close-btn" aria-label="Close navigation">
+                        <span></span>
+                        <span></span>
+                    </button>
                     <a href="/" class="nav-link" data-link>DASHBOARD</a>
                     <a href="/stats" class="nav-link" data-link>STATS</a>
                     <a href="/standings" class="nav-link" data-link>STANDINGS</a>
                     <a href="/schedule" class="nav-link" data-link>SCHEDULE</a>
                     <a href="/media" class="nav-link" data-link>MEDIA</a>
                 </nav>
+                <button class="hamburger-btn" id="hamburger-btn" aria-label="Open navigation" aria-expanded="false" aria-controls="main-nav">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </button>
             </div>
         </div>
     </header>
+
+    <div class="nav-overlay" id="nav-overlay"></div>
 
     <main class="container" id="app">
         <!-- Dashboard View -->

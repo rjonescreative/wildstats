@@ -81,6 +81,7 @@ body {
 
 header {
     padding: 2rem 0 2.5rem 0;
+    position: relative;
 }
 
 .header-content {
@@ -138,6 +139,50 @@ header {
     letter-spacing: 8px;
 }
 
+/* Hamburger button — mobile only */
+.hamburger-btn {
+    display: none;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: 44px;
+    height: 44px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    padding: 10px 4px;
+    flex-shrink: 0;
+}
+
+.hamburger-btn span {
+    display: block;
+    width: 24px;
+    height: 2px;
+    background: var(--text-primary);
+}
+
+/* Nav close button — mobile only, inside slide panel */
+.nav-close-btn {
+    display: none;
+}
+
+/* Nav overlay — mobile only */
+.nav-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    z-index: 400;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s ease;
+}
+
+.nav-overlay.open {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* Desktop nav — inline in header (original styles) */
 .main-nav {
     display: flex;
     gap: 30px;
@@ -169,6 +214,75 @@ header {
 
 .nav-link.active:hover {
     color: var(--wild-gold);
+}
+
+/* Mobile nav — slide panel */
+@media (max-width: 1024px) {
+    .hamburger-btn {
+        display: flex;
+    }
+
+    .nav-close-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 44px;
+        height: 44px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 10px;
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        flex-shrink: 0;
+    }
+
+    .nav-close-btn span {
+        display: block;
+        width: 22px;
+        height: 2px;
+        background: var(--text-primary);
+        position: absolute;
+    }
+
+    .nav-close-btn span:nth-child(1) {
+        transform: rotate(45deg);
+    }
+
+    .nav-close-btn span:nth-child(2) {
+        transform: rotate(-45deg);
+    }
+
+    .main-nav {
+        position: fixed;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        width: min(calc(100vw - 56px), 400px);
+        background: var(--bg-secondary);
+        transform: translateX(100%);
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        flex-direction: column;
+        padding: 7rem 2rem 2rem;
+        z-index: 401;
+        box-shadow: -8px 0 32px rgba(0, 0, 0, 0.5);
+        overflow-y: auto;
+    }
+
+    .main-nav.open {
+        transform: translateX(0);
+    }
+
+    .nav-link {
+        padding: 1.1rem 0;
+        border-bottom: 1px solid var(--border-subtle);
+        font-size: 1.0625rem;
+    }
+
+    .nav-link:first-of-type {
+        border-top: 1px solid var(--border-subtle);
+    }
 }
 
 main {
@@ -947,22 +1061,6 @@ footer {
         font-size: 1rem;
     }
 
-    .header-content {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 1rem;
-    }
-
-    .main-nav {
-        width: 100%;
-        justify-content: flex-start;
-        gap: 24px;
-    }
-
-    .nav-link {
-        font-size: 0.9375rem;
-    }
-
     .header-logo {
         height: 60px;
         width: 90px;
@@ -1094,14 +1192,6 @@ footer {
         height: 26px;
     }
 
-    .nav-link {
-        font-size: 0.875rem;
-    }
-
-    .main-nav {
-        gap: 20px;
-    }
-
     .standings-controls {
         display: flex;
         margin: 0 0 1.25rem 0;
@@ -1174,14 +1264,6 @@ footer {
 
     .header-wordmark {
         height: 20px;
-    }
-
-    .nav-link {
-        font-size: 0.8125rem;
-    }
-
-    .main-nav {
-        gap: 16px;
     }
 
     .standings-controls {

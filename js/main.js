@@ -44,6 +44,37 @@ document.addEventListener('DOMContentLoaded', () => {
     // Initialize analytics (outbound link tracking)
     analytics.init();
 
+    // Hamburger nav
+    const hamburgerBtn = document.getElementById('hamburger-btn');
+    const navCloseBtn = document.getElementById('nav-close-btn');
+    const mainNav = document.getElementById('main-nav');
+    const navOverlay = document.getElementById('nav-overlay');
+
+    function openNav() {
+        mainNav.classList.add('open');
+        navOverlay.classList.add('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'true');
+        document.body.style.overflow = 'hidden';
+        navCloseBtn.focus();
+    }
+
+    function closeNav() {
+        mainNav.classList.remove('open');
+        navOverlay.classList.remove('open');
+        hamburgerBtn.setAttribute('aria-expanded', 'false');
+        document.body.style.overflow = '';
+        hamburgerBtn.focus();
+    }
+
+    hamburgerBtn.addEventListener('click', openNav);
+    navCloseBtn.addEventListener('click', closeNav);
+
+    navOverlay.addEventListener('click', closeNav);
+
+    mainNav.addEventListener('click', (e) => {
+        if (e.target.closest('[data-link]')) closeNav();
+    });
+
     // About modal
     const aboutModal = document.getElementById('about-modal');
     const openAboutBtn = document.getElementById('open-about-modal');
@@ -66,12 +97,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function handleModalKeydown(e) {
-        if (!aboutModal.classList.contains('visible')) return;
-
         if (e.key === 'Escape') {
-            closeAboutModal();
-            return;
+            if (mainNav.classList.contains('open')) {
+                closeNav();
+                hamburgerBtn.focus();
+                return;
+            }
+            if (aboutModal.classList.contains('visible')) {
+                closeAboutModal();
+                return;
+            }
         }
+
+        if (!aboutModal.classList.contains('visible')) return;
 
         if (e.key === 'Tab') {
             const focusable = getModalFocusableElements();
