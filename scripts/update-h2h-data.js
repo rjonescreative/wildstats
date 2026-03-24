@@ -105,27 +105,46 @@ async function fetchRightRail(gameId) {
 
 // ─── Parsing ──────────────────────────────────────────────────────────────────
 
-function parseTeamStats(teamGameStats, side) {
-    if (!teamGameStats || !Array.isArray(teamGameStats)) return null;
+function parseTeamStats(stats, side) {
+    if (!stats || !Array.isArray(stats)) return null;
 
     const get = (cat) => {
-        const entry = teamGameStats.find(s => s.category === cat);
+        const entry = stats.find(s => s.category === cat);
         return entry ? (side === 'home' ? entry.homeValue : entry.awayValue) : null;
     };
 
-    const ppRaw = get('powerPlay'); // "1/4" format
+    // powerPlay: "1/4" format → goals / opportunities
+    const ppRaw = get('powerPlay');
     let ppGoals = null, ppOpportunities = null;
-    if (ppRaw && ppRaw.includes('/')) {
-        const [g, o] = ppRaw.split('/').map(Number);
-        ppGoals = isNaN(g) ? null : g;
-        ppOpportunities = isNaN(o) ? null : o;
+    if (ppRaw != null) {
+        const ppStr = String(ppRaw);
+        if (ppStr.includes('/')) {
+            const [g, o] = ppStr.split('/').map(Number);
+            ppGoals = isNaN(g) ? null : g;
+            ppOpportunities = isNaN(o) ? null : o;
+        }
+    }
+
+    // faceoffWins: "26/55" format → wins / total faceoffs in the game
+    const foRaw = get('faceoffWins');
+    let faceoffWins = null, faceoffTotal = null;
+    if (foRaw != null) {
+        const foStr = String(foRaw);
+        if (foStr.includes('/')) {
+            const [fw, ft] = foStr.split('/').map(Number);
+            faceoffWins = isNaN(fw) ? null : fw;
+            faceoffTotal = isNaN(ft) ? null : ft;
+        } else {
+            faceoffWins = parseInt(foRaw, 10);
+        }
     }
 
     const n = (v) => (v != null && v !== '' ? parseInt(v, 10) : null);
 
     return {
         sog: n(get('sog')),
-        faceoffWins: n(get('faceoffWins')),
+        faceoffWins,
+        faceoffTotal,
         ppGoals,
         ppOpportunities,
         pim: n(get('pim')),
@@ -173,12 +192,8 @@ async function enrichWithRightRail(game) {
         game.minStats = parseTeamStats(stats, side);
         game.oppStats = parseTeamStats(stats, oppSide);
 
-        // Faceoff total = sum of both sides' faceoff wins
-        const mfw = game.minStats?.faceoffWins;
-        const ofw = game.oppStats?.faceoffWins;
-        if (mfw != null && ofw != null) {
-            game.faceoffTotal = mfw + ofw;
-        }
+        // faceoffTotal is the same from either side (total faceoffs in the game)
+        game.faceoffTotal = game.minStats?.faceoffTotal ?? game.oppStats?.faceoffTotal ?? null;
     } catch {
         // Right-rail not available for this game — that's OK, we keep score data
     }
