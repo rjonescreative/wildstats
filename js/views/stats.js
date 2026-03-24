@@ -196,10 +196,13 @@ async function loadH2HMatchup(team) {
             const sinceYear = parseInt(e.target.value, 10);
             const section = document.getElementById('h2h-since-section');
             if (!section || !h2hCurrentData) return;
-            const agg = aggregateGamesSince(h2hCurrentData.games ?? [], sinceYear);
+            const allGames = h2hCurrentData.games ?? [];
+            const sinceGames = allGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= sinceYear);
+            const agg = aggregateGamesSince(allGames, sinceYear);
             section.outerHTML = buildH2HTable('SINCE', agg, team, {
                 titleHtml: buildSinceTitleHtml(sinceYear),
                 sectionId: 'h2h-since-section',
+                games: sinceGames,
             });
         };
         el.addEventListener('change', h2hSinceChangeHandler);
@@ -213,19 +216,33 @@ async function loadH2HMatchup(team) {
 function buildH2HMatchup(team, data) {
     const currentYear = getCurrentSeasonStartYear();
     const defaultSince = currentYear - 4;
-    const sinceAgg = aggregateGamesSince(data.games ?? [], defaultSince);
+    const allGames = data.games ?? [];
+
+    // Filter games per period for home/away record computation
+    const curSeasonStr  = `${currentYear}${currentYear + 1}`;
+    let prevYear = currentYear - 1;
+    if (prevYear === 2004) prevYear--;
+    const prevSeasonStr = `${prevYear}${prevYear + 1}`;
+    const sinceGames    = allGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= defaultSince);
+
+    const sinceAgg = aggregateGamesSince(allGames, defaultSince);
 
     const thisSeason = (data.thisSeason?.gamesPlayed > 0)
-        ? buildH2HTable('THIS SEASON', data.thisSeason, team) : '';
+        ? buildH2HTable('THIS SEASON', data.thisSeason, team, {
+            games: allGames.filter(g => g.season === curSeasonStr),
+          }) : '';
     const lastSeason = (data.lastSeason?.gamesPlayed > 0)
-        ? buildH2HTable('LAST SEASON', data.lastSeason, team) : '';
+        ? buildH2HTable('LAST SEASON', data.lastSeason, team, {
+            games: allGames.filter(g => g.season === prevSeasonStr),
+          }) : '';
     const sinceSection = sinceAgg
         ? buildH2HTable('SINCE', sinceAgg, team, {
             titleHtml: buildSinceTitleHtml(defaultSince),
             sectionId: 'h2h-since-section',
+            games: sinceGames,
           }) : '';
     const allTime = (data.allTime?.gamesPlayed > 0)
-        ? buildH2HTable('ALL TIME', data.allTime, team) : '';
+        ? buildH2HTable('ALL TIME', data.allTime, team, { games: allGames }) : '';
 
     const hasAny = thisSeason || lastSeason || sinceSection || allTime;
 
@@ -251,13 +268,34 @@ function buildH2HMatchup(team, data) {
 
 // ─── Table builder ────────────────────────────────────────────────────────────
 
-function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null } = {}) {
+function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null, games = [] } = {}) {
     if (!agg || agg.gamesPlayed === 0) return '';
 
     const { min, opp, gamesPlayed } = agg;
     const hasDetailedStats = min.statsGamesCount > 0;
     const isAllTime = title === 'ALL TIME';
     const na = '--';
+
+    // Home/away sub-records from raw games
+    // MIN home = isMinHome true; OPP home = isMinHome false
+    const subRec = (gs, isMin) => {
+        if (!gs.length) return null;
+        const s = (g) => isMin ? g.minScore : g.oppScore;
+        const c = (g) => isMin ? g.oppScore : g.minScore;
+        return {
+            wins:      gs.filter(g => s(g) > c(g)).length,
+            regLosses: gs.filter(g => s(g) < c(g) && g.lastPeriodType === 'REG').length,
+            otLosses:  gs.filter(g => s(g) < c(g) && g.lastPeriodType !== 'REG').length,
+        };
+    };
+    const minHomeGames = games.filter(g => g.isMinHome);
+    const minAwayGames = games.filter(g => !g.isMinHome);
+    const minHome = subRec(minHomeGames, true);
+    const minAway = subRec(minAwayGames, true);
+    const oppHome = subRec(minAwayGames, false); // OPP home when MIN is away
+    const oppAway = subRec(minHomeGames, false); // OPP away when MIN is home
+    const subRecStr = (r) => r ? `${r.wins}-${r.regLosses}-${r.otLosses}` : na;
+    const subRecPts = (r) => r ? r.wins * 2 + r.otLosses : null;
 
     // Helpers
     const rec   = (s) => `${s.wins}-${s.regLosses}-${s.otLosses}`;
@@ -316,10 +354,12 @@ function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null } 
     const foPct    = (s) => s.faceoffTotal > 0 ? s.faceoffWins / s.faceoffTotal : 0;
 
     const w = {
-        record:   cmp(recPts(min),         recPts(opp)),
-        overtime: cmp(min.otWins,          opp.otWins),
-        shootout: cmp(min.soWins,          opp.soWins),
-        goals:    cmp(min.goalsFor,        opp.goalsFor),
+        record:   cmp(recPts(min),              recPts(opp)),
+        homeRec:  cmp(subRecPts(minHome),        subRecPts(oppHome)),
+        awayRec:  cmp(subRecPts(minAway),        subRecPts(oppAway)),
+        overtime: cmp(min.otWins,               opp.otWins),
+        shootout: cmp(min.soWins,               opp.soWins),
+        goals:    cmp(min.goalsFor,             opp.goalsFor),
         sog:      cmp(min.sog,             opp.sog),
         pp:       cmp(ppPct(min),          ppPct(opp)),
         fo:       cmp(foPct(min),          foPct(opp)),
@@ -337,6 +377,8 @@ function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null } 
                 <table class="h2h-table">
                     <tbody>
                         ${row(rec(opp),  'RECORD', rec(min), null, w.record)}
+                        ${row(subRecStr(oppHome), 'HOME RECORD', subRecStr(minHome), 'HOME', w.homeRec)}
+                        ${row(subRecStr(oppAway), 'AWAY RECORD', subRecStr(minAway), 'AWAY', w.awayRec)}
                         ${otGames > 0 ? row(otRec(opp), 'OVERTIME', otRec(min), null, w.overtime) : ''}
                         ${soGames > 0 ? row(soRec(opp), 'SHOOTOUT', soRec(min), null, w.shootout) : ''}
                         ${row(goals(opp), 'GOALS', goals(min), null, w.goals)}
