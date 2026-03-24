@@ -352,7 +352,8 @@ main {
     background-color: var(--bg-tertiary);
 }
 
-.leader-name--former {
+.leader-row--former .leader-stat,
+.leader-row--former .leader-name {
     color: var(--text-secondary);
 }
 

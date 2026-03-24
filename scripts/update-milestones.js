@@ -244,19 +244,118 @@ function buildSingleSeasonRecords(seasonData, categories, playerType, limit) {
     return result;
 }
 
-function buildPayload(seasonData) {
+// Maps from our stat category names → field names in the player landing seasonTotals
+const SKATER_LANDING_STAT_MAP = {
+    goals: e => e.goals ?? 0,
+    assists: e => e.assists ?? 0,
+    points: e => e.points ?? 0,
+    gamesPlayed: e => e.gamesPlayed ?? 0,
+    penaltyMinutes: e => e.pim ?? 0,
+    powerPlayGoals: e => e.powerPlayGoals ?? 0,
+    shorthandedGoals: e => e.shorthandedGoals ?? 0,
+    gameWinningGoals: e => e.gameWinningGoals ?? 0,
+};
+
+const GOALIE_LANDING_STAT_MAP = {
+    wins: e => e.wins ?? 0,
+    gamesPlayed: e => e.gamesPlayed ?? 0,
+    shutouts: e => e.shutouts ?? 0,
+};
+
+/**
+ * For single-season records, the club-stats endpoint returns a player's full-season
+ * totals even if they played part of the season with another team. This function fetches
+ * player landing pages for all top-record candidates and substitutes Wild-only stats
+ * wherever a split season is detected (multiple NHL entries for the same season).
+ */
+async function correctSplitSeasonRecords(records, statMap) {
+    // Collect unique player IDs across all record categories
+    const playerIds = new Set();
+    for (const entries of Object.values(records)) {
+        for (const e of entries) playerIds.add(e.playerId);
+    }
+
+    // Fetch landing pages for all unique players
+    const landings = new Map(); // playerId → seasonTotals[]
+    for (const id of playerIds) {
+        try {
+            const landing = await fetchWithRetry(`${NHL_API}/player/${id}/landing`);
+            landings.set(id, landing.seasonTotals ?? []);
+        } catch {
+            landings.set(id, []);
+        }
+        await sleep(150);
+    }
+
+    // Correct entries where the player had a split season
+    let corrected = 0;
+    for (const [cat, entries] of Object.entries(records)) {
+        const extractor = statMap[cat];
+        if (!extractor) continue;
+
+        for (const entry of entries) {
+            const seasonTotals = landings.get(entry.playerId) ?? [];
+            const seasonInt = parseInt(entry.season);
+
+            // All NHL regular-season entries for this season
+            const nhlEntries = seasonTotals.filter(s =>
+                s.season === seasonInt &&
+                s.gameTypeId === 2 &&
+                s.leagueAbbrev === 'NHL'
+            );
+
+            // Only act when there are multiple NHL teams (genuine split season)
+            if (nhlEntries.length < 2) continue;
+
+            const wildEntry = nhlEntries.find(s => s.teamCommonName?.default === 'Wild');
+            if (!wildEntry) continue;
+
+            const correctedValue = extractor(wildEntry);
+            if (correctedValue !== entry.value) {
+                entry.value = correctedValue;
+                corrected++;
+            }
+        }
+
+        // Re-sort after corrections so rankings are accurate
+        entries.sort((a, b) => b.value - a.value);
+    }
+
+    if (corrected > 0) {
+        console.log(`   ✓ Corrected ${corrected} split-season stat(s) to Wild-only totals`);
+    }
+}
+
+async function buildPayload(seasonData) {
     const { skaters, goalies } = aggregateCareerTotals(seasonData);
+
+    // Build with a 2× buffer so corrections can shift rankings without dropping true leaders
+    const BUFFER = RECORDS_LIMIT * 2;
+
+    const skaterSeasonRecords = buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', BUFFER);
+    console.log('   Checking single-season skater records for split seasons...');
+    await correctSplitSeasonRecords(skaterSeasonRecords, SKATER_LANDING_STAT_MAP);
+    for (const cat of Object.keys(skaterSeasonRecords)) {
+        skaterSeasonRecords[cat] = skaterSeasonRecords[cat].slice(0, RECORDS_LIMIT);
+    }
+
+    const goalieSeasonRecords = buildSingleSeasonRecords(seasonData, GOALIE_SEASON_CATS, 'goalies', BUFFER);
+    console.log('   Checking single-season goalie records for split seasons...');
+    await correctSplitSeasonRecords(goalieSeasonRecords, GOALIE_LANDING_STAT_MAP);
+    for (const cat of Object.keys(goalieSeasonRecords)) {
+        goalieSeasonRecords[cat] = goalieSeasonRecords[cat].slice(0, RECORDS_LIMIT);
+    }
 
     return {
         lastUpdated: new Date().toISOString(),
         seasonData,
         skaters: {
             careerLeaders: buildLeaders(skaters, SKATER_CAREER_CATS, LEADERS_LIMIT),
-            singleSeasonRecords: buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', RECORDS_LIMIT),
+            singleSeasonRecords: skaterSeasonRecords,
         },
         goalies: {
             careerLeaders: buildLeaders(goalies, GOALIE_CAREER_CATS, LEADERS_LIMIT),
-            singleSeasonRecords: buildSingleSeasonRecords(seasonData, GOALIE_SEASON_CATS, 'goalies', RECORDS_LIMIT),
+            singleSeasonRecords: goalieSeasonRecords,
         },
     };
 }
@@ -305,7 +404,7 @@ async function main() {
     console.log(`\n   ${fetched} fetched, ${failed} failed`);
 
     console.log('\n📊 Aggregating franchise records...');
-    const payload = buildPayload(seasonData);
+    const payload = await buildPayload(seasonData);
 
     const totalSkaters = Object.values(payload.skaters.careerLeaders)[0]?.length ?? 0;
     const totalGoalies = Object.values(payload.goalies.careerLeaders)[0]?.length ?? 0;
