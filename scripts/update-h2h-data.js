@@ -436,9 +436,19 @@ async function main() {
             console.log(`   ${abbrev.padEnd(4)} — ${name} (${newGames.length} games, all up to date)`);
         }
 
-        // Merge: existing games as base, new (freshly enriched) games overwrite
+        // Merge: existing games as base, new games overwrite.
+        // If a game already has enriched right-rail stats, preserve them — only add/update
+        // the gameType field (backfills pre-playoff-support data that lacked the field).
         const mergedMap = new Map(existingMap);
-        for (const g of newGames) mergedMap.set(g.gameId, g); // new overwrites (includes enriched stats)
+        for (const g of newGames) {
+            const existing = existingMap.get(g.gameId);
+            if (existing?.minStats !== null && existing?.minStats !== undefined) {
+                // Keep enriched stats; ensure gameType is set
+                mergedMap.set(g.gameId, { ...existing, gameType: g.gameType ?? existing.gameType });
+            } else {
+                mergedMap.set(g.gameId, g); // new game or game with null stats (freshly enriched)
+            }
+        }
         const mergedGames = [...mergedMap.values()].sort((a, b) => a.date.localeCompare(b.date));
 
         // Build and upload payload
