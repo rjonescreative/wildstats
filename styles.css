@@ -536,7 +536,7 @@ main {
     grid-template-columns: 1fr auto 1fr;
     align-items: center;
     gap: 1rem;
-    padding: 2.5rem 0 2.5rem;
+    padding: 0 0 2.5rem;
     margin-bottom: 0.5rem;
 }
 
@@ -564,7 +564,7 @@ main {
 .h2h-matchup-vs {
     font-size: 3rem;
     font-weight: 700;
-    color: var(--text-tertiary);
+    color: var(--text-primary);
     letter-spacing: 0.15em;
     text-align: center;
     padding: 0 1.5rem;
@@ -613,7 +613,7 @@ main {
     font-size: 0.6875rem;
     font-weight: 600;
     letter-spacing: 0.06em;
-    color: var(--text-tertiary);
+    color: var(--text-primary);
     text-transform: uppercase;
     width: 24%;
     white-space: nowrap;
@@ -632,10 +632,37 @@ main {
     margin-left: 0.25rem;
 }
 
-.h2h-divider td {
-    padding: 0;
-    height: 1px;
-    background: var(--border-subtle);
+.h2h-cat-abbr { display: none; }
+
+.h2h-since-select {
+    appearance: none;
+    -webkit-appearance: none;
+    background-color: var(--bg-secondary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23999' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 0.5rem center;
+    border: 1px solid var(--border-medium);
+    border-radius: 6px;
+    color: var(--text-primary);
+    font-size: 0.8125rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    cursor: pointer;
+    padding: 0.3rem 1.75rem 0.3rem 0.65rem;
+    outline: none;
+    margin-left: 0.5rem;
+    transition: border-color 0.2s ease;
+    vertical-align: middle;
+}
+
+.h2h-since-select:hover {
+    border-color: var(--wild-green);
+}
+
+.h2h-val-better {
+    color: var(--text-primary);
+    font-weight: 600;
 }
 
 .h2h-no-stats-note {
@@ -662,6 +689,9 @@ main {
         font-size: 1.5rem;
         padding: 0 0.5rem;
     }
+
+    .h2h-cat-full { display: none; }
+    .h2h-cat-abbr { display: inline; }
 
     .h2h-table td {
         padding: 0.5rem 0.5rem;
