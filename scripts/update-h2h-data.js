@@ -19,6 +19,17 @@ import { NHL_TEAMS } from '../js/teams.js';
 
 const TEAM = 'MIN';
 const NHL_API = 'https://api-web.nhle.com/v1';
+
+// Validate required env vars up front
+const REQUIRED_ENV = ['CF_ACCOUNT_ID', 'R2_ACCESS_KEY_ID', 'R2_SECRET_ACCESS_KEY', 'R2_BUCKET_NAME'];
+const missing = REQUIRED_ENV.filter(k => !process.env[k]);
+if (missing.length) {
+    console.error(`\n❌ Missing required environment variables:\n   ${missing.join(', ')}`);
+    console.error('\n   For local dev: copy .env.example → .env and fill in your credentials.');
+    console.error('   For GitHub Actions: add these as repository secrets.\n');
+    process.exit(1);
+}
+
 const BUCKET = process.env.R2_BUCKET_NAME;
 
 const r2 = new S3Client({
