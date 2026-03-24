@@ -8,6 +8,7 @@ const routes = {
     '/': 'dashboard',
     '/stats': 'stats',
     '/stats/head-to-head': 'stats',
+    '/stats/team-records': 'stats',
     '/standings': 'standings',
     '/standings/wildcard': 'standings',
     '/standings/division': 'standings',
@@ -46,6 +47,7 @@ function getStandingsView(path) {
 function getStatsView(path) {
     if (path === '/stats') return 'player';
     if (path.startsWith('/stats/head-to-head')) return 'head-to-head';
+    if (path.startsWith('/stats/team-records')) return 'team-records';
     return 'player';
 }
 
@@ -169,6 +171,9 @@ function getPageTitle(viewName, subView = null) {
             return team
                 ? `Minnesota Wild vs ${team.name} Head-to-Head Stats | Wild Hockey Hub`
                 : 'Minnesota Wild Head-to-Head Stats | Wild Hockey Hub';
+        }
+        if (subView === 'team-records') {
+            return 'Minnesota Wild All-Time Franchise Records & Leaders | Wild Hockey Hub';
         }
         return 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub';
     }

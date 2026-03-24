@@ -1,0 +1,45 @@
+name: Update Milestones Data
+
+on:
+  schedule:
+    # Runs at 6:30 AM UTC daily (30 min after H2H, after overnight games finish)
+    - cron: '30 6 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Run full seed (all seasons from scratch)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run milestones update
+        run: |
+          if [ "${{ inputs.seed }}" = "true" ]; then
+            echo "Running FULL SEED (all seasons)..."
+            node scripts/update-milestones.js --seed
+          else
+            echo "Running INCREMENTAL update (current season only)..."
+            node scripts/update-milestones.js
+          fi
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}

@@ -463,6 +463,28 @@ app.get('/api/news/wild', async (req, res) => {
     }
 });
 
+// Milestones data endpoint — reads pre-aggregated JSON from R2
+app.get('/api/milestones/leaders', async (req, res) => {
+    try {
+        const command = new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: 'milestones/franchise-leaders.json',
+        });
+        const response = await r2.send(command);
+        const data = await response.Body.transformToString();
+        res.set('Content-Type', 'application/json');
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.send(data);
+    } catch (err) {
+        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+            res.status(404).json({ error: 'Milestones data not available yet. Run the seed script first.' });
+        } else {
+            console.error('R2 error:', err.message);
+            res.status(500).json({ error: 'Failed to fetch milestones data.' });
+        }
+    }
+});
+
 // H2H data endpoint — reads pre-aggregated JSON from R2
 app.get('/api/h2h/:opponent', async (req, res) => {
     const opponent = req.params.opponent.toUpperCase();

@@ -3,6 +3,7 @@ import { getWildStats, getLeagueLeaders, getH2HData } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
 import { NHL_TEAMS, teamBySlug } from '../teams.js';
+import * as teamRecords from './team-records.js';
 
 let wildStats = null;
 let h2hOutsideClickHandler = null;
@@ -94,6 +95,8 @@ export async function init(subView = 'player') {
         }
     } else if (subView === 'head-to-head') {
         initHeadToHead();
+    } else if (subView === 'team-records') {
+        teamRecords.init();
     }
 }
 
@@ -106,6 +109,7 @@ function updateSubViewButtons(subView) {
 function showSubView(subView) {
     document.getElementById('stats-player-view').style.display = subView === 'player' ? '' : 'none';
     document.getElementById('stats-head-to-head-view').style.display = subView === 'head-to-head' ? '' : 'none';
+    document.getElementById('stats-team-records-view').style.display = subView === 'team-records' ? '' : 'none';
 }
 
 function initHeadToHead() {

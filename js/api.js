@@ -82,6 +82,11 @@ export async function getH2HData(opponentAbbrev) {
     return response.json();
 }
 
+// Get franchise milestone / all-time leaders data
+export async function getMilestones(forceRefresh = false) {
+    return fetchWithCache('/api/milestones/leaders', 'milestones', forceRefresh);
+}
+
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
     const response = await fetch(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);

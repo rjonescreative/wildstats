@@ -344,6 +344,32 @@ main {
     background-color: var(--border-subtle);
 }
 
+.leader-row--former {
+    cursor: default;
+}
+
+.leader-row--former:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.leader-name--former {
+    color: var(--text-secondary);
+}
+
+.player-photo-greyed {
+    opacity: 0.4;
+    filter: grayscale(1);
+}
+
+.records-season {
+    display: inline-block;
+    margin-left: 0.35rem;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+    vertical-align: middle;
+}
+
 .leader-rank {
     font-size: 0.8rem;
     font-weight: 700;
