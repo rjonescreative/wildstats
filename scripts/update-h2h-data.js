@@ -82,17 +82,24 @@ function getLast5Seasons() {
 
 // ─── NHL API fetchers ─────────────────────────────────────────────────────────
 
-async function fetchWithRetry(url, retries = 3) {
+async function fetchWithRetry(url, retries = 4) {
     for (let attempt = 1; attempt <= retries; attempt++) {
-        try {
-            const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return await res.json();
-        } catch (err) {
-            if (attempt === retries) throw err;
-            await sleep(500 * attempt);
+        const res = await fetch(url);
+        if (res.status === 429) {
+            // Rate limited — wait progressively longer before retrying
+            const wait = 5000 * attempt;
+            console.warn(`   ⚠️  Rate limited (429), waiting ${wait / 1000}s before retry ${attempt}/${retries}...`);
+            await sleep(wait);
+            continue;
         }
+        if (!res.ok) {
+            if (attempt === retries) throw new Error(`HTTP ${res.status} for ${url}`);
+            await sleep(1000 * attempt);
+            continue;
+        }
+        return await res.json();
     }
+    throw new Error(`Failed after ${retries} retries: ${url}`);
 }
 
 async function fetchSchedule(season) {
@@ -335,7 +342,7 @@ async function main() {
             console.warn(`   ⚠️  Failed to fetch schedule for ${season}: ${err.message}`);
             return { season, games: [] };
         }
-    }, 5);
+    }, 3, 400);
 
     // 2. Extract all completed H2H games from schedules
     const allH2HGames = {}; // oppAbbrev → game[]
@@ -371,7 +378,8 @@ async function main() {
 
         if (gamesToEnrich.length) {
             process.stdout.write(`   ${abbrev.padEnd(4)} — fetching right-rail for ${gamesToEnrich.length} game(s)...`);
-            await batchProcess(gamesToEnrich, enrichWithRightRail, 10, 100);
+            // Low concurrency + generous delay to avoid NHL API rate limiting
+            await batchProcess(gamesToEnrich, enrichWithRightRail, 3, 800);
             process.stdout.write(' done\n');
         } else {
             console.log(`   ${abbrev.padEnd(4)} — ${name} (${newGames.length} games, all up to date)`);
