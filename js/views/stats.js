@@ -1,5 +1,5 @@
 // Stats view module
-import { getWildStats, getLeagueLeaders } from '../api.js';
+import { getWildStats, getLeagueLeaders, getH2HData } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
 import { NHL_TEAMS, teamBySlug } from '../teams.js';
@@ -52,7 +52,6 @@ function initHeadToHead() {
     const slug = pathMatch ? pathMatch[1] : null;
     const team = slug ? teamBySlug(slug) : NHL_TEAMS[0];
 
-    // If no team slug in URL, update it to default team
     if (!slug) {
         history.replaceState({}, '', `/stats/head-to-head/${team.slug}`);
     }
@@ -61,7 +60,6 @@ function initHeadToHead() {
 }
 
 function renderH2HContent(team) {
-    // Clean up previous outside-click handler
     if (h2hOutsideClickHandler) {
         document.removeEventListener('click', h2hOutsideClickHandler);
         h2hOutsideClickHandler = null;
@@ -69,9 +67,7 @@ function renderH2HContent(team) {
 
     const container = document.getElementById('h2h-content');
     container.innerHTML = `
-        <div class="section-header">
-            <h2>Wild vs ${team.name}</h2>
-        </div>
+        <h2 class="sr-only">Minnesota Wild vs ${team.name} Head-to-Head Stats</h2>
         <div class="h2h-picker">
             <button class="h2h-picker-trigger" id="h2h-picker-trigger" aria-haspopup="listbox" aria-expanded="false">
                 <img src="/logos/${team.abbrev}_dark.svg" alt="${team.name}" class="h2h-picker-logo">
@@ -91,6 +87,9 @@ function renderH2HContent(team) {
                 `).join('')}
             </ul>
         </div>
+        <div id="h2h-matchup">
+            <div class="loading">Loading matchup data…</div>
+        </div>
     `;
 
     const trigger = document.getElementById('h2h-picker-trigger');
@@ -109,6 +108,125 @@ function renderH2HContent(team) {
         }
     };
     document.addEventListener('click', h2hOutsideClickHandler);
+
+    loadH2HMatchup(team);
+}
+
+// ─── H2H Data Loading ─────────────────────────────────────────────────────────
+
+async function loadH2HMatchup(team) {
+    const el = document.getElementById('h2h-matchup');
+    if (!el) return;
+    try {
+        const data = await getH2HData(team.abbrev);
+        el.innerHTML = buildH2HMatchup(team, data);
+    } catch {
+        el.innerHTML = '<div class="loading">Failed to load head-to-head data. Please try again.</div>';
+    }
+}
+
+// ─── H2H Rendering ───────────────────────────────────────────────────────────
+
+function buildH2HMatchup(team, data) {
+    const sections = [
+        { title: 'THIS SEASON',    agg: data.thisSeason   },
+        { title: 'LAST SEASON',    agg: data.lastSeason   },
+        { title: 'LAST 5 SEASONS', agg: data.last5Seasons },
+        { title: 'ALL TIME',       agg: data.allTime      },
+    ].filter(s => s.agg && s.agg.gamesPlayed > 0);
+
+    return `
+        <div class="h2h-matchup-header">
+            <div class="h2h-matchup-team h2h-matchup-opp">
+                <img src="/logos/${team.abbrev}_dark.svg" alt="${team.name}" class="h2h-matchup-logo">
+                <span class="h2h-matchup-name">${team.name}</span>
+            </div>
+            <div class="h2h-matchup-vs">VS</div>
+            <div class="h2h-matchup-team h2h-matchup-wild">
+                <img src="/logos/MIN_dark.svg" alt="Minnesota Wild" class="h2h-matchup-logo">
+                <span class="h2h-matchup-name">Minnesota Wild</span>
+            </div>
+        </div>
+        ${sections.map(s => buildH2HTable(s.title, s.agg, team)).join('')}
+        ${sections.length === 0 ? '<div class="loading">No games found between these teams.</div>' : ''}
+    `;
+}
+
+// ─── Table builder ────────────────────────────────────────────────────────────
+
+function buildH2HTable(title, agg, team) {
+    if (!agg || agg.gamesPlayed === 0) return '';
+
+    const { min, opp, gamesPlayed } = agg;
+    const hasDetailedStats = min.statsGamesCount > 0;
+    const isAllTime = title === 'ALL TIME';
+    const na = '--';
+
+    // Helpers
+    const rec   = (s) => `${s.wins}-${s.regLosses}-${s.otLosses}`;
+    const otRec = (s) => `${s.otWins}-${s.otGameLosses}`;
+    const soRec = (s) => `${s.soWins}-${s.soLosses}`;
+
+    const avgGp = (total, gp) =>
+        gp > 0 ? `<span class="h2h-sub">${(total / gp).toFixed(1)}/gm</span>` : '';
+
+    const goals = (s) =>
+        `${s.goalsFor} ${avgGp(s.goalsFor, gamesPlayed)}`;
+
+    const statVal = (s, field) => {
+        if (!hasDetailedStats || s[field] == null) return na;
+        return `${s[field]} ${avgGp(s[field], s.statsGamesCount)}`;
+    };
+
+    const ppVal = (s) => {
+        if (!hasDetailedStats || s.ppGoals == null || s.ppOpportunities == null) return na;
+        const pct = s.ppOpportunities > 0
+            ? ((s.ppGoals / s.ppOpportunities) * 100).toFixed(1)
+            : '0.0';
+        return `${s.ppGoals}/${s.ppOpportunities} <span class="h2h-sub">${pct}%</span>`;
+    };
+
+    const foVal = (s) => {
+        if (!hasDetailedStats || s.faceoffWins == null || !s.faceoffTotal) return na;
+        const pct = ((s.faceoffWins / s.faceoffTotal) * 100).toFixed(1);
+        return `${s.faceoffWins}/${s.faceoffTotal} <span class="h2h-sub">${pct}%</span>`;
+    };
+
+    const row = (oppVal, label, minVal) => `
+        <tr>
+            <td class="h2h-opp-val">${oppVal}</td>
+            <td class="h2h-cat">${label}</td>
+            <td class="h2h-min-val">${minVal}</td>
+        </tr>`;
+
+    const otGames = min.otWins + min.otGameLosses;
+    const soGames = min.soWins + min.soLosses;
+
+    return `
+        <div class="h2h-section">
+            <h2 class="h2h-section-title">${title}</h2>
+            <div class="stats-table-container">
+                <table class="h2h-table">
+                    <tbody>
+                        ${row(rec(opp),  'RECORD', rec(min))}
+                        ${otGames > 0 ? row(otRec(opp), 'OVERTIME', otRec(min)) : ''}
+                        ${soGames > 0 ? row(soRec(opp), 'SHOOTOUT', soRec(min)) : ''}
+                        <tr class="h2h-divider"><td colspan="3"></td></tr>
+                        ${row(goals(opp), 'GOALS', goals(min))}
+                        ${!isAllTime ? row(statVal(opp, 'sog'),          'SHOTS ON GOAL',  statVal(min, 'sog'))          : ''}
+                        ${!isAllTime ? row(ppVal(opp),                   'POWER PLAY',     ppVal(min))                   : ''}
+                        ${!isAllTime ? row(foVal(opp),                   'FACEOFFS',       foVal(min))                   : ''}
+                        ${!isAllTime ? row(statVal(opp, 'hits'),         'HITS',           statVal(min, 'hits'))         : ''}
+                        ${!isAllTime ? row(statVal(opp, 'pim'),          'PENALTY MINUTES',statVal(min, 'pim'))          : ''}
+                        ${!isAllTime ? row(statVal(opp, 'blockedShots'), 'BLOCKED SHOTS',  statVal(min, 'blockedShots')) : ''}
+                        ${!isAllTime ? row(statVal(opp, 'giveaways'),    'GIVEAWAYS',      statVal(min, 'giveaways'))    : ''}
+                        ${!isAllTime ? row(statVal(opp, 'takeaways'),    'TAKEAWAYS',      statVal(min, 'takeaways'))    : ''}
+                    </tbody>
+                </table>
+                ${!isAllTime && !hasDetailedStats ? `<div class="h2h-no-stats-note">Detailed game stats unavailable for this period</div>` : ''}
+            </div>
+        </div>
+    `;
 }
 
 export function render() {
