@@ -92,6 +92,11 @@ export async function getMilestones(forceRefresh = false) {
     return fetchWithCache('/api/milestones/leaders', 'milestones', forceRefresh);
 }
 
+// Get Wild season breakdown — period scores per game (for situational/period analytics)
+export async function getWildSeasonBreakdown(forceRefresh = false) {
+    return fetchWithCache('/api/wild/season-breakdown', 'wildSeasonBreakdown', forceRefresh);
+}
+
 // Get all-team career totals for current Wild roster (playerId → { gamesPlayed, goals, assists, points })
 export async function getCareerTotals(forceRefresh = false) {
     return fetchWithCache('/api/milestones/career-totals', 'careerTotals', forceRefresh);

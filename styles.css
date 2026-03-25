@@ -3067,7 +3067,7 @@ footer {
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: var(--text-secondary);
+    color: #e0e0e0;
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-subtle);
@@ -3150,4 +3150,267 @@ footer {
     background: rgba(28, 140, 71, 0.15);
     border-color: var(--wild-green);
     color: var(--text-primary);
+}
+
+/* ─── Season stats loading placeholder ────────────────────────────────────── */
+
+.season-stats-loading {
+    padding: 2.5rem;
+    text-align: center;
+    color: var(--text-tertiary);
+    font-size: 0.85rem;
+}
+
+.season-section-note {
+    font-size: 0.78rem;
+    color: #909090;
+    margin-bottom: 0.875rem;
+    margin-top: -0.5rem;
+}
+
+.season-no-data {
+    color: #909090;
+    font-size: 0.85rem;
+    padding: 1rem 0;
+}
+
+.season-subsection-title {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #d0d0d0;
+    margin: 1.25rem 0 0.625rem;
+}
+
+/* ─── Season At a Glance grid ─────────────────────────────────────────────── */
+
+.season-glance-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+}
+
+.season-glance-card {
+    flex: 1 1 110px;
+    background: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+    min-width: 100px;
+}
+
+.glance-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #909090;
+    margin-bottom: 0.25rem;
+}
+
+.glance-value {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+}
+
+.glance-value.glance-positive { color: #3cb96a; }
+.glance-value.glance-negative { color: var(--wild-red); }
+
+.glance-sub {
+    font-size: 0.68rem;
+    color: #909090;
+    margin-top: 0.2rem;
+}
+
+/* ─── Season data tables ──────────────────────────────────────────────────── */
+
+.season-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    background: rgba(15, 15, 15, 0.7);
+    border-radius: 8px;
+    padding: 0;
+    border: 1px solid var(--border-subtle);
+}
+
+.season-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.82rem;
+    min-width: 420px;
+}
+
+.season-table th {
+    text-align: left;
+    padding: 0.45rem 0.75rem;
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: #a0a0a0;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+}
+
+.season-table td {
+    padding: 0.45rem 0.75rem;
+    color: #d0d0d0;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    white-space: nowrap;
+}
+
+.season-table tbody tr:nth-child(even) td {
+    background: rgba(255,255,255,0.025);
+}
+
+.season-table th:first-child,
+.season-table td:first-child {
+    padding-left: 0.75rem;
+}
+
+.season-table th:last-child,
+.season-table td:last-child {
+    padding-right: 0.75rem;
+}
+
+.season-table thead tr:first-child th:first-child {
+    border-top-left-radius: 7px;
+}
+
+.season-table thead tr:first-child th:last-child {
+    border-top-right-radius: 7px;
+}
+
+.season-table tbody tr:last-child td:first-child {
+    border-bottom-left-radius: 7px;
+}
+
+.season-table tbody tr:last-child td:last-child {
+    border-bottom-right-radius: 7px;
+}
+
+.season-table tbody tr:hover td {
+    background: rgba(255,255,255,0.025);
+    color: var(--text-primary);
+}
+
+.season-table .stat-highlight {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.season-table .period-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.season-table .period-total td {
+    border-top: 1px solid var(--border-subtle);
+    border-bottom: none;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.period-pos { color: #3cb96a; font-weight: 600; }
+.period-neg { color: var(--wild-red); font-weight: 600; }
+
+/* ─── Situational records table ──────────────────────────────────────────── */
+
+.situation-table .sit-label {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.situation-table .sit-label-leading { color: #3cb96a; }
+.situation-table .sit-label-trailing { color: var(--wild-red); }
+.situation-table .sit-label-tied { color: #c0c0c0; }
+
+.sit-record {
+    display: block;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.sit-pct {
+    display: block;
+    font-size: 0.72rem;
+    color: #909090;
+    margin-top: 0.1rem;
+}
+
+/* ─── Division table rows ─────────────────────────────────────────────────── */
+
+.div-section-row td {
+    font-size: 0.68rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    color: var(--text-secondary);
+    padding-top: 0.875rem !important;
+    padding-bottom: 0.3rem !important;
+    border-bottom: none;
+}
+
+/* ─── Playoff opponent rows ───────────────────────────────────────────────── */
+
+.playoff-opp-row td {
+    font-size: 0.79rem;
+}
+
+.playoff-opp-logo {
+    vertical-align: middle;
+    flex-shrink: 0;
+}
+
+.team-name-full {
+    color: var(--text-secondary);
+}
+
+.no-data-cell {
+    color: var(--text-tertiary);
+    font-style: italic;
+}
+
+/* ─── OT / Shootout section ───────────────────────────────────────────────── */
+
+.ot-summary-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.625rem;
+    margin-bottom: 1.25rem;
+}
+
+.ot-summary-card {
+    flex: 1 1 140px;
+    background: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    text-align: center;
+}
+
+.ot-tables-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+}
+
+@media (max-width: 640px) {
+    .ot-tables-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .season-glance-card {
+        flex: 1 1 calc(33% - 0.625rem);
+        min-width: 80px;
+    }
+
+    .glance-value {
+        font-size: 1.1rem;
+    }
 }
