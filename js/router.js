@@ -9,6 +9,7 @@ const routes = {
     '/stats': 'stats',
     '/stats/head-to-head': 'stats',
     '/stats/team-records': 'stats',
+    '/stats/milestones': 'stats',
     '/standings': 'standings',
     '/standings/wildcard': 'standings',
     '/standings/division': 'standings',
@@ -48,6 +49,7 @@ function getStatsView(path) {
     if (path === '/stats') return 'player';
     if (path.startsWith('/stats/head-to-head')) return 'head-to-head';
     if (path.startsWith('/stats/team-records')) return 'team-records';
+    if (path.startsWith('/stats/milestones')) return 'milestones';
     return 'player';
 }
 
@@ -175,6 +177,9 @@ function getPageTitle(viewName, subView = null) {
         if (subView === 'team-records') {
             return 'Minnesota Wild All-Time Franchise Records & Leaders | Wild Hockey Hub';
         }
+        if (subView === 'milestones') {
+            return 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub';
+        }
         return 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub';
     }
 
@@ -205,6 +210,10 @@ function getMetaDescription(viewName, subView = null) {
             condensed: 'Minnesota Wild condensed games for 2025-26. Watch full condensed game replays for every Wild game this season.'
         };
         return mediaDescriptions[subView] || mediaDescriptions.all;
+    }
+
+    if (viewName === 'stats' && subView === 'milestones') {
+        return 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.';
     }
 
     const descriptions = {

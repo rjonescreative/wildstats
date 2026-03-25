@@ -50,6 +50,10 @@ const PAGE_META = {
     '/media/condensed': {
         title: 'Minnesota Wild Condensed Games 2025-26 | Wild Hockey Hub',
         description: 'Minnesota Wild condensed games for 2025-26. Watch full condensed game replays for every Wild game this season.'
+    },
+    '/stats/milestones': {
+        title: 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub',
+        description: 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.'
     }
 };
 

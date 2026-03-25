@@ -4,6 +4,7 @@ import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
 import { NHL_TEAMS, teamBySlug } from '../teams.js';
 import * as teamRecords from './team-records.js';
+import * as milestones from './milestones.js';
 
 let wildStats = null;
 let h2hOutsideClickHandler = null;
@@ -100,6 +101,8 @@ export async function init(subView = 'player') {
         initHeadToHead();
     } else if (subView === 'team-records') {
         teamRecords.init();
+    } else if (subView === 'milestones') {
+        milestones.init();
     }
 }
 
@@ -113,6 +116,7 @@ function showSubView(subView) {
     document.getElementById('stats-player-view').style.display = subView === 'player' ? '' : 'none';
     document.getElementById('stats-head-to-head-view').style.display = subView === 'head-to-head' ? '' : 'none';
     document.getElementById('stats-team-records-view').style.display = subView === 'team-records' ? '' : 'none';
+    document.getElementById('stats-milestones-view').style.display = subView === 'milestones' ? '' : 'none';
 }
 
 function initHeadToHead() {

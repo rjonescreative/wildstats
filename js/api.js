@@ -87,6 +87,11 @@ export async function getMilestones(forceRefresh = false) {
     return fetchWithCache('/api/milestones/leaders', 'milestones', forceRefresh);
 }
 
+// Get all-team career totals for current Wild roster (playerId → { gamesPlayed, goals, assists, points })
+export async function getCareerTotals(forceRefresh = false) {
+    return fetchWithCache('/api/milestones/career-totals', 'careerTotals', forceRefresh);
+}
+
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
     const response = await fetch(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);
