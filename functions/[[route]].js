@@ -54,6 +54,10 @@ const PAGE_META = {
     '/stats/milestones': {
         title: 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub',
         description: 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.'
+    },
+    '/stats/season': {
+        title: 'Minnesota Wild Current Season Stats 2025-26 | Wild Hockey Hub',
+        description: 'Minnesota Wild current season stats for 2025-26. Track team points progression, standings trends, and season-long statistics.'
     }
 };
 

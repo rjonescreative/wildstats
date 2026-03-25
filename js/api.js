@@ -54,6 +54,11 @@ export async function getSchedule(season = '20252026', forceRefresh = false) {
     return fetchWithCache(`/api/schedule/${season}`, `schedule_${season}`, forceRefresh);
 }
 
+// Get any team's schedule (used for multi-team points chart)
+export async function getTeamSchedule(team, season = '20252026', forceRefresh = false) {
+    return fetchWithCache(`/api/schedule/${team}/${season}`, `schedule_${team}_${season}`, forceRefresh);
+}
+
 // Get Wild news from multiple sources (supports pagination)
 export async function getNews(offset = 0, limit = 6) {
     // News pagination doesn't use cache - each page is a separate request

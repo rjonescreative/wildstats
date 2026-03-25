@@ -3055,3 +3055,99 @@ footer {
         font-size: 2.25rem;
     }
 }
+
+/* ─── Current Season page ──────────────────────────────────────────────────── */
+
+.season-section {
+    margin-bottom: 2.5rem;
+}
+
+.season-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.points-chart-wrap {
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 1rem 0.5rem 0.5rem;
+    overflow: hidden;
+}
+
+.points-chart {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.chart-grid {
+    stroke: rgba(255, 255, 255, 0.06);
+    stroke-width: 1;
+}
+
+.chart-axis {
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 1;
+}
+
+.chart-label {
+    font-size: 11px;
+    fill: var(--text-secondary);
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+}
+
+.chart-axis-title {
+    font-size: 11px;
+    fill: var(--text-tertiary);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    font-family: inherit;
+}
+
+.chart-loading {
+    padding: 4rem;
+    text-align: center;
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.division-toggles {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.875rem;
+}
+
+.division-toggle {
+    padding: 0.35rem 1rem;
+    border-radius: 20px;
+    border: 1px solid var(--border-subtle);
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    cursor: pointer;
+    transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+
+.division-toggle:hover {
+    border-color: var(--border-medium);
+    color: var(--text-primary);
+}
+
+.division-toggle.active {
+    background: rgba(28, 140, 71, 0.15);
+    border-color: var(--wild-green);
+    color: var(--text-primary);
+}

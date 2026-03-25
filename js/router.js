@@ -10,6 +10,7 @@ const routes = {
     '/stats/head-to-head': 'stats',
     '/stats/team-records': 'stats',
     '/stats/milestones': 'stats',
+    '/stats/season': 'stats',
     '/standings': 'standings',
     '/standings/wildcard': 'standings',
     '/standings/division': 'standings',
@@ -50,6 +51,7 @@ function getStatsView(path) {
     if (path.startsWith('/stats/head-to-head')) return 'head-to-head';
     if (path.startsWith('/stats/team-records')) return 'team-records';
     if (path.startsWith('/stats/milestones')) return 'milestones';
+    if (path.startsWith('/stats/season')) return 'season';
     return 'player';
 }
 
@@ -180,6 +182,9 @@ function getPageTitle(viewName, subView = null) {
         if (subView === 'milestones') {
             return 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub';
         }
+        if (subView === 'season') {
+            return 'Minnesota Wild Current Season Stats 2025-26 | Wild Hockey Hub';
+        }
         return 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub';
     }
 
@@ -214,6 +219,9 @@ function getMetaDescription(viewName, subView = null) {
 
     if (viewName === 'stats' && subView === 'milestones') {
         return 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.';
+    }
+    if (viewName === 'stats' && subView === 'season') {
+        return 'Minnesota Wild current season stats for 2025-26. Track team points progression, standings trends, and season-long statistics.';
     }
 
     const descriptions = {

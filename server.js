@@ -193,6 +193,28 @@ app.get('/api/schedule/:season', async (req, res) => {
     }
 });
 
+// Any-team schedule endpoint — used for the multi-team points chart
+app.get('/api/schedule/:team/:season', async (req, res) => {
+    const { team, season } = req.params;
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(
+            `https://api-web.nhle.com/v1/club-schedule-season/${team.toUpperCase()}/${season}`,
+            { signal: controller.signal, redirect: 'follow' }
+        );
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        res.set('Cache-Control', 'public, max-age=300');
+        res.json(data);
+    } catch (error) {
+        console.error(`Error fetching schedule for ${team}:`, error);
+        res.status(500).json({ error: 'Failed to fetch schedule' });
+    }
+});
+
 // Live game data endpoint
 app.get('/api/game/:id/live', async (req, res) => {
     const gameId = req.params.id;
