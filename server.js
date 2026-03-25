@@ -194,7 +194,7 @@ app.get('/api/schedule/:season', async (req, res) => {
 });
 
 // Any-team schedule endpoint — used for the multi-team points chart
-app.get('/api/schedule/:team/:season', async (req, res) => {
+app.get('/api/team-schedule/:team/:season', async (req, res) => {
     const { team, season } = req.params;
     try {
         const controller = new AbortController();
