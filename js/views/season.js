@@ -50,6 +50,7 @@ const DIVISIONS = {
 
 // ─── Module state ──────────────────────────────────────────────────────────
 let activeToggles = new Set(['Central']);
+let chartMode = 'points'; // 'points' | 'pct'
 const dataCache = {}; // abbrev → points progression array
 
 // ─── Chart layout ──────────────────────────────────────────────────────────
@@ -742,6 +743,13 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
     </div>`;
 }
 
+// ─── Data helpers: points percentage ───────────────────────────────────────
+
+function toPctProgression(pointsData) {
+    // Derive points % from existing points progression (skip game 0 since 0/0 is undefined)
+    return pointsData.slice(1).map(d => ({ game: d.game, pct: d.points / (d.game * 2) }));
+}
+
 // ─── SVG helpers ───────────────────────────────────────────────────────────
 
 function sx(game, xMax) {
@@ -829,6 +837,75 @@ function buildChart(teams) {
 </svg>`;
 }
 
+// ─── Points percentage chart ────────────────────────────────────────────────
+
+function buildPctChart(teams) {
+    const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
+
+    const plotBottom = M.top + PLOT_H;
+    const plotRight  = M.left + PLOT_W;
+
+    const syPct = (pct) => M.top + PLOT_H - pct * PLOT_H;
+    const linePathPct = (data, xMax) => data
+        .map((d, i) => `${i === 0 ? 'M' : 'L'}${sx(d.game, xMax).toFixed(1)},${syPct(d.pct).toFixed(1)}`)
+        .join(' ');
+
+    const yTicks = [0, 0.25, 0.5, 0.75, 1.0];
+
+    const xTicks = [];
+    for (let g = 10; g < xMax; g += 10) xTicks.push(g);
+    xTicks.push(xMax);
+
+    const gridLines = [
+        ...yTicks.map(p => {
+            const y = syPct(p).toFixed(1);
+            const isMid = p === 0.5;
+            const label = p === 0 ? '0.000' : p === 1 ? '1.000' : p.toFixed(3);
+            return `<line x1="${M.left}" y1="${y}" x2="${plotRight}" y2="${y}" class="${isMid ? 'chart-midline' : 'chart-grid'}"/>
+    <text x="${(M.left - 8).toFixed(1)}" y="${y}" dy="0.35em" text-anchor="end" class="chart-label">${label}</text>`;
+        }),
+        ...xTicks.map(g => {
+            const x = sx(g, xMax).toFixed(1);
+            return `<line x1="${x}" y1="${M.top}" x2="${x}" y2="${plotBottom}" class="chart-grid"/>
+    <text x="${x}" y="${(plotBottom + 16).toFixed(1)}" text-anchor="middle" class="chart-label">${g}</text>`;
+        }),
+    ].join('\n    ');
+
+    const defs = teams.map(t => `
+    <linearGradient id="area-pct-${t.abbrev}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="${t.config.lineColor}" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="${t.config.lineColor}" stop-opacity="0"/>
+    </linearGradient>`).join('');
+
+    const teamPaths = teams.map(t => {
+        const pctData = toPctProgression(t.data);
+        if (pctData.length === 0) return '';
+        const last = pctData[pctData.length - 1];
+        const lx = sx(last.game, xMax);
+        const ly = syPct(last.pct);
+        const area = t.abbrev === 'MIN'
+            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sx(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none"/>`
+            : '';
+        return `
+    <!-- ${t.config.name} -->
+    ${area}
+    <path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
+    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}"/>`;
+    }).join('');
+
+    return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>${defs}
+  </defs>
+  ${gridLines}
+  <line x1="${M.left}" y1="${M.top}" x2="${M.left}" y2="${plotBottom}" class="chart-axis"/>
+  <line x1="${M.left}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="chart-axis"/>
+  <text x="${(M.left + PLOT_W / 2).toFixed(1)}" y="${(VB_H - 6).toFixed(1)}" text-anchor="middle" class="chart-axis-title">Games Played</text>
+  <text x="12" y="${(M.top + PLOT_H / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90,12,${(M.top + PLOT_H / 2).toFixed(1)})" class="chart-axis-title">Pts %</text>
+  ${teamPaths}
+</svg>`;
+}
+
 // ─── Refresh chart after toggle change ─────────────────────────────────────
 
 async function refreshChart() {
@@ -845,7 +922,7 @@ async function refreshChart() {
                 data: await loadTeamData(abbrev),
             }))
         );
-        chartWrap.innerHTML = buildChart(teams);
+        chartWrap.innerHTML = chartMode === 'pct' ? buildPctChart(teams) : buildChart(teams);
     } catch (err) {
         console.error('Error refreshing chart:', err);
         chartWrap.innerHTML = '<div class="error-message">Failed to load data.</div>';
@@ -856,7 +933,7 @@ async function refreshChart() {
 
 function buildPage(initialChartHtml) {
     const divisionNames = Object.keys(DIVISIONS);
-    const toggles = divisionNames.map(div => {
+    const divToggles = divisionNames.map(div => {
         const isActive = activeToggles.has(div);
         return `<button class="division-toggle${isActive ? ' active' : ''}" data-division="${div}">${div}</button>`;
     }).join('');
@@ -865,13 +942,19 @@ function buildPage(initialChartHtml) {
         <div class="season-section">
             <h2 class="season-section-title">Points Progression</h2>
             <div class="points-chart-wrap">${initialChartHtml}</div>
-            <div class="division-toggles">${toggles}</div>
+            <div class="chart-controls">
+                <div class="chart-mode-toggles">
+                    <button class="division-toggle chart-mode-toggle${chartMode === 'points' ? ' active' : ''}" data-mode="points">Points</button>
+                    <button class="division-toggle chart-mode-toggle${chartMode === 'pct' ? ' active' : ''}" data-mode="pct">Points Percentage</button>
+                </div>
+                <div class="division-toggles">${divToggles}</div>
+            </div>
         </div>
         <div id="season-extra-stats"><div class="season-stats-loading">Loading statistics…</div></div>`;
 }
 
 function attachToggleHandlers() {
-    document.querySelectorAll('#stats-season-view .division-toggle').forEach(btn => {
+    document.querySelectorAll('#stats-season-view .division-toggle[data-division]').forEach(btn => {
         btn.addEventListener('click', async () => {
             const div = btn.dataset.division;
             if (activeToggles.has(div)) {
@@ -881,6 +964,18 @@ function attachToggleHandlers() {
                 activeToggles.add(div);
                 btn.classList.add('active');
             }
+            await refreshChart();
+        });
+    });
+
+    document.querySelectorAll('#stats-season-view .chart-mode-toggle').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const mode = btn.dataset.mode;
+            if (chartMode === mode) return;
+            chartMode = mode;
+            document.querySelectorAll('#stats-season-view .chart-mode-toggle').forEach(b => {
+                b.classList.toggle('active', b.dataset.mode === mode);
+            });
             await refreshChart();
         });
     });
@@ -921,6 +1016,7 @@ async function loadAndRenderStats(scheduleGames) {
 
 export async function init() {
     activeToggles = new Set(['Central']);
+    chartMode = 'points';
 
     const container = document.getElementById('stats-season-view');
     container.innerHTML = '<div class="loading">Loading season data…</div>';

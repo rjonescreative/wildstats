@@ -3119,12 +3119,30 @@ footer {
     font-size: 0.85rem;
 }
 
-.division-toggles {
+.chart-controls {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
     gap: 0.5rem;
     margin-top: 0.875rem;
+}
+
+.chart-mode-toggles {
+    display: flex;
+    gap: 0.5rem;
+}
+
+.division-toggles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.chart-midline {
+    stroke: rgba(255, 255, 255, 0.30);
+    stroke-width: 1;
+    stroke-dasharray: 4 4;
 }
 
 .division-toggle {
