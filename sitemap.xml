@@ -2,283 +2,283 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url>
     <loc>https://wildhockey.win/</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>1.0</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wildhockey.win/stats/season</loc>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wildhockey.win/stats/milestones</loc>
+    <lastmod>2026-03-25</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://wildhockey.win/stats/team-records</loc>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://wildhockey.win/stats/team-records</loc>
-    <lastmod>2026-03-24</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://wildhockey.win/stats/season</loc>
-    <lastmod>2026-03-24</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
-    <loc>https://wildhockey.win/stats/milestones</loc>
-    <lastmod>2026-03-24</lastmod>
-    <changefreq>daily</changefreq>
-    <priority>0.7</priority>
-  </url>
-  <url>
     <loc>https://wildhockey.win/stats/head-to-head/anaheim</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/boston</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/buffalo</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/calgary</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/carolina</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/chicago</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/colorado</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/columbus</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/dallas</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/detroit</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/edmonton</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/florida</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/los-angeles</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/montreal</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/nashville</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/new-jersey</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/ny-islanders</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/ny-rangers</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/ottawa</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/philadelphia</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/pittsburgh</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/san-jose</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/seattle</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/st-louis</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/tampa-bay</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/toronto</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/utah</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/vancouver</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/vegas</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/washington</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/winnipeg</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.6</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/standings</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/standings/wildcard</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/standings/division</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/standings/conference</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/standings/league</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/schedule</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/media</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.8</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/media/highlights</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/media/recaps</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://wildhockey.win/media/condensed</loc>
-    <lastmod>2026-03-23</lastmod>
+    <lastmod>2026-03-25</lastmod>
     <changefreq>daily</changefreq>
     <priority>0.7</priority>
   </url>

@@ -173,17 +173,17 @@ function getPageTitle(viewName, subView = null) {
                 : null;
             const team = slug ? teamBySlug(slug) : null;
             return team
-                ? `Minnesota Wild vs ${team.name} Head-to-Head Stats | Wild Hockey Hub`
-                : 'Minnesota Wild Head-to-Head Stats | Wild Hockey Hub';
+                ? `Minnesota Wild vs ${team.name} Head-to-Head 2025-26 – Record, Goals & Results | Wild Hockey Hub`
+                : 'Minnesota Wild Head-to-Head Record vs Every NHL Team 2025-26 | Wild Hockey Hub';
         }
         if (subView === 'team-records') {
-            return 'Minnesota Wild All-Time Franchise Records & Leaders | Wild Hockey Hub';
+            return 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub';
         }
         if (subView === 'milestones') {
-            return 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub';
+            return 'Minnesota Wild Player Milestones 2025-26 – Upcoming & Achieved | Wild Hockey Hub';
         }
         if (subView === 'season') {
-            return 'Minnesota Wild Current Season Stats 2025-26 | Wild Hockey Hub';
+            return 'Minnesota Wild 2025-26 Season Stats – Points Progression, Splits & More | Wild Hockey Hub';
         }
         return 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub';
     }
@@ -218,10 +218,22 @@ function getMetaDescription(viewName, subView = null) {
     }
 
     if (viewName === 'stats' && subView === 'milestones') {
-        return 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.';
+        return 'Minnesota Wild player milestones for 2025-26. Track which Wild players are approaching goals, assists, points, games played, and wins records — and which milestones have already been hit this season.';
     }
     if (viewName === 'stats' && subView === 'season') {
-        return 'Minnesota Wild current season stats for 2025-26. Track team points progression, standings trends, and season-long statistics.';
+        return 'Minnesota Wild 2025-26 season stats. Track points progression against every NHL team, home and away splits, period-by-period scoring, situational records, and back-to-back performance.';
+    }
+    if (viewName === 'stats' && subView === 'head-to-head') {
+        const slug = typeof window !== 'undefined'
+            ? (window.location.pathname.match(/^\/stats\/head-to-head\/(.+)$/) || [])[1]
+            : null;
+        const team = slug ? teamBySlug(slug) : null;
+        return team
+            ? `Minnesota Wild vs ${team.name} head-to-head results for 2025-26. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
+            : 'Minnesota Wild head-to-head record against all 31 NHL opponents in 2025-26. Win-loss records, goals for, goals against, and results broken down by opponent.';
+    }
+    if (viewName === 'stats' && subView === 'team-records') {
+        return 'Minnesota Wild all-time franchise records and single-season statistical leaders. Find career and season bests for goals, assists, points, wins, save percentage, GAA, and more.';
     }
 
     const descriptions = {
