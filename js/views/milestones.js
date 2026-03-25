@@ -309,12 +309,30 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
         return order.flatMap(id => groups.get(id));
     }
 
-    // Sort approaching by % completion (most complete first), then group by player
-    const sortedApproaching = groupByPlayer(
-        dedup(approaching).sort((a, b) => (b.current / b.target) - (a.current / a.target))
-    );
+    // Group by player, sort each player's cards by milestone value descending (biggest first),
+    // then sort player groups by their largest milestone value descending.
+    // Works for both approaching cards (uses `target`) and achieved cards (uses `value`).
+    function groupAndSortBySize(list) {
+        const key    = m => m.target ?? m.value ?? 0;
+        const order  = [];
+        const groups = new Map();
+        dedup(list).forEach(m => {
+            if (!groups.has(m.playerId)) {
+                groups.set(m.playerId, []);
+                order.push(m.playerId);
+            }
+            groups.get(m.playerId).push(m);
+        });
+        groups.forEach(cards => cards.sort((a, b) => key(b) - key(a)));
+        order.sort((a, b) => {
+            const maxA = Math.max(...groups.get(a).map(key));
+            const maxB = Math.max(...groups.get(b).map(key));
+            return maxB - maxA;
+        });
+        return order.flatMap(id => groups.get(id));
+    }
 
-    return { approaching: sortedApproaching, achieved: groupByPlayer(dedup(achieved)) };
+    return { approaching: groupAndSortBySize(approaching), achieved: groupAndSortBySize(achieved) };
 }
 
 // ─── Rendering ───────────────────────────────────────────────────────────────
