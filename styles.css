@@ -1347,6 +1347,32 @@ footer {
     color: var(--text-secondary);
 }
 
+.footer-social-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.25rem;
+    margin-bottom: 0.6rem;
+}
+
+.footer-top {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.footer-social-link {
+    color: var(--text-tertiary);
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+    line-height: 1;
+}
+
+.footer-social-link:hover {
+    color: var(--text-secondary);
+}
+
 .footer-disclaimer {
     margin-top: 0.5rem;
     font-size: 0.65rem;
