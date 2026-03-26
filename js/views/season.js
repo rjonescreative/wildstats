@@ -842,12 +842,18 @@ function buildChart(teams) {
 function buildPctChart(teams) {
     const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
 
-    const plotBottom = M.top + PLOT_H;
-    const plotRight  = M.left + PLOT_W;
+    // Wider left margin for pct chart — decimal labels like "0.500" are wider
+    // than point labels ("80","100") and need clearance from the "Pts %" axis title
+    const ML = 65;
+    const PW = VB_W - ML - M.right;
 
+    const plotBottom = M.top + PLOT_H;
+    const plotRight  = ML + PW;
+
+    const sxPct = (game, xMax) => ML + (game / xMax) * PW;
     const syPct = (pct) => M.top + PLOT_H - pct * PLOT_H;
     const linePathPct = (data, xMax) => data
-        .map((d, i) => `${i === 0 ? 'M' : 'L'}${sx(d.game, xMax).toFixed(1)},${syPct(d.pct).toFixed(1)}`)
+        .map((d, i) => `${i === 0 ? 'M' : 'L'}${sxPct(d.game, xMax).toFixed(1)},${syPct(d.pct).toFixed(1)}`)
         .join(' ');
 
     const yTicks = [0, 0.25, 0.5, 0.75, 1.0];
@@ -861,10 +867,10 @@ function buildPctChart(teams) {
         ...yTicks.map(p => {
             const y = syPct(p).toFixed(1);
             const isMid = p === 0.5;
-            return `<line x1="${M.left}" y1="${y}" x2="${plotRight}" y2="${y}" class="${isMid ? 'chart-midline' : 'chart-grid'}"/>`;
+            return `<line x1="${ML}" y1="${y}" x2="${plotRight}" y2="${y}" class="${isMid ? 'chart-midline' : 'chart-grid'}"/>`;
         }),
         ...xTicks.map(g => {
-            const x = sx(g, xMax).toFixed(1);
+            const x = sxPct(g, xMax).toFixed(1);
             return `<line x1="${x}" y1="${M.top}" x2="${x}" y2="${plotBottom}" class="chart-grid"/>`;
         }),
     ].join('\n    ');
@@ -872,11 +878,11 @@ function buildPctChart(teams) {
     const axisLabels = [
         ...yTicks.map(p => {
             const y = syPct(p).toFixed(1);
-            const label = p === 0 ? '0.000' : p === 1 ? '1.000' : p.toFixed(3);
-            return `<text x="${(M.left - 8).toFixed(1)}" y="${y}" dy="0.35em" text-anchor="end" class="chart-label">${label}</text>`;
+            const label = p === 0 ? '0' : p === 1 ? '1.0' : p.toFixed(2);
+            return `<text x="${(ML - 8).toFixed(1)}" y="${y}" dy="0.35em" text-anchor="end" class="chart-label">${label}</text>`;
         }),
         ...xTicks.map(g => {
-            const x = sx(g, xMax).toFixed(1);
+            const x = sxPct(g, xMax).toFixed(1);
             return `<text x="${x}" y="${(plotBottom + 16).toFixed(1)}" text-anchor="middle" class="chart-label">${g}</text>`;
         }),
     ].join('\n    ');
@@ -891,9 +897,9 @@ function buildPctChart(teams) {
     const teamLines = teams.map(t => {
         const pctData = toPctProgression(t.data);
         if (pctData.length === 0) return '';
-        const lx = sx(pctData[pctData.length - 1].game, xMax);
+        const lx = sxPct(pctData[pctData.length - 1].game, xMax);
         const area = t.abbrev === 'MIN'
-            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sx(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none"/>`
+            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sxPct(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none"/>`
             : '';
         return `${area}<path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
     }).join('\n    ');
@@ -902,7 +908,7 @@ function buildPctChart(teams) {
         const pctData = toPctProgression(t.data);
         if (pctData.length === 0) return '';
         const last = pctData[pctData.length - 1];
-        const lx = sx(last.game, xMax);
+        const lx = sxPct(last.game, xMax);
         const ly = syPct(last.pct);
         return `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
     <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}"/>`;
@@ -911,18 +917,18 @@ function buildPctChart(teams) {
     return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
   <defs>${defs}
     <clipPath id="pct-plot-area">
-      <rect x="${M.left}" y="${M.top}" width="${PLOT_W}" height="${PLOT_H}"/>
+      <rect x="${ML}" y="${M.top}" width="${PW}" height="${PLOT_H}"/>
     </clipPath>
   </defs>
   ${gridLineEls}
-  <line x1="${M.left}" y1="${M.top}" x2="${M.left}" y2="${plotBottom}" class="chart-axis"/>
-  <line x1="${M.left}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="chart-axis"/>
+  <line x1="${ML}" y1="${M.top}" x2="${ML}" y2="${plotBottom}" class="chart-axis"/>
+  <line x1="${ML}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="chart-axis"/>
   <g clip-path="url(#pct-plot-area)">
     ${teamLines}
   </g>
   ${teamEndpoints}
   ${axisLabels}
-  <text x="${(M.left + PLOT_W / 2).toFixed(1)}" y="${(VB_H - 6).toFixed(1)}" text-anchor="middle" class="chart-axis-title">Games Played</text>
+  <text x="${(ML + PW / 2).toFixed(1)}" y="${(VB_H - 6).toFixed(1)}" text-anchor="middle" class="chart-axis-title">Games Played</text>
   <text x="12" y="${(M.top + PLOT_H / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90,12,${(M.top + PLOT_H / 2).toFixed(1)})" class="chart-axis-title">Pts %</text>
 </svg>`;
 }
