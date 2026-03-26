@@ -2,7 +2,7 @@
 import { getTeamSchedule, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
-const ALL_TEAMS = {
+export const ALL_TEAMS = {
     // Central Division
     CHI: { name: 'Chicago Blackhawks',    div: 'Central',      conf: 'W', lineColor: '#FF4553' },
     COL: { name: 'Colorado Avalanche',    div: 'Central',      conf: 'W', lineColor: '#B05076' },
@@ -41,7 +41,7 @@ const ALL_TEAMS = {
     WSH: { name: 'Washington Capitals',   div: 'Metropolitan', conf: 'E', lineColor: '#C41230' },
 };
 
-const DIVISIONS = {
+export const DIVISIONS = {
     Central:      ['CHI', 'COL', 'DAL', 'MIN', 'NSH', 'STL', 'UTA', 'WPG'],
     Pacific:      ['ANA', 'CGY', 'EDM', 'LAK', 'SJS', 'SEA', 'VAN', 'VGK'],
     Atlantic:     ['BOS', 'BUF', 'DET', 'FLA', 'MTL', 'OTT', 'TBL', 'TOR'],
@@ -51,7 +51,7 @@ const DIVISIONS = {
 // ─── Module state ──────────────────────────────────────────────────────────
 let activeToggles = new Set(['Central']);
 let chartMode = 'points'; // 'points' | 'pct'
-const dataCache = {}; // abbrev → points progression array
+export const dataCache = {}; // abbrev → points progression array
 
 // ─── Chart layout ──────────────────────────────────────────────────────────
 const VB_W = 900;
@@ -82,7 +82,7 @@ function computePointsProgression(games, abbrev) {
     return pts;
 }
 
-async function loadTeamData(abbrev) {
+export async function loadTeamData(abbrev) {
     if (dataCache[abbrev]) return dataCache[abbrev];
     const schedule = await getTeamSchedule(abbrev, '20252026');
     const data = computePointsProgression(schedule.games ?? [], abbrev);
@@ -775,7 +775,7 @@ function areaPath(data, xMax, yMax) {
 
 // ─── Chart builder (accepts any number of teams) ───────────────────────────
 
-function buildChart(teams) {
+export function buildChart(teams) {
     const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
 
     const maxPts = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.points ?? 0), 40);
@@ -929,7 +929,7 @@ function buildPctChart(teams) {
 
 // ─── Chart hover: dim others, bring hovered to front, show tooltip ─────────
 
-function attachChartHoverHandlers(svg, teams, mode) {
+export function attachChartHoverHandlers(svg, teams, mode) {
     const groups = svg.querySelectorAll('.team-group');
     let hoveredTeam = null;
 

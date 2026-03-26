@@ -2,6 +2,8 @@
 import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getVideos, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort, trackNewsClick } from '../analytics.js';
+import { NHL_TEAMS } from '../teams.js';
+import { ALL_TEAMS, DIVISIONS, loadTeamData, buildChart, attachChartHoverHandlers } from './season.js';
 
 let standingsData = null;
 let leagueLeaders = null;
@@ -53,6 +55,9 @@ export async function init() {
 
         // Load highlights independently
         loadHighlights();
+
+        // Load Central division points progression chart independently
+        loadCentralChart();
     } catch (error) {
         console.error('Error loading dashboard:', error);
         document.getElementById('stat-leaders').innerHTML =
@@ -327,6 +332,15 @@ function renderGameCard(label, game, isPast, isLive) {
         liveInfo = `<div class="live-game-info"><span class="live-status"><span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span></span>${liveLink}</div>`;
     }
 
+    // H2H link — only on the Next card (not live, not past, not upcoming)
+    let h2hLink = '';
+    if (label === 'Next' && !isLive) {
+        const oppEntry = NHL_TEAMS.find(t => t.abbrev === oppTeam.abbrev);
+        if (oppEntry) {
+            h2hLink = `<a href="/stats/head-to-head/${oppEntry.slug}" data-link class="game-card-h2h-link">View Head-to-Head Stats →</a>`;
+        }
+    }
+
     return `
         <div class="game-card ${resultClass}">
             <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}</div>
@@ -342,6 +356,7 @@ function renderGameCard(label, game, isPast, isLive) {
                 </div>
             </div>
             ${liveInfo}
+            ${h2hLink}
         </div>
     `;
 }
@@ -407,6 +422,27 @@ function renderNews() {
             loadMoreBtn.textContent = 'Loading...';
             await loadNews(false);
         });
+    }
+}
+
+async function loadCentralChart() {
+    const container = document.getElementById('dashboard-points-chart');
+    if (!container) return;
+
+    try {
+        const teams = await Promise.all(
+            DIVISIONS.Central.map(async abbrev => {
+                const data = await loadTeamData(abbrev);
+                return { abbrev, config: ALL_TEAMS[abbrev], data };
+            })
+        );
+
+        container.innerHTML = buildChart(teams);
+        const svg = container.querySelector('svg');
+        if (svg) attachChartHoverHandlers(svg, teams, 'points');
+    } catch (err) {
+        console.error('Error loading central chart:', err);
+        container.innerHTML = '<div class="loading">Unable to load chart.</div>';
     }
 }
 

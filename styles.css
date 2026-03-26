@@ -1498,7 +1498,8 @@ footer {
         font-size: 0.85rem;
     }
 
-    .text-link {
+    .text-link,
+    .game-card-h2h-link {
         font-size: 0.75rem;
     }
 
@@ -2276,6 +2277,22 @@ footer {
     position: absolute;
     bottom: 0.75rem;
     right: 0.75rem;
+}
+
+.game-card-h2h-link {
+    display: block;
+    margin-top: 0.75rem;
+    color: var(--wild-gold);
+    font-size: 0.875rem;
+    font-weight: 600;
+    text-decoration: none;
+    text-align: center;
+    transition: opacity 0.2s ease;
+}
+
+.game-card-h2h-link:hover {
+    opacity: 0.8;
+    text-decoration: underline;
 }
 
 /* Playoff position key */
