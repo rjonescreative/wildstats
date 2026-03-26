@@ -3170,7 +3170,7 @@ footer {
 
 @media (max-width: 600px) {
     .chart-controls {
-        row-gap: 0.875rem;
+        row-gap: 1.5rem;
     }
 }
 

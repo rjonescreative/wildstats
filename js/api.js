@@ -1,6 +1,33 @@
 // API module with caching
 import { isCacheValid, getCachedData, setCachedData } from './state.js';
 
+// Fetch with automatic retry + exponential backoff.
+// Retries up to `maxAttempts` times on network errors or 5xx responses.
+// 4xx errors are not retried (they indicate a bad request, not a transient failure).
+async function fetchWithRetry(url, maxAttempts = 3) {
+    let lastError;
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        try {
+            const response = await fetch(url);
+            // Don't retry client errors
+            if (!response.ok && response.status < 500) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response;
+        } catch (err) {
+            lastError = err;
+            // Don't wait after the last attempt
+            if (attempt < maxAttempts) {
+                await new Promise(r => setTimeout(r, attempt * 1000));
+            }
+        }
+    }
+    throw lastError;
+}
+
 // Generic fetch with caching
 async function fetchWithCache(url, cacheKey, forceRefresh = false) {
     // Return cached data if valid and not forcing refresh
@@ -8,12 +35,9 @@ async function fetchWithCache(url, cacheKey, forceRefresh = false) {
         return getCachedData(cacheKey);
     }
 
-    // Fetch fresh data
+    // Fetch fresh data (with retry)
     try {
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
+        const response = await fetchWithRetry(url);
         const data = await response.json();
 
         // Cache the data
@@ -62,10 +86,7 @@ export async function getTeamSchedule(team, season = '20252026', forceRefresh = 
 // Get Wild news from multiple sources (supports pagination)
 export async function getNews(offset = 0, limit = 6) {
     // News pagination doesn't use cache - each page is a separate request
-    const response = await fetch(`/api/news/wild?offset=${offset}&limit=${limit}`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const response = await fetchWithRetry(`/api/news/wild?offset=${offset}&limit=${limit}`);
     return response.json();
 }
 
@@ -80,10 +101,7 @@ export async function getLiveGame(gameId) {
 
 // Get pre-aggregated H2H data for a given opponent (served from R2)
 export async function getH2HData(opponentAbbrev) {
-    const response = await fetch(`/api/h2h/${opponentAbbrev}`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const response = await fetchWithRetry(`/api/h2h/${opponentAbbrev}`);
     return response.json();
 }
 
@@ -104,9 +122,6 @@ export async function getCareerTotals(forceRefresh = false) {
 
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
-    const response = await fetch(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);
-    if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-    }
+    const response = await fetchWithRetry(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);
     return response.json();
 }
