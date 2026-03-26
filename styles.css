@@ -2926,6 +2926,7 @@ footer {
     gap: 0.75rem;
     text-align: center;
     transition: border-color 0.2s ease;
+    cursor: pointer;
 }
 
 .milestone-card:hover {

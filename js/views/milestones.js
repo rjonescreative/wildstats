@@ -345,7 +345,7 @@ function renderApproachingCard(m) {
         : `<div class="milestone-photo milestone-photo--placeholder"></div>`;
 
     return `
-        <div class="milestone-card">
+        <div class="milestone-card player-hoverable" data-player-id="${m.playerId}" tabindex="0" role="button" aria-label="View ${m.name} stats">
             <div class="milestone-photo-wrap">${headshotHtml}</div>
             <div class="milestone-info">
                 <div class="milestone-player-name">${m.name}</div>
@@ -370,7 +370,7 @@ function renderAchievedCard(m) {
         : `<div class="milestone-photo milestone-photo--placeholder"></div>`;
 
     return `
-        <div class="milestone-card milestone-card--achieved">
+        <div class="milestone-card milestone-card--achieved player-hoverable" data-player-id="${m.playerId}" tabindex="0" role="button" aria-label="View ${m.name} stats">
             <div class="milestone-photo-wrap">${headshotHtml}</div>
             <div class="milestone-info">
                 <div class="milestone-player-name">${m.name}</div>
