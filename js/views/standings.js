@@ -318,7 +318,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                                 <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
                                     <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
-                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}
                                     <span class="external-link-icon">↗</span>
                                 </a>
                             </td>
@@ -401,7 +401,7 @@ function createWildcardTable(teams, state) {
                     <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                     <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
                         <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
-                        <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                        <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}
                         <span class="external-link-icon">↗</span>
                     </a>
                 </td>

@@ -1151,6 +1151,16 @@ td {
     display: none;
 }
 
+.clinch-mid {
+    display: none;
+}
+
+@media (max-width: 1400px) and (min-width: 769px) {
+    .clinch-mid {
+        display: inline;
+    }
+}
+
 @media (max-width: 768px) {
     .clinch-mobile {
         display: inline;
