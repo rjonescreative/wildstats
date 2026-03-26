@@ -1085,9 +1085,13 @@ export async function init() {
         const initSvg = container.querySelector('svg');
         if (initSvg) attachChartHoverHandlers(initSvg);
 
-        // Pre-load other divisions in background for instant toggling
+        // Pre-load other divisions in background for instant toggling.
+        // Stagger requests to avoid rate-limiting the NHL API (50ms apart).
+        // Errors are silenced — data loads on demand when a division is toggled.
         const otherAbbrevs = Object.values(DIVISIONS).flat().filter(a => !DIVISIONS.Central.includes(a));
-        otherAbbrevs.forEach(abbrev => loadTeamData(abbrev));
+        otherAbbrevs.forEach((abbrev, i) => {
+            setTimeout(() => loadTeamData(abbrev).catch(() => {}), i * 50);
+        });
 
         // Load stats sections using MIN schedule (already cached from chart)
         const minSchedule = await getTeamSchedule('MIN', '20252026');
