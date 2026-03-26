@@ -71,6 +71,7 @@ body {
     font-size: 0.875rem;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    overflow-x: clip; /* Prevent any element from causing horizontal page scroll */
 }
 
 .container {
@@ -777,7 +778,7 @@ main {
     background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
     border-radius: 8px;
-    overflow: visible;
+    overflow: visible; /* Keeps header tooltips visible on desktop */
 }
 
 .player-photo-small {
@@ -1495,6 +1496,13 @@ footer {
 
     .text-link {
         font-size: 0.75rem;
+    }
+
+    /* On mobile, allow player stats table to scroll horizontally instead of
+       overflowing the page (desktop keeps overflow:visible so header tooltips work) */
+    .stats-table-container {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
     }
 }
 
@@ -3266,6 +3274,7 @@ footer {
 .season-table-wrap {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
+    width: 100%; /* Explicit width ensures scroll containment on iOS Safari */
     background: rgba(15, 15, 15, 0.7);
     border-radius: 8px;
     padding: 0;
