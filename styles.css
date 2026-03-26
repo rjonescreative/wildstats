@@ -3140,6 +3140,18 @@ footer {
     font-family: inherit;
 }
 
+.chart-tooltip-bg {
+    fill: rgba(30, 30, 35, 0.92);
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 1;
+}
+
+.chart-tooltip-text {
+    font-size: 9.5px;
+    fill: var(--text-primary);
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+}
+
 .chart-loading {
     padding: 4rem;
     text-align: center;

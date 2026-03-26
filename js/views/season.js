@@ -927,12 +927,103 @@ function buildPctChart(teams) {
 </svg>`;
 }
 
-// ─── Chart hover: dim others, bring hovered to front ───────────────────────
+// ─── Chart hover: dim others, bring hovered to front, show tooltip ─────────
 
-function attachChartHoverHandlers(svg) {
+function attachChartHoverHandlers(svg, teams, mode) {
     const groups = svg.querySelectorAll('.team-group');
+    let hoveredTeam = null;
+
+    // Chart coordinate params (mirrors buildChart / buildPctChart)
+    const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
+    const ML_PCT = 65;
+    const PW_PCT = VB_W - ML_PCT - M.right;
+
+    const maxPts = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.points ?? 0), 40);
+    const yMax = Math.ceil((maxPts + 10) / 20) * 20;
+
+    const gameToSvgX = (game) => mode === 'pct'
+        ? ML_PCT + (game / xMax) * PW_PCT
+        : sx(game, xMax);
+
+    const dataToSvgY = (d) => mode === 'pct'
+        ? M.top + PLOT_H - d.pct * PLOT_H
+        : sy(d.points, yMax);
+
+    const getTeamData = (team) => mode === 'pct' ? toPctProgression(team.data) : team.data;
+
+    const formatLabel = (d) => mode === 'pct'
+        ? d.pct.toFixed(3)
+        : `${d.points}`;
+
+    // Build tooltip elements
+    const NS = 'http://www.w3.org/2000/svg';
+    const tooltipG = document.createElementNS(NS, 'g');
+    tooltipG.setAttribute('class', 'chart-tooltip');
+    tooltipG.style.display = 'none';
+    tooltipG.style.pointerEvents = 'none';
+
+    const tooltipRect = document.createElementNS(NS, 'rect');
+    tooltipRect.setAttribute('class', 'chart-tooltip-bg');
+    tooltipRect.setAttribute('rx', '4');
+    tooltipRect.setAttribute('ry', '4');
+
+    const tooltipText = document.createElementNS(NS, 'text');
+    tooltipText.setAttribute('class', 'chart-tooltip-text');
+    tooltipText.setAttribute('text-anchor', 'middle');
+    tooltipText.setAttribute('dy', '0.35em');
+
+    tooltipG.appendChild(tooltipRect);
+    tooltipG.appendChild(tooltipText);
+    svg.appendChild(tooltipG);
+
+    function getSvgCoords(evt) {
+        const pt = svg.createSVGPoint();
+        pt.x = evt.clientX;
+        pt.y = evt.clientY;
+        return pt.matrixTransform(svg.getScreenCTM().inverse());
+    }
+
+    function updateTooltip(team, svgX) {
+        const data = getTeamData(team);
+        if (!data.length) { tooltipG.style.display = 'none'; return; }
+
+        const rawGame = mode === 'pct'
+            ? (svgX - ML_PCT) / PW_PCT * xMax
+            : (svgX - M.left) / PLOT_W * xMax;
+
+        const nearest = data.reduce((best, d) =>
+            Math.abs(d.game - rawGame) < Math.abs(best.game - rawGame) ? d : best
+        );
+
+        const cx = gameToSvgX(nearest.game);
+        const cy = dataToSvgY(nearest);
+        const label = formatLabel(nearest);
+
+        const charW = 5.5;
+        const padX = 8;
+        const rH = 16;
+        const rW = label.length * charW + padX * 2;
+
+        // Clamp horizontally to stay inside SVG
+        const leftBound = mode === 'pct' ? ML_PCT : M.left;
+        const rightBound = mode === 'pct' ? (ML_PCT + PW_PCT) : (M.left + PLOT_W);
+        const rx = Math.min(Math.max(cx - rW / 2, leftBound), rightBound - rW);
+        const ry = Math.max(cy - rH - 8, M.top);
+
+        tooltipRect.setAttribute('x', rx.toFixed(1));
+        tooltipRect.setAttribute('y', ry.toFixed(1));
+        tooltipRect.setAttribute('width', rW.toFixed(1));
+        tooltipRect.setAttribute('height', rH.toFixed(1));
+        tooltipText.setAttribute('x', (rx + rW / 2).toFixed(1));
+        tooltipText.setAttribute('y', (ry + rH / 2).toFixed(1));
+        tooltipText.textContent = label;
+
+        tooltipG.style.display = '';
+    }
+
     groups.forEach(g => {
         g.addEventListener('mouseenter', () => {
+            hoveredTeam = teams.find(t => t.abbrev === g.dataset.team) ?? null;
             groups.forEach(other => {
                 if (other !== g) {
                     other.style.filter = 'grayscale(1)';
@@ -944,13 +1035,24 @@ function attachChartHoverHandlers(svg) {
             });
             // Move hovered group to end of parent so it renders on top
             g.parentNode.appendChild(g);
+            // Keep tooltip on top of everything
+            svg.appendChild(tooltipG);
         });
     });
+
+    svg.addEventListener('mousemove', (evt) => {
+        if (!hoveredTeam) { tooltipG.style.display = 'none'; return; }
+        const { x: svgX } = getSvgCoords(evt);
+        updateTooltip(hoveredTeam, svgX);
+    });
+
     svg.addEventListener('mouseleave', () => {
         groups.forEach(g => {
             g.style.filter = '';
             g.style.opacity = '';
         });
+        hoveredTeam = null;
+        tooltipG.style.display = 'none';
     });
 }
 
@@ -972,7 +1074,7 @@ async function refreshChart() {
         );
         chartWrap.innerHTML = chartMode === 'pct' ? buildPctChart(teams) : buildChart(teams);
         const svg = chartWrap.querySelector('svg');
-        if (svg) attachChartHoverHandlers(svg);
+        if (svg) attachChartHoverHandlers(svg, teams, chartMode);
     } catch (err) {
         console.error('Error refreshing chart:', err);
         chartWrap.innerHTML = '<div class="error-message">Failed to load data.</div>';
@@ -1083,7 +1185,7 @@ export async function init() {
         container.innerHTML = buildPage(buildChart(teams));
         attachToggleHandlers();
         const initSvg = container.querySelector('svg');
-        if (initSvg) attachChartHoverHandlers(initSvg);
+        if (initSvg) attachChartHoverHandlers(initSvg, teams, chartMode);
 
         // Pre-load other divisions in background for instant toggling.
         // Stagger requests to avoid rate-limiting the NHL API (50ms apart).
