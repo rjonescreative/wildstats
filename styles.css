@@ -3447,6 +3447,10 @@ footer {
     gap: 1.5rem;
 }
 
+.ot-tables-grid > div {
+    min-width: 0; /* Allow grid cells to shrink below content min-width so overflow-x:auto works */
+}
+
 @media (max-width: 640px) {
     .ot-tables-grid {
         grid-template-columns: 1fr;
