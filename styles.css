@@ -3087,6 +3087,11 @@ footer {
     display: block;
 }
 
+.team-group {
+    transition: filter 0.15s ease, opacity 0.15s ease;
+    cursor: pointer;
+}
+
 .chart-grid {
     stroke: rgba(255, 255, 255, 0.06);
     stroke-width: 1;

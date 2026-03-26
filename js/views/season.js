@@ -815,14 +815,15 @@ function buildChart(teams) {
         const lx = sx(last.game, xMax);
         const ly = sy(last.points, yMax);
         const area = t.abbrev === 'MIN'
-            ? `<path d="${areaPath(t.data, xMax, yMax)}" fill="url(#area-${t.abbrev})" stroke="none"/>`
+            ? `<path d="${areaPath(t.data, xMax, yMax)}" fill="url(#area-${t.abbrev})" stroke="none" pointer-events="none"/>`
             : '';
         return `
-    <!-- ${t.config.name} -->
+    <g class="team-group" data-team="${t.abbrev}">
     ${area}
     <path d="${linePath(t.data, xMax, yMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
     <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
-    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}"/>`;
+    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" style="cursor:pointer"/>
+    </g>`;
     }).join('');
 
     return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
@@ -894,24 +895,20 @@ function buildPctChart(teams) {
     </linearGradient>`).join('');
 
     // Lines and areas clipped to plot area; circles and logos unclipped and rendered after labels
-    const teamLines = teams.map(t => {
+    const teamGroups = teams.map(t => {
         const pctData = toPctProgression(t.data);
         if (pctData.length === 0) return '';
         const lx = sxPct(pctData[pctData.length - 1].game, xMax);
-        const area = t.abbrev === 'MIN'
-            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sxPct(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none"/>`
-            : '';
-        return `${area}<path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`;
-    }).join('\n    ');
-
-    const teamEndpoints = teams.map(t => {
-        const pctData = toPctProgression(t.data);
-        if (pctData.length === 0) return '';
         const last = pctData[pctData.length - 1];
-        const lx = sxPct(last.game, xMax);
         const ly = syPct(last.pct);
-        return `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
-    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}"/>`;
+        const area = t.abbrev === 'MIN'
+            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sxPct(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none" clip-path="url(#pct-plot-area)" pointer-events="none"/>`
+            : '';
+        return `<g class="team-group" data-team="${t.abbrev}">
+    ${area}<path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#pct-plot-area)"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
+    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" style="cursor:pointer"/>
+    </g>`;
     }).join('\n    ');
 
     return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
@@ -923,14 +920,38 @@ function buildPctChart(teams) {
   ${gridLineEls}
   <line x1="${ML}" y1="${M.top}" x2="${ML}" y2="${plotBottom}" class="chart-axis"/>
   <line x1="${ML}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="chart-axis"/>
-  <g clip-path="url(#pct-plot-area)">
-    ${teamLines}
-  </g>
-  ${teamEndpoints}
+  ${teamGroups}
   ${axisLabels}
   <text x="${(ML + PW / 2).toFixed(1)}" y="${(VB_H - 6).toFixed(1)}" text-anchor="middle" class="chart-axis-title">Games Played</text>
   <text x="12" y="${(M.top + PLOT_H / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90,12,${(M.top + PLOT_H / 2).toFixed(1)})" class="chart-axis-title">Pts %</text>
 </svg>`;
+}
+
+// ─── Chart hover: dim others, bring hovered to front ───────────────────────
+
+function attachChartHoverHandlers(svg) {
+    const groups = svg.querySelectorAll('.team-group');
+    groups.forEach(g => {
+        g.addEventListener('mouseenter', () => {
+            groups.forEach(other => {
+                if (other !== g) {
+                    other.style.filter = 'grayscale(1)';
+                    other.style.opacity = '0.35';
+                } else {
+                    other.style.filter = '';
+                    other.style.opacity = '';
+                }
+            });
+            // Move hovered group to end of parent so it renders on top
+            g.parentNode.appendChild(g);
+        });
+    });
+    svg.addEventListener('mouseleave', () => {
+        groups.forEach(g => {
+            g.style.filter = '';
+            g.style.opacity = '';
+        });
+    });
 }
 
 // ─── Refresh chart after toggle change ─────────────────────────────────────
@@ -950,6 +971,8 @@ async function refreshChart() {
             }))
         );
         chartWrap.innerHTML = chartMode === 'pct' ? buildPctChart(teams) : buildChart(teams);
+        const svg = chartWrap.querySelector('svg');
+        if (svg) attachChartHoverHandlers(svg);
     } catch (err) {
         console.error('Error refreshing chart:', err);
         chartWrap.innerHTML = '<div class="error-message">Failed to load data.</div>';
@@ -1059,6 +1082,8 @@ export async function init() {
 
         container.innerHTML = buildPage(buildChart(teams));
         attachToggleHandlers();
+        const initSvg = container.querySelector('svg');
+        if (initSvg) attachChartHoverHandlers(initSvg);
 
         // Pre-load other divisions in background for instant toggling
         const otherAbbrevs = Object.values(DIVISIONS).flat().filter(a => !DIVISIONS.Central.includes(a));
