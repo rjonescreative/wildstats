@@ -1,6 +1,14 @@
 // Team Records view module — Wild all-time franchise leaders
 import { getMilestones, getWildStats } from '../api.js';
 
+function currentSeasonId() {
+    const now = new Date();
+    const year = now.getMonth() >= 8 ? now.getFullYear() : now.getFullYear() - 1;
+    return `${year}${year + 1}`;
+}
+
+const CURRENT_SEASON = currentSeasonId();
+
 function formatSeason(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
@@ -13,8 +21,9 @@ function shortName(fullName) {
 
 function createRow(entry, rank, isCurrent, showSeason = false) {
     const name = shortName(entry.name);
+    const isCurrentSeason = showSeason && entry.season && entry.season === CURRENT_SEASON;
     const seasonBadge = showSeason && entry.season
-        ? `<span class="records-season">${formatSeason(entry.season)}</span>`
+        ? `<span class="records-season${isCurrentSeason ? ' records-season--current' : ''}">${formatSeason(entry.season)}</span>`
         : '';
 
     if (isCurrent) {

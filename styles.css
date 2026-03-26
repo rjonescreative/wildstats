@@ -376,6 +376,10 @@ main {
     vertical-align: middle;
 }
 
+.records-season--current {
+    color: var(--wild-green);
+}
+
 .leader-rank {
     font-size: 0.8rem;
     font-weight: 700;
