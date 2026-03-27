@@ -70,26 +70,26 @@ function sleep(ms) {
     return new Promise(r => setTimeout(r, ms));
 }
 
-async function fetchWithRetry(url, retries = 4) {
+async function fetchWithRetry(url, retries = 8) {
     let lastErr;
     for (let attempt = 1; attempt <= retries; attempt++) {
         try {
             const res = await fetch(url);
             if (res.status === 429) {
-                const wait = 5000 * attempt;
+                const wait = 15000 * attempt;
                 console.warn(`   ⚠️  Rate limited (429), waiting ${wait / 1000}s before retry ${attempt}/${retries}...`);
                 await sleep(wait);
                 continue;
             }
             if (!res.ok) {
                 lastErr = new Error(`HTTP ${res.status}`);
-                if (attempt < retries) await sleep(1000 * attempt);
+                if (attempt < retries) await sleep(2000 * attempt);
                 continue;
             }
             return await res.json();
         } catch (err) {
             lastErr = err;
-            if (attempt < retries) await sleep(1000 * attempt);
+            if (attempt < retries) await sleep(2000 * attempt);
         }
     }
     throw lastErr ?? new Error(`Failed after ${retries} retries: ${url}`);
@@ -231,7 +231,7 @@ function buildLeaders(players, categories, limit) {
     return result;
 }
 
-function buildSingleSeasonRecords(seasonData, categories, playerType, limit) {
+function buildSingleSeasonRecords(seasonData, categories, playerType, limit, posCodes = null) {
     // Flatten all season entries into {season, player} pairs, sort by value
     const result = {};
     for (const cat of categories) {
@@ -239,6 +239,7 @@ function buildSingleSeasonRecords(seasonData, categories, playerType, limit) {
         for (const [season, data] of Object.entries(seasonData)) {
             const players = playerType === 'skaters' ? (data.skaters ?? []) : (data.goalies ?? []);
             for (const p of players) {
+                if (posCodes && !posCodes.has(p.positionCode)) continue;
                 if ((p[cat] ?? 0) > 0) {
                     entries.push({
                         playerId: p.playerId,
@@ -311,8 +312,8 @@ async function buildShootoutData(seasons, playerLookup, existing = {}) {
 
         const seasonTotals = {}; // playerId → count
 
-        // Fetch play-by-play in batches of 5 to avoid rate limiting
-        const BATCH = 5;
+        // Fetch play-by-play in batches of 2 to avoid rate limiting
+        const BATCH = 2;
         for (let i = 0; i < games.length; i += BATCH) {
             const batch = games.slice(i, i + BATCH);
             const results = await Promise.allSettled(
@@ -343,7 +344,7 @@ async function buildShootoutData(seasons, playerLookup, existing = {}) {
                 }
             }
 
-            if (i + BATCH < games.length) await sleep(150);
+            if (i + BATCH < games.length) await sleep(2000);
         }
 
         const scorerCount = Object.keys(seasonTotals).length;
@@ -581,30 +582,28 @@ async function buildPayload(seasonData, shootoutData) {
     const fwdCareer = buildLeaders(forwards, SKATER_CAREER_CATS, 25);
     const defCareer = buildLeaders(defense,  SKATER_CAREER_CATS, 25);
 
-    // ── Single-season records: build a large all-skater pool, correct once ──
-    // Buffer large enough to guarantee 20 forwards AND 20 defensemen after filtering
-    const SEASON_BUFFER = 100;
-    const allSkaterSeasonRaw = buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', SEASON_BUFFER);
-    console.log('   Checking single-season skater records for split seasons...');
-    await correctSplitSeasonRecords(allSkaterSeasonRaw, SKATER_LANDING_STAT_MAP);
-
-    // Derive position records from the corrected pool, then trim
+    // ── Single-season records: build separate pools per position group ──
+    // Filtering from a shared all-skater pool would miss defensemen (too few goals
+    // to appear in top-N overall), so each group gets its own pool + split-season correction.
     function sliceRecords(pool, limit) {
         const out = {};
         for (const [cat, entries] of Object.entries(pool)) out[cat] = entries.slice(0, limit);
         return out;
     }
-    function filterRecords(pool, posCodes, limit) {
-        const out = {};
-        for (const [cat, entries] of Object.entries(pool)) {
-            out[cat] = entries.filter(e => posCodes.has(e.positionCode)).slice(0, limit);
-        }
-        return out;
-    }
+
+    const SEASON_LIMIT = 25;
+    const allSkaterSeasonRaw = buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 4);
+    const fwdSkaterSeasonRaw = buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 2, FORWARDS);
+    const defSkaterSeasonRaw = buildSingleSeasonRecords(seasonData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 2, DEFENSE);
+
+    console.log('   Checking single-season skater records for split seasons...');
+    await correctSplitSeasonRecords(allSkaterSeasonRaw, SKATER_LANDING_STAT_MAP);
+    await correctSplitSeasonRecords(fwdSkaterSeasonRaw, SKATER_LANDING_STAT_MAP);
+    await correctSplitSeasonRecords(defSkaterSeasonRaw, SKATER_LANDING_STAT_MAP);
 
     const allSkaterSeason = sliceRecords(allSkaterSeasonRaw, RECORDS_LIMIT);
-    const fwdSeason       = filterRecords(allSkaterSeasonRaw, FORWARDS, 20);
-    const defSeason       = filterRecords(allSkaterSeasonRaw, DEFENSE,  20);
+    const fwdSeason       = sliceRecords(fwdSkaterSeasonRaw, SEASON_LIMIT);
+    const defSeason       = sliceRecords(defSkaterSeasonRaw, SEASON_LIMIT);
 
     // ── Goalie season records ────────────────────────────────────────────────
     const goalieSeasonRecordsRaw = buildSingleSeasonRecords(seasonData, GOALIE_SEASON_CATS, 'goalies', RECORDS_LIMIT * 2);
@@ -653,10 +652,12 @@ async function buildPayload(seasonData, shootoutData) {
 async function main() {
     const isSeed = process.argv.includes('--seed');
     const isSeedShootout = process.argv.includes('--seed-shootout');
+    const isSeedShootoutMissing = process.argv.includes('--seed-shootout-missing');
     const isRebuild = process.argv.includes('--rebuild');
 
     const modeLabel = isSeed ? 'SEED (all seasons)'
         : isSeedShootout ? 'SEED SHOOTOUT (all seasons, shootout only)'
+        : isSeedShootoutMissing ? 'SEED SHOOTOUT MISSING (only seasons not yet collected)'
         : isRebuild ? 'REBUILD (reprocess existing R2 data, no new fetches)'
         : 'INCREMENTAL (current season)';
     console.log(`\n🏒 Wild Milestones Data Pipeline`);
@@ -672,6 +673,10 @@ async function main() {
         existing = await readFromR2();
         seasonData = existing?.seasonData ?? {};
         shootoutData = existing?.shootoutData ?? {};
+        if (isSeedShootoutMissing) {
+            const alreadyHave = Object.keys(shootoutData);
+            console.log(`   Already have shootout data for ${alreadyHave.length} season(s): ${alreadyHave.join(', ')}`);
+        }
         if (Object.keys(seasonData).length === 0) {
             console.log('   No existing data found — falling back to full seed.\n');
         }
@@ -713,9 +718,20 @@ async function main() {
         console.log(`\n   ${fetched} fetched, ${failed} failed`);
     }
 
-    // Shootout data: seed all seasons or update current season only
-    const shootoutSeasons = (isSeed || isSeedShootout) ? getShootoutSeasons() : [getCurrentSeason()];
-    const existingShootout = (isSeed || isSeedShootout) ? {} : shootoutData;
+    // Shootout data: seed all seasons, only missing seasons, or update current season only
+    let shootoutSeasons, existingShootout;
+    if (isSeed || isSeedShootout) {
+        shootoutSeasons = getShootoutSeasons();
+        existingShootout = {};
+    } else if (isSeedShootoutMissing) {
+        const allShootoutSeasons = getShootoutSeasons();
+        shootoutSeasons = allShootoutSeasons.filter(s => !(s in shootoutData));
+        existingShootout = shootoutData; // preserve already-completed seasons
+        console.log(`   Missing ${shootoutSeasons.length} season(s): ${shootoutSeasons.join(', ')}`);
+    } else {
+        shootoutSeasons = [getCurrentSeason()];
+        existingShootout = shootoutData;
+    }
     console.log(`\n🎯 Building shootout goal leaders (${shootoutSeasons.length} season(s))...`);
     const playerLookupForShootout = buildPlayerLookup(seasonData);
     shootoutData = await buildShootoutData(shootoutSeasons, playerLookupForShootout, existingShootout);
