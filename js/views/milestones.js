@@ -185,8 +185,10 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
 
             if (seasonStat === 0) return;
 
-            // Approaching the single-season record (any non-holder within 5%)
-            if (!isRecordOwner && playerGP >= MIN_GP_APPROACHING && isApproaching(seasonStat, recordValue)) {
+            // Approaching the single-season record (any non-holder within threshold)
+            // No GP filter here — if the stat is already close, it qualifies regardless
+            // of how many games they've played (handles mid-season acquisitions like Hughes)
+            if (!isRecordOwner && isApproaching(seasonStat, recordValue)) {
                 const remaining = recordValue - seasonStat;
                 approaching.push({
                     playerId,
