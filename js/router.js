@@ -3,6 +3,42 @@ import { setCurrentView, getCurrentView } from './state.js';
 import { trackPageView, trackNavigation, trackStandingsView } from './analytics.js';
 import { teamBySlug } from './teams.js';
 
+// ─── Team Records URL slug mappings ───────────────────────────────────────────
+
+const RECORDS_TIME_TO_SLUG = { alltime: 'all-time', season: 'season' };
+const RECORDS_STAT_TO_SLUG = { goals: 'goals', assists: 'assists', points: 'points', shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins' };
+const RECORDS_POS_TO_SLUG  = { all: 'all-skaters', forwards: 'forwards', defense: 'defense', goalies: 'goalies' };
+
+const RECORDS_SLUG_TO_TIME = Object.fromEntries(Object.entries(RECORDS_TIME_TO_SLUG).map(([k, v]) => [v, k]));
+const RECORDS_SLUG_TO_STAT = Object.fromEntries(Object.entries(RECORDS_STAT_TO_SLUG).map(([k, v]) => [v, k]));
+const RECORDS_SLUG_TO_POS  = Object.fromEntries(Object.entries(RECORDS_POS_TO_SLUG).map(([k, v]) => [v, k]));
+
+// Parse /stats/team-records/{time}/{stat}/{pos} → { timeMode, statMode, posMode } or null
+export function parseTeamRecordsPath(path) {
+    const m = path.match(/^\/stats\/team-records\/([^/]+)\/([^/]+)\/([^/]+)$/);
+    if (!m) return null;
+    const timeMode = RECORDS_SLUG_TO_TIME[m[1]];
+    const statMode = RECORDS_SLUG_TO_STAT[m[2]];
+    const posMode  = RECORDS_SLUG_TO_POS[m[3]];
+    if (!timeMode || !statMode || !posMode) return null;
+    return { timeMode, statMode, posMode };
+}
+
+// Build /stats/team-records/{time}/{stat}/{pos} from state values
+export function buildTeamRecordsPath(timeMode, statMode, posMode) {
+    return `/stats/team-records/${RECORDS_TIME_TO_SLUG[timeMode]}/${RECORDS_STAT_TO_SLUG[statMode]}/${RECORDS_POS_TO_SLUG[posMode]}`;
+}
+
+// Push a new records URL, update title + meta tags, track page view
+export function updateTeamRecordsURL(timeMode, statMode, posMode) {
+    const path  = buildTeamRecordsPath(timeMode, statMode, posMode);
+    const title = _teamRecordsTitle(timeMode, statMode, posMode);
+    history.pushState({ path, viewName: 'stats', subView: 'team-records' }, '', path);
+    document.title = title;
+    updateMetaTags(path, 'stats', 'team-records');
+    trackPageView(path, title);
+}
+
 // Route configuration
 const routes = {
     '/': 'dashboard',
@@ -144,6 +180,37 @@ export async function navigateTo(path) {
     await showView(viewName, subView);
 }
 
+// ─── Team Records per-page SEO helpers ───────────────────────────────────────
+
+const _RECORDS_STAT_LABEL = {
+    goals: 'Goals', assists: 'Assists', points: 'Points',
+    shootout: 'Shootout Goals', penaltyMinutes: 'Penalty Minutes',
+    gamesPlayed: 'Games Played', wins: 'Wins',
+};
+const _RECORDS_POS_PREFIX = {
+    all: '', forwards: 'Forward ', defense: 'Defense ', goalies: 'Goalie ',
+};
+const _RECORDS_POS_NOUN = {
+    all: 'skaters', forwards: 'forwards', defense: 'defensemen', goalies: 'goalies',
+};
+
+function _teamRecordsTitle(timeMode, statMode, posMode) {
+    const time  = timeMode === 'alltime' ? 'Career' : 'Single-Season';
+    const pos   = _RECORDS_POS_PREFIX[posMode] ?? '';
+    const stat  = _RECORDS_STAT_LABEL[statMode] ?? statMode;
+    const sfx   = timeMode === 'alltime' ? 'Leaders' : 'Records';
+    return `Minnesota Wild ${time} ${pos}${stat} ${sfx} | Wild Hockey Hub`;
+}
+
+function _teamRecordsDescription(timeMode, statMode, posMode) {
+    const stat    = (_RECORDS_STAT_LABEL[statMode] ?? statMode).toLowerCase();
+    const pos     = _RECORDS_POS_NOUN[posMode] ?? 'players';
+    if (timeMode === 'alltime') {
+        return `Minnesota Wild all-time career ${stat} leaders for ${pos}. Complete franchise history ranked from 2000-01 through the current season.`;
+    }
+    return `Top single-season ${stat} performances by Minnesota Wild ${pos}. The best individual seasons in franchise history, ranked.`;
+}
+
 // Get page title for browser and analytics
 function getPageTitle(viewName, subView = null) {
     if (viewName === 'standings') {
@@ -177,7 +244,10 @@ function getPageTitle(viewName, subView = null) {
                 : 'Minnesota Wild Head-to-Head Record vs Every NHL Team 2025-26 | Wild Hockey Hub';
         }
         if (subView === 'team-records') {
-            return 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub';
+            const rp = parseTeamRecordsPath(window.location.pathname);
+            return rp
+                ? _teamRecordsTitle(rp.timeMode, rp.statMode, rp.posMode)
+                : 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub';
         }
         if (subView === 'milestones') {
             return 'Minnesota Wild Player Milestones 2025-26 – Upcoming & Achieved | Wild Hockey Hub';
@@ -233,7 +303,10 @@ function getMetaDescription(viewName, subView = null) {
             : 'Minnesota Wild head-to-head record against all 31 NHL opponents in 2025-26. Win-loss records, goals for, goals against, and results broken down by opponent.';
     }
     if (viewName === 'stats' && subView === 'team-records') {
-        return 'Minnesota Wild all-time franchise records and single-season statistical leaders. Find career and season bests for goals, assists, points, wins, save percentage, GAA, and more.';
+        const rp = parseTeamRecordsPath(window.location.pathname);
+        return rp
+            ? _teamRecordsDescription(rp.timeMode, rp.statMode, rp.posMode)
+            : 'Minnesota Wild all-time franchise records and single-season statistical leaders. Career and season bests for goals, assists, points, wins, penalty minutes, games played, and more.';
     }
 
     const descriptions = {

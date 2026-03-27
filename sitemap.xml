@@ -32,10 +32,61 @@
   </url>
   <url>
     <loc>https://wildhockey.win/stats/team-records</loc>
-    <lastmod>2026-03-25</lastmod>
+    <lastmod>2026-03-27</lastmod>
     <changefreq>weekly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.8</priority>
   </url>
+  <!-- Team Records: goals -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/goals/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/goals/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/goals/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/goals/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/goals/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/goals/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/goals/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/goals/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <!-- Team Records: assists -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/assists/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/assists/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/assists/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/assists/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/assists/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/assists/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/assists/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/assists/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <!-- Team Records: points -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/points/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/points/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/points/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/points/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/points/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/points/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/points/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/points/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <!-- Team Records: penalty minutes -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/penalty-minutes/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/penalty-minutes/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/penalty-minutes/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/penalty-minutes/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/penalty-minutes/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/penalty-minutes/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/penalty-minutes/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/penalty-minutes/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <!-- Team Records: shootout goals -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/shootout/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/shootout/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/shootout/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/shootout/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/shootout/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/shootout/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <!-- Team Records: games played -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/games-played/all-skaters</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/games-played/forwards</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/games-played/defense</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/games-played/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>
+  <!-- Team Records: wins -->
+  <url><loc>https://wildhockey.win/stats/team-records/all-time/wins/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
+  <url><loc>https://wildhockey.win/stats/team-records/season/wins/goalies</loc><lastmod>2026-03-27</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>
   <url>
     <loc>https://wildhockey.win/stats/head-to-head/anaheim</loc>
     <lastmod>2026-03-25</lastmod>

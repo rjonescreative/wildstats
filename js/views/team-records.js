@@ -1,5 +1,6 @@
 // Team Records view module — Wild all-time franchise leaders
 import { getMilestones, getWildStats } from '../api.js';
+import { parseTeamRecordsPath, updateTeamRecordsURL } from '../router.js';
 
 function currentSeasonId() {
     const now = new Date();
@@ -173,6 +174,20 @@ function updateSelectorUI() {
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 export async function init() {
+    // Restore state from URL if a valid sub-path is present
+    const urlParams = parseTeamRecordsPath(window.location.pathname);
+    if (urlParams) {
+        timeMode = urlParams.timeMode;
+        statMode = urlParams.statMode;
+        posMode  = urlParams.posMode;
+    } else {
+        // Reset to defaults when loading the base /stats/team-records URL
+        timeMode = 'alltime';
+        statMode = 'goals';
+        posMode  = 'all';
+    }
+    applyConstraints();
+
     const container = document.getElementById('stats-team-records-view');
     container.innerHTML = '<div class="loading">Loading franchise records...</div>';
 
@@ -232,6 +247,7 @@ export async function init() {
                 applyConstraints();
                 updateSelectorUI();
                 renderTable();
+                updateTeamRecordsURL(timeMode, statMode, posMode);
                 return;
             }
 
@@ -245,8 +261,11 @@ export async function init() {
             applyConstraints();
             updateSelectorUI();
             renderTable();
+            updateTeamRecordsURL(timeMode, statMode, posMode);
         });
 
+        // Sync button active/disabled states with loaded state (important for URL-direct loads)
+        updateSelectorUI();
         renderTable();
 
     } catch (err) {
