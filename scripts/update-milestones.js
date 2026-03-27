@@ -144,8 +144,8 @@ const SKATER_SEASON_CATS = [
     'powerPlayGoals', 'shorthandedGoals', 'gameWinningGoals',
 ];
 
-const GOALIE_CAREER_CATS = ['wins', 'gamesPlayed', 'shutouts'];
-const GOALIE_SEASON_CATS = ['wins', 'gamesPlayed', 'shutouts'];
+const GOALIE_CAREER_CATS = ['wins', 'gamesPlayed', 'shutouts', 'goals', 'assists', 'points', 'penaltyMinutes'];
+const GOALIE_SEASON_CATS = ['wins', 'gamesPlayed', 'shutouts', 'goals', 'assists', 'points', 'penaltyMinutes'];
 
 function playerName(p) {
     const first = p.firstName?.default ?? p.firstName ?? '';
@@ -501,6 +501,10 @@ const GOALIE_LANDING_STAT_MAP = {
     wins: e => e.wins ?? 0,
     gamesPlayed: e => e.gamesPlayed ?? 0,
     shutouts: e => e.shutouts ?? 0,
+    goals: e => e.goals ?? 0,
+    assists: e => e.assists ?? 0,
+    points: e => e.points ?? 0,
+    penaltyMinutes: e => e.pim ?? 0,
 };
 
 /**

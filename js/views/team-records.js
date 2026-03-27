@@ -17,7 +17,7 @@ function formatSeason(s) {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let timeMode = 'alltime';   // 'alltime' | 'season'
-let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'shootout' | 'wins'
+let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
 let posMode  = 'all';       // 'all' | 'forwards' | 'defense' | 'goalies'
 
 let milestones = null;
@@ -31,6 +31,7 @@ function getEntries() {
     const { skaters, goalies } = milestones;
     const src = timeMode === 'alltime';
 
+    // Wins always uses goalies pool regardless of posMode
     if (statMode === 'wins') {
         const entries = src
             ? (goalies.careerLeaders.wins ?? [])
@@ -38,15 +39,17 @@ function getEntries() {
         return { entries, showSeason: !src };
     }
 
-    // Goalie goals
-    if (posMode === 'goalies' && statMode === 'goals') {
-        const entries = src
-            ? (goalies.careerLeaders.goals ?? [])
-            : (goalies.singleSeasonRecords.goals ?? []);
-        return { entries, showSeason: !src };
+    // All goalie-position stats route to goalies pool
+    if (posMode === 'goalies') {
+        const pool = src ? goalies.careerLeaders : goalies.singleSeasonRecords;
+        // gamesPlayed is all-time only (constraint enforced, but guard here too)
+        const entries = statMode === 'gamesPlayed'
+            ? (goalies.careerLeaders.gamesPlayed ?? [])
+            : (pool[statMode] ?? []);
+        return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src && statMode !== 'gamesPlayed' };
     }
 
-    // Shootout (position-aware)
+    // Shootout (position-aware, skaters only)
     if (statMode === 'shootout') {
         const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
         const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
@@ -54,7 +57,7 @@ function getEntries() {
         return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
     }
 
-    // goals / assists / points — position-specific pools
+    // All skater stats — position-specific pools
     const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
     const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
     const entries = pool[posKey]?.[statMode] ?? [];
@@ -63,7 +66,7 @@ function getEntries() {
 
 function tableLabel() {
     const time = timeMode === 'alltime' ? 'All-Time' : 'Single Season';
-    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins' }[statMode];
+    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
     const pos  = { all: '', forwards: ' — Forwards', defense: ' — Defense', goalies: '' }[posMode];
     return `${time} ${stat}${pos}`;
 }
@@ -133,24 +136,26 @@ function renderTable() {
 function applyConstraints() {
     // Wins → force goalies
     if (statMode === 'wins') posMode = 'goalies';
+    // gamesPlayed → force all-time
+    if (statMode === 'gamesPlayed') timeMode = 'alltime';
     // Shootout → can't be goalies
     if (statMode === 'shootout' && posMode === 'goalies') posMode = 'all';
-    // Goalies → can't be shootout
+    // Goalies → shootout not valid
     if (posMode === 'goalies' && statMode === 'shootout') statMode = 'goals';
 }
 
 function updateSelectorUI() {
-    // Time buttons
+    // Time buttons — Season disabled when gamesPlayed selected
     document.querySelectorAll('[data-time]').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.time === timeMode);
+        const t = btn.dataset.time;
+        btn.disabled = (t === 'season' && statMode === 'gamesPlayed');
+        btn.classList.toggle('active', t === timeMode);
     });
 
-    // Stat buttons — disable/enable based on constraints
+    // Stat buttons — only shootout is disabled for goalies
     document.querySelectorAll('[data-stat]').forEach(btn => {
         const s = btn.dataset.stat;
-        let disabled = false;
-        if (s === 'shootout' && posMode === 'goalies') disabled = true;
-        btn.disabled = disabled;
+        btn.disabled = (s === 'shootout' && posMode === 'goalies');
         btn.classList.toggle('active', s === statMode);
     });
 
@@ -197,6 +202,8 @@ export async function init() {
                             <button class="division-toggle" data-stat="points">Points</button>
                             <button class="division-toggle" data-stat="shootout">Shootout</button>
                             <button class="division-toggle" data-stat="wins">Wins</button>
+                            <button class="division-toggle" data-stat="penaltyMinutes">Penalty Min</button>
+                            <button class="division-toggle" data-stat="gamesPlayed">Games Played</button>
                         </div>
                     </div>
                     <div class="records-selector-group">

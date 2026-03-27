@@ -296,6 +296,109 @@ main {
     min-height: calc(100vh - 200px);
 }
 
+/* ─── Dashboard: stat leader board ───────────────────────────────────────── */
+
+.stat-leaders {
+    margin: 0;
+}
+
+.stat-leaders-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+}
+
+.stat-leader-card {
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+    padding: 0.75rem;
+    transition: all 0.2s ease;
+}
+
+.stat-leader-card:hover {
+    background-color: var(--bg-tertiary);
+    border-color: var(--border-medium);
+}
+
+.stat-category {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.leader-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.leader-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.4rem 0.5rem;
+    border-radius: 4px;
+    background-color: var(--bg-tertiary);
+    cursor: pointer;
+}
+
+.leader-row:hover {
+    background-color: var(--border-subtle);
+}
+
+.leader-row--former {
+    cursor: default;
+}
+
+.leader-row--former:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.leader-row--former .leader-stat,
+.leader-row--former .leader-name {
+    color: var(--text-secondary);
+}
+
+.leader-rank {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+    min-width: 1.2rem;
+    text-align: center;
+}
+
+.leader-player {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+.leader-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.leader-stat {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--wild-green);
+    font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+    white-space: nowrap;
+    text-align: right;
+    min-width: fit-content;
+}
+
 /* ─── Team Records: layout ────────────────────────────────────────────────── */
 
 .records-layout {
@@ -1545,6 +1648,46 @@ footer {
 
     .league-rank-inline {
         font-size: 0.6rem;
+    }
+
+    .stat-leaders {
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-leaders-grid {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .stat-leader-card {
+        padding: 0.65rem;
+    }
+
+    .stat-category {
+        font-size: 0.65rem;
+        margin-bottom: 0.4rem;
+    }
+
+    .leader-list {
+        gap: 0.35rem;
+    }
+
+    .leader-row {
+        padding: 0.35rem 0.4rem;
+        gap: 0.5rem;
+    }
+
+    .leader-rank {
+        font-size: 0.75rem;
+        min-width: 1rem;
+    }
+
+    .leader-name {
+        font-size: 0.8rem;
+    }
+
+    .leader-stat {
+        font-size: 0.8rem;
     }
 
     table {
