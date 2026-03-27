@@ -8,86 +8,229 @@ function currentSeasonId() {
 }
 
 const CURRENT_SEASON = currentSeasonId();
+const DISPLAY_LIMIT = 20;
 
 function formatSeason(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
 
-function shortName(fullName) {
-    const parts = fullName.trim().split(' ');
-    if (parts.length < 2) return fullName;
-    return `${parts[0][0]}. ${parts.slice(1).join(' ')}`;
-}
+// ─── State ────────────────────────────────────────────────────────────────────
 
-function createRow(entry, rank, isCurrent, showSeason = false) {
-    const name = shortName(entry.name);
-    const isCurrentSeason = showSeason && entry.season && entry.season === CURRENT_SEASON;
-    const seasonBadge = showSeason && entry.season
-        ? `<span class="records-season${isCurrentSeason ? ' records-season--current' : ''}">${formatSeason(entry.season)}</span>`
-        : '';
+let timeMode = 'alltime';   // 'alltime' | 'season'
+let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'shootout' | 'wins'
+let posMode  = 'all';       // 'all' | 'forwards' | 'defense' | 'goalies'
 
-    if (isCurrent) {
-        return `
-            <div class="leader-row player-hoverable" tabindex="0" role="button"
-                 aria-label="View ${entry.name} stats" data-player-id="${entry.playerId}">
-                <span class="leader-rank">${rank}</span>
-                <div class="leader-player">
-                    ${entry.headshot ? `<img src="${entry.headshot}" alt="" class="player-photo-small">` : ''}
-                    <span class="leader-name">${name}${seasonBadge}</span>
-                </div>
-                <span class="leader-stat">${entry.value}</span>
-            </div>`;
+let milestones = null;
+let currentSet = null;
+
+// ─── Data selection ───────────────────────────────────────────────────────────
+
+const FORWARDS = new Set(['L', 'R', 'C']);
+
+function getEntries() {
+    const { skaters, goalies } = milestones;
+    const src = timeMode === 'alltime';
+
+    if (statMode === 'wins') {
+        const entries = src
+            ? (goalies.careerLeaders.wins ?? [])
+            : (goalies.singleSeasonRecords.wins ?? []);
+        return { entries, showSeason: !src };
     }
 
+    // Goalie goals
+    if (posMode === 'goalies' && statMode === 'goals') {
+        const entries = src
+            ? (goalies.careerLeaders.goals ?? [])
+            : (goalies.singleSeasonRecords.goals ?? []);
+        return { entries, showSeason: !src };
+    }
+
+    // Shootout (position-aware)
+    if (statMode === 'shootout') {
+        const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
+        const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
+        const entries = pool[posKey]?.shootoutGoals ?? [];
+        return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
+    }
+
+    // goals / assists / points — position-specific pools
+    const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
+    const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
+    const entries = pool[posKey]?.[statMode] ?? [];
+    return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
+}
+
+function tableLabel() {
+    const time = timeMode === 'alltime' ? 'All-Time' : 'Single Season';
+    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins' }[statMode];
+    const pos  = { all: '', forwards: ' — Forwards', defense: ' — Defense', goalies: '' }[posMode];
+    return `${time} ${stat}${pos}`;
+}
+
+// ─── Rendering ────────────────────────────────────────────────────────────────
+
+function renderRow(entry, rank, showSeason) {
+    const isCurrent = currentSet.has(entry.playerId);
+    const seasonBadge = showSeason && entry.season
+        ? `<span class="records-season${entry.season === CURRENT_SEASON ? ' records-season--current' : ''}">${formatSeason(entry.season)}</span>`
+        : '';
+
+    const photoEl = entry.headshot
+        ? `<img src="${entry.headshot}" alt="" class="records-big-photo${isCurrent ? '' : ' records-big-photo--former'}">`
+        : `<span class="records-big-photo records-big-photo--placeholder"></span>`;
+
+    const nameClass = isCurrent ? 'records-big-name' : 'records-big-name records-big-name--former';
+    const rowClass  = isCurrent
+        ? 'records-big-row player-hoverable'
+        : 'records-big-row records-big-row--former';
+    const interactAttrs = isCurrent
+        ? `tabindex="0" role="button" aria-label="View ${entry.name} stats" data-player-id="${entry.playerId}"`
+        : '';
+
     return `
-        <div class="leader-row leader-row--former">
-            <span class="leader-rank">${rank}</span>
-            <div class="leader-player">
-                ${entry.headshot ? `<img src="${entry.headshot}" alt="" class="player-photo-small player-photo-greyed">` : ''}
-                <span class="leader-name leader-name--former">${name}${seasonBadge}</span>
+        <div class="${rowClass}" ${interactAttrs}>
+            <span class="records-big-rank">${rank}</span>
+            <div class="records-big-player">
+                ${photoEl}
+                <span class="${nameClass}">${entry.name}${seasonBadge}</span>
             </div>
-            <span class="leader-stat">${entry.value}</span>
+            <span class="records-big-stat">${entry.value}</span>
         </div>`;
 }
 
-function createCard(entries, label, currentSet, showSeason = false, limit = 10) {
-    const rows = entries.slice(0, limit).map((entry, i) =>
-        createRow(entry, i + 1, currentSet.has(entry.playerId), showSeason)
+function renderTable() {
+    const { entries, showSeason } = getEntries();
+    const tableEl = document.getElementById('records-table');
+    const labelEl = document.getElementById('records-table-label');
+    if (!tableEl || !labelEl) return;
+
+    labelEl.textContent = tableLabel();
+
+    if (!entries || entries.length === 0) {
+        tableEl.innerHTML = '<div class="records-empty">No data available for this selection.</div>';
+        return;
+    }
+
+    tableEl.innerHTML = entries.slice(0, DISPLAY_LIMIT).map((entry, i) =>
+        renderRow(entry, i + 1, showSeason)
     ).join('');
 
-    return `
-        <div class="stat-leader-card">
-            <div class="stat-category">${label}</div>
-            <div class="leader-list">${rows}</div>
-        </div>`;
+    // Re-attach player card click handlers
+    tableEl.querySelectorAll('[data-player-id]').forEach(el => {
+        el.addEventListener('click', () => {
+            const event = new CustomEvent('show-player-card', { detail: { playerId: Number(el.dataset.playerId) }, bubbles: true });
+            el.dispatchEvent(event);
+        });
+        el.addEventListener('keydown', e => {
+            if (e.key === 'Enter' || e.key === ' ') el.click();
+        });
+    });
 }
+
+// ─── Selector state enforcement ───────────────────────────────────────────────
+
+function applyConstraints() {
+    // Wins → force goalies
+    if (statMode === 'wins') posMode = 'goalies';
+    // Shootout → can't be goalies
+    if (statMode === 'shootout' && posMode === 'goalies') posMode = 'all';
+    // Goalies → can't be shootout
+    if (posMode === 'goalies' && statMode === 'shootout') statMode = 'goals';
+}
+
+function updateSelectorUI() {
+    // Time buttons
+    document.querySelectorAll('[data-time]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.time === timeMode);
+    });
+
+    // Stat buttons — disable/enable based on constraints
+    document.querySelectorAll('[data-stat]').forEach(btn => {
+        const s = btn.dataset.stat;
+        let disabled = false;
+        if (s === 'shootout' && posMode === 'goalies') disabled = true;
+        btn.disabled = disabled;
+        btn.classList.toggle('active', s === statMode);
+    });
+
+    // Position buttons — disable/enable based on constraints
+    document.querySelectorAll('[data-pos]').forEach(btn => {
+        const p = btn.dataset.pos;
+        let disabled = false;
+        if (statMode === 'wins' && p !== 'goalies') disabled = true;
+        if (statMode === 'shootout' && p === 'goalies') disabled = true;
+        btn.disabled = disabled;
+        btn.classList.toggle('active', p === posMode);
+    });
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
 
 export async function init() {
     const container = document.getElementById('stats-team-records-view');
     container.innerHTML = '<div class="loading">Loading franchise records...</div>';
 
     try {
-        const [milestones, wildStats] = await Promise.all([getMilestones(), getWildStats()]);
-
-        const currentSet = new Set([
+        const [data, wildStats] = await Promise.all([getMilestones(), getWildStats()]);
+        milestones = data;
+        currentSet = new Set([
             ...(wildStats.skaters || []).map(p => p.playerId),
             ...(wildStats.goalies  || []).map(p => p.playerId),
         ]);
 
-        const { skaters, goalies } = milestones;
-
         container.innerHTML = `
-            <div class="stat-leaders-grid">
-                ${createCard(skaters.careerLeaders.goals,         'All-Time Goals',          currentSet)}
-                ${createCard(skaters.careerLeaders.assists,       'All-Time Assists',        currentSet)}
-                ${createCard(skaters.careerLeaders.points,        'All-Time Points',         currentSet)}
-                ${createCard(skaters.singleSeasonRecords.goals,   'Goals in a Season',       currentSet, true)}
-                ${createCard(skaters.singleSeasonRecords.assists, 'Assists in a Season',     currentSet, true)}
-                ${createCard(skaters.singleSeasonRecords.points,  'Points in a Season',      currentSet, true)}
-                ${createCard(skaters.careerLeaders.gamesPlayed,   'Games Played',            currentSet)}
-                ${createCard(skaters.careerLeaders.penaltyMinutes,'Penalty Minutes',         currentSet)}
-                ${createCard(goalies.careerLeaders.wins,          'Goalie Wins',             currentSet)}
+            <div class="records-layout">
+                <div class="records-selectors">
+                    <div class="records-selector-group">
+                        <span class="records-selector-label">Time</span>
+                        <div class="records-selector-btns">
+                            <button class="division-toggle active" data-time="alltime">All-Time</button>
+                            <button class="division-toggle" data-time="season">Season</button>
+                        </div>
+                    </div>
+                    <div class="records-selector-group">
+                        <span class="records-selector-label">Stat</span>
+                        <div class="records-selector-btns">
+                            <button class="division-toggle active" data-stat="goals">Goals</button>
+                            <button class="division-toggle" data-stat="assists">Assists</button>
+                            <button class="division-toggle" data-stat="points">Points</button>
+                            <button class="division-toggle" data-stat="shootout">Shootout</button>
+                            <button class="division-toggle" data-stat="wins">Wins</button>
+                        </div>
+                    </div>
+                    <div class="records-selector-group">
+                        <span class="records-selector-label">Position</span>
+                        <div class="records-selector-btns">
+                            <button class="division-toggle active" data-pos="all">All Skaters</button>
+                            <button class="division-toggle" data-pos="forwards">Forwards</button>
+                            <button class="division-toggle" data-pos="defense">Defense</button>
+                            <button class="division-toggle" data-pos="goalies">Goalies</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="records-table-wrap">
+                    <div class="records-table-header" id="records-table-label">All-Time Goals</div>
+                    <div class="records-big-list" id="records-table"></div>
+                </div>
             </div>`;
+
+        // Wire up selector events
+        container.addEventListener('click', e => {
+            const btn = e.target.closest('[data-time],[data-stat],[data-pos]');
+            if (!btn || btn.disabled) return;
+
+            if (btn.dataset.time) timeMode = btn.dataset.time;
+            if (btn.dataset.stat) statMode = btn.dataset.stat;
+            if (btn.dataset.pos)  posMode  = btn.dataset.pos;
+
+            applyConstraints();
+            updateSelectorUI();
+            renderTable();
+        });
+
+        renderTable();
+
     } catch (err) {
         console.error('Error loading team records:', err);
         container.innerHTML = '<div class="loading">Error loading franchise records.</div>';
