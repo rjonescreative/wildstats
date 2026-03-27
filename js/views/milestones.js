@@ -255,7 +255,7 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processCareer(skaters.careerLeaders.all.assists,        'assists',        'Assists',        CAREER_ROUNDS.assists,        currentSkaterMap);
     processCareer(skaters.careerLeaders.all.points,         'points',         'Points',         CAREER_ROUNDS.points,         currentSkaterMap);
     processCareer(skaters.careerLeaders.all.penaltyMinutes, 'penaltyMinutes', 'Penalty Minutes',CAREER_ROUNDS.penaltyMinutes, currentSkaterMap);
-    processCareer(skaters.careerLeaders.all.shootoutGoals,  'shootoutGoals',  'Shootout Goals', CAREER_ROUNDS.shootoutGoals,  currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.shootoutGoals,  'shootoutGoals',  'Shootout Goals', [],                           currentSkaterMap);
 
     // Wild franchise Games Played record — all skaters only, no round numbers
     processCareer(skaters.careerLeaders.all.gamesPlayed, 'gamesPlayed', 'Games Played', [], currentSkaterMap);
@@ -265,7 +265,7 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processCareer(skaters.careerLeaders.defense.assists,        'assists',        'Defense Assists',        DEFENSE_CAREER_ROUNDS.assists,        currentDefenseMap);
     processCareer(skaters.careerLeaders.defense.points,         'points',         'Defense Points',         DEFENSE_CAREER_ROUNDS.points,         currentDefenseMap);
     processCareer(skaters.careerLeaders.defense.penaltyMinutes, 'penaltyMinutes', 'Defense Penalty Minutes',DEFENSE_CAREER_ROUNDS.penaltyMinutes, currentDefenseMap);
-    processCareer(skaters.careerLeaders.defense.shootoutGoals,  'shootoutGoals',  'Defense Shootout Goals', DEFENSE_CAREER_ROUNDS.shootoutGoals,  currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.shootoutGoals,  'shootoutGoals',  'Defense Shootout Goals', [],                                   currentDefenseMap);
 
     // ── Goalie career milestones (wins only — no goals/assists/points/PIM) ──
     processCareer(goalies.careerLeaders.wins, 'wins', 'Goalie Wins', CAREER_ROUNDS.wins, currentGoalieMap);
