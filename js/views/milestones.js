@@ -41,9 +41,11 @@ function findNextRound(current, rounds) {
 }
 
 const APPROACHING_MAX_AWAY = 25;
+const APPROACHING_MIN_AWAY = 3;
 
 function isApproaching(current, target) {
-    return current < target && current >= target * APPROACHING_PCT && (target - current) <= APPROACHING_MAX_AWAY;
+    const away = target - current;
+    return current < target && current >= target * APPROACHING_PCT && away <= APPROACHING_MAX_AWAY && away >= APPROACHING_MIN_AWAY;
 }
 
 function crossedThisSeason(careerTotal, seasonContrib, target) {
