@@ -447,11 +447,11 @@ main {
 }
 
 .records-table-header {
-    font-size: 0.7rem;
+    font-size: 1rem;
     text-transform: uppercase;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     color: var(--text-secondary);
-    font-weight: 600;
+    font-weight: 700;
     margin-bottom: 0.75rem;
     padding-bottom: 0.5rem;
     border-bottom: 1px solid var(--border-subtle);
@@ -533,6 +533,10 @@ main {
 }
 
 .records-big-name--former {
+    color: var(--text-secondary);
+}
+
+.records-big-row--former .records-big-stat {
     color: var(--text-secondary);
 }
 
