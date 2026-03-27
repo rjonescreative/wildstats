@@ -504,6 +504,71 @@ const GOALIE_LANDING_STAT_MAP = {
 };
 
 /**
+ * Career totals accumulate raw club-stats values per season, but for split-season
+ * players the club-stats endpoint returns full-season totals (all teams combined).
+ * This function fetches landing pages for the top career candidates and adjusts each
+ * accumulated career total by replacing the raw (inflated) season value with the
+ * Wild-only value.
+ *
+ * @param {object[]} players  - accumulated player objects from aggregateCareerTotals
+ * @param {object}   seasonData - raw seasonData to look up the wrong values added
+ * @param {object}   statMap  - same SKATER_LANDING_STAT_MAP used for season records
+ */
+async function correctSplitSeasonCareerTotals(players, seasonData, statMap) {
+    const playerIds = new Set(players.map(p => p.playerId));
+    const landings = new Map();
+
+    for (const playerId of playerIds) {
+        try {
+            const landing = await fetchWithRetry(`${NHL_API}/player/${playerId}/landing`);
+            landings.set(playerId, landing.seasonTotals ?? []);
+        } catch {
+            landings.set(playerId, []);
+        }
+        await sleep(150);
+    }
+
+    let corrected = 0;
+    for (const player of players) {
+        const seasonTotals = landings.get(player.playerId) ?? [];
+        const nhlRegular = seasonTotals.filter(e => e.gameTypeId === 2 && e.leagueAbbrev === 'NHL');
+
+        // Group landing-page entries by season to detect splits
+        const bySeason = new Map();
+        for (const e of nhlRegular) {
+            if (!bySeason.has(e.season)) bySeason.set(e.season, []);
+            bySeason.get(e.season).push(e);
+        }
+
+        for (const [seasonInt, entries] of bySeason) {
+            if (entries.length < 2) continue; // no split season
+            const seasonStr = String(seasonInt);
+            if (!(seasonStr in seasonData)) continue; // not a Wild season
+
+            const wildEntry = entries.find(e => e.teamCommonName?.default === 'Wild');
+            if (!wildEntry) continue; // Wild wasn't one of the teams
+
+            // The raw value the club-stats API gave us for this player this season
+            const rawSkater = seasonData[seasonStr]?.skaters?.find(s => s.playerId === player.playerId);
+            if (!rawSkater) continue;
+
+            for (const [cat, extractor] of Object.entries(statMap)) {
+                const rawValue = rawSkater[cat] ?? 0;
+                const wildOnlyValue = extractor(wildEntry);
+                if (rawValue !== wildOnlyValue) {
+                    player[cat] = (player[cat] ?? 0) - rawValue + wildOnlyValue;
+                    corrected++;
+                }
+            }
+        }
+    }
+
+    if (corrected > 0) {
+        console.log(`   ✓ Corrected ${corrected} split-season career stat(s) to Wild-only totals`);
+    }
+}
+
+/**
  * For single-season records, the club-stats endpoint returns a player's full-season
  * totals even if they played part of the season with another team. This function fetches
  * player landing pages for all top-record candidates and substitutes Wild-only stats
@@ -573,6 +638,20 @@ async function buildPayload(seasonData, shootoutData) {
 
     const FORWARDS = new Set(['L', 'R', 'C']);
     const DEFENSE  = new Set(['D']);
+
+    // ── Correct split-season career totals ───────────────────────────────────
+    // Top-75 per stat covers all realistic career leader candidates without
+    // fetching landing pages for every historical Wild player.
+    const CAREER_CANDIDATE_LIMIT = 75;
+    const candidateIds = new Set();
+    for (const cat of SKATER_CAREER_CATS) {
+        [...skaters].sort((a, b) => (b[cat] ?? 0) - (a[cat] ?? 0))
+            .slice(0, CAREER_CANDIDATE_LIMIT)
+            .forEach(p => candidateIds.add(p.playerId));
+    }
+    const careerCandidates = skaters.filter(p => candidateIds.has(p.playerId));
+    console.log(`   Checking career totals for split seasons (${careerCandidates.length} candidates)...`);
+    await correctSplitSeasonCareerTotals(careerCandidates, seasonData, SKATER_LANDING_STAT_MAP);
 
     // ── Career leaders (split by position) ──────────────────────────────────
     const forwards = skaters.filter(p => FORWARDS.has(p.positionCode));
