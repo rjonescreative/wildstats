@@ -1,16 +1,27 @@
 // Milestones view — approaching and achieved Wild franchise milestones
 import { getMilestones, getWildStats, getCareerTotals } from '../api.js';
 
-const APPROACHING_PCT = 0.95; // within 5% of target
+const APPROACHING_PCT = 0.97; // within 3% of target
 
-// Round number targets for career Wild stats — multiples of 100 only
-// gamesPlayed intentionally omitted: Wild-only GP rounds are not tracked;
+// Round number targets for career Wild stats (all skaters)
+// gamesPlayed intentionally omitted from CAREER_ROUNDS: Wild-only GP rounds are not tracked;
 // all-team career GP milestones are handled separately via ALL_TEAM_GP_ROUNDS.
 const CAREER_ROUNDS = {
-    goals:   [100, 200, 300, 400, 500],
-    assists: [100, 200, 300, 400, 500, 600],
-    points:  [100, 200, 300, 400, 500, 600, 700, 800],
-    wins:    [100, 200, 300],
+    goals:          [100, 200, 300, 400, 500],
+    assists:        [100, 200, 300, 400, 500, 600],
+    points:         [100, 200, 300, 400, 500, 600, 700, 800],
+    wins:           [100, 200, 300],
+    penaltyMinutes: [100, 200, 300, 400, 500],
+    shootoutGoals:  [10, 20, 30, 40],
+};
+
+// Defense-specific career round number targets (lower thresholds than skaters)
+const DEFENSE_CAREER_ROUNDS = {
+    goals:          [50, 100, 150, 200],
+    assists:        [100, 200, 300, 400],
+    points:         [100, 200, 300, 400, 500],
+    penaltyMinutes: [100, 200, 300, 400, 500],
+    shootoutGoals:  [5, 10, 15, 20],
 };
 
 // Round number targets for all-team career NHL games played
@@ -218,15 +229,32 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
 
     const { skaters, goalies } = milestonesData;
 
-    processCareer(skaters.careerLeaders.goals,      'goals',   'Goals',       CAREER_ROUNDS.goals,   currentSkaterMap);
-    processCareer(skaters.careerLeaders.assists,    'assists', 'Assists',     CAREER_ROUNDS.assists, currentSkaterMap);
-    processCareer(skaters.careerLeaders.points,     'points',  'Points',      CAREER_ROUNDS.points,  currentSkaterMap);
-    processCareer(goalies.careerLeaders.wins,       'wins',    'Goalie Wins', CAREER_ROUNDS.wins,    currentGoalieMap);
+    // Build a defense-only map from current skaters
+    const currentDefenseMap = new Map(
+        [...currentSkaterMap.entries()].filter(([, p]) => p.positionCode === 'D')
+    );
 
-    // Wild franchise Games Played record only — no Wild-only GP round numbers
-    processCareer(skaters.careerLeaders.gamesPlayed, 'gamesPlayed', 'Games Played', [], currentSkaterMap);
+    // ── All-skater career milestones ─────────────────────────────────────────
+    processCareer(skaters.careerLeaders.all.goals,          'goals',          'Goals',          CAREER_ROUNDS.goals,          currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.assists,        'assists',        'Assists',        CAREER_ROUNDS.assists,        currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.points,         'points',         'Points',         CAREER_ROUNDS.points,         currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.penaltyMinutes, 'penaltyMinutes', 'Penalty Minutes',CAREER_ROUNDS.penaltyMinutes, currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.shootoutGoals,  'shootoutGoals',  'Shootout Goals', CAREER_ROUNDS.shootoutGoals,  currentSkaterMap);
 
-    // All-team career NHL milestones — GP and scoring stats across all teams
+    // Wild franchise Games Played record — all skaters only, no round numbers
+    processCareer(skaters.careerLeaders.all.gamesPlayed, 'gamesPlayed', 'Games Played', [], currentSkaterMap);
+
+    // ── Defense-specific career milestones ───────────────────────────────────
+    processCareer(skaters.careerLeaders.defense.goals,          'goals',          'Defense Goals',          DEFENSE_CAREER_ROUNDS.goals,          currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.assists,        'assists',        'Defense Assists',        DEFENSE_CAREER_ROUNDS.assists,        currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.points,         'points',         'Defense Points',         DEFENSE_CAREER_ROUNDS.points,         currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.penaltyMinutes, 'penaltyMinutes', 'Defense Penalty Minutes',DEFENSE_CAREER_ROUNDS.penaltyMinutes, currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.shootoutGoals,  'shootoutGoals',  'Defense Shootout Goals', DEFENSE_CAREER_ROUNDS.shootoutGoals,  currentDefenseMap);
+
+    // ── Goalie career milestones (wins only — no goals/assists/points/PIM) ──
+    processCareer(goalies.careerLeaders.wins, 'wins', 'Goalie Wins', CAREER_ROUNDS.wins, currentGoalieMap);
+
+    // ── All-team career NHL milestones — GP and scoring stats across all teams ──
     const allPlayers = new Map([...currentSkaterMap, ...currentGoalieMap]);
 
     function processAllTeam(stat, rounds, statLabel, unitLabel) {
@@ -279,9 +307,18 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processAllTeam('assists',     CAREER_ROUNDS.assists,  'Assists',      'assists');
     processAllTeam('points',      CAREER_ROUNDS.points,   'Points',       'points');
 
-    processSeason(skaters.singleSeasonRecords.goals,   'goals',   'Goals',   currentSkaterMap);
-    processSeason(skaters.singleSeasonRecords.assists,  'assists', 'Assists', currentSkaterMap);
-    processSeason(skaters.singleSeasonRecords.points,   'points',  'Points',  currentSkaterMap);
+    // ── Single-season record milestones ──────────────────────────────────────
+    // All skaters (goals/assists/points/PIM) — no goalies
+    processSeason(skaters.singleSeasonRecords.all.goals,          'goals',          'Goals',          currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.assists,        'assists',        'Assists',        currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.points,         'points',         'Points',         currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.penaltyMinutes, 'penaltyMinutes', 'Penalty Minutes',currentSkaterMap);
+
+    // Defense-specific single-season records
+    processSeason(skaters.singleSeasonRecords.defense.goals,          'goals',          'Defense Goals',          currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.assists,        'assists',        'Defense Assists',        currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.points,         'points',         'Defense Points',         currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.penaltyMinutes, 'penaltyMinutes', 'Defense Penalty Minutes',currentDefenseMap);
 
     // Deduplicate (same playerId + label)
     function dedup(list) {
@@ -412,7 +449,7 @@ export async function init() {
             renderSection(
                 'Approaching Milestones',
                 approachingCards,
-                'No players are currently within 5% of a franchise milestone.'
+                'No players are currently within 3% of a franchise milestone.'
             ) +
             renderSection(
                 'Milestones Reached This Season',
