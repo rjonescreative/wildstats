@@ -1625,6 +1625,10 @@ footer {
         gap: 1.25rem;
     }
 
+    .records-table-wrap {
+        width: 100%;
+    }
+
     .records-selectors {
         width: 100%;
         flex-direction: row;
