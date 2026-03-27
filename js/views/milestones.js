@@ -45,7 +45,8 @@ const APPROACHING_MIN_AWAY = 3;
 
 function isApproaching(current, target) {
     const away = target - current;
-    return current < target && current >= target * APPROACHING_PCT && away <= APPROACHING_MAX_AWAY && away >= APPROACHING_MIN_AWAY;
+    const threshold = Math.min(APPROACHING_MAX_AWAY, Math.max(APPROACHING_MIN_AWAY, target * (1 - APPROACHING_PCT)));
+    return current < target && away <= threshold;
 }
 
 function crossedThisSeason(careerTotal, seasonContrib, target) {
