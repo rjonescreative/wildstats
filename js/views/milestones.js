@@ -166,20 +166,31 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
         const recordHolder = records[0].name;
         const isThisSeason = recordSeason.startsWith('2025');
 
+        // Build a map of Wild-only current-season stats from the records data.
+        // The records list is already split-season corrected (e.g. Quinn Hughes'
+        // 43 Wild assists, not his full-season 64). This takes priority over the
+        // raw wildStats value which may include stats from other teams.
+        const wildOnlySeasonStat = new Map();
+        records.forEach(entry => {
+            if (entry.season && entry.season.startsWith('2025')) {
+                wildOnlySeasonStat.set(entry.playerId, entry.value);
+            }
+        });
+
         // Determine the team's games-played benchmark — the highest GP among all
-        // current Wild players. Two thresholds:
-        //   APPROACHING — lenient (within 20 games): player has been with the Wild
-        //     for the bulk of the season and is on pace for the record.
-        //   ACHIEVED    — strict (within 5 games): player must have been with the
+        // current Wild players. Used only for the achieved check:
+        //   ACHIEVED — strict (within 5 games): player must have been with the
         //     Wild essentially the full season to claim a franchise season record.
-        //     This filters out mid-season acquisitions (e.g. a player who spent
-        //     part of the year on another team).
+        //     This filters out mid-season acquisitions.
         const maxTeamGP = Math.max(...[...playerMap.values()].map(p => p.gamesPlayed || 0));
-        const MIN_GP_APPROACHING = Math.max(1, maxTeamGP - 20);
-        const MIN_GP_ACHIEVED    = Math.max(1, maxTeamGP - 5);
+        const MIN_GP_ACHIEVED = Math.max(1, maxTeamGP - 5);
 
         playerMap.forEach((player, playerId) => {
-            const seasonStat    = player[stat] || 0;
+            // Prefer split-season-corrected Wild-only stat from records; fall back
+            // to raw wildStats value for players not yet in the top-N list.
+            const seasonStat    = wildOnlySeasonStat.has(playerId)
+                ? wildOnlySeasonStat.get(playerId)
+                : (player[stat] || 0);
             const isRecordOwner = playerId === records[0].playerId;
             const playerGP      = player.gamesPlayed || 0;
 
