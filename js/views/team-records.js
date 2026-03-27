@@ -201,9 +201,9 @@ export async function init() {
                             <button class="division-toggle" data-stat="assists">Assists</button>
                             <button class="division-toggle" data-stat="points">Points</button>
                             <button class="division-toggle" data-stat="shootout">Shootout</button>
-                            <button class="division-toggle" data-stat="wins">Wins</button>
                             <button class="division-toggle" data-stat="penaltyMinutes">Penalty Min</button>
                             <button class="division-toggle" data-stat="gamesPlayed">Games Played</button>
+                            <button class="division-toggle" data-stat="wins">Wins</button>
                         </div>
                     </div>
                     <div class="records-selector-group">
@@ -215,6 +215,7 @@ export async function init() {
                             <button class="division-toggle" data-pos="goalies">Goalies</button>
                         </div>
                     </div>
+                    <button class="records-reset-btn" id="records-reset">Reset</button>
                 </div>
                 <div class="records-table-wrap">
                     <div class="records-table-header" id="records-table-label">All-Time Goals</div>
@@ -224,6 +225,16 @@ export async function init() {
 
         // Wire up selector events
         container.addEventListener('click', e => {
+            if (e.target.closest('#records-reset')) {
+                timeMode = 'alltime';
+                statMode = 'goals';
+                posMode  = 'all';
+                applyConstraints();
+                updateSelectorUI();
+                renderTable();
+                return;
+            }
+
             const btn = e.target.closest('[data-time],[data-stat],[data-pos]');
             if (!btn || btn.disabled) return;
 
