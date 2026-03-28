@@ -1,0 +1,22 @@
+name: Warm team schedules cache
+
+# Runs every 55 minutes so R2 is always pre-populated before the 1hr TTL expires.
+# This ensures the 32 NHL API batch calls happen server-side, not during a user request.
+on:
+  schedule:
+    - cron: '*/55 * * * *'
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  warm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Refresh all-team-schedules R2 cache
+        run: |
+          STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+            https://wildhockey.win/api/all-team-schedules/20252026)
+          echo "Response status: $STATUS"
+          if [ "$STATUS" != "200" ]; then
+            echo "Warning: endpoint returned $STATUS"
+            exit 1
+          fi
