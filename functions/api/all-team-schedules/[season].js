@@ -24,28 +24,35 @@ function stripGameFields(game) {
 
 export async function onRequest(context) {
     const { season } = context.params;
+    const BATCH_SIZE = 8;
+    const BATCH_DELAY_MS = 200;
+
+    async function fetchTeam(abbrev) {
+        try {
+            const response = await fetch(
+                `https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`,
+                { redirect: 'follow' }
+            );
+            if (!response.ok) return { abbrev, games: [] };
+            const data = await response.json();
+            return { abbrev, games: (data.games ?? []).map(stripGameFields) };
+        } catch {
+            return { abbrev, games: [] };
+        }
+    }
 
     try {
-        const results = await Promise.allSettled(
-            ALL_NHL_TEAMS.map(async abbrev => {
-                try {
-                    const response = await fetch(
-                        `https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`,
-                        { redirect: 'follow' }
-                    );
-                    if (!response.ok) return { abbrev, games: [] };
-                    const data = await response.json();
-                    return { abbrev, games: (data.games ?? []).map(stripGameFields) };
-                } catch {
-                    return { abbrev, games: [] };
-                }
-            })
-        );
-
         const payload = {};
-        results.forEach(r => {
-            if (r.status === 'fulfilled') payload[r.value.abbrev] = r.value.games;
-        });
+        for (let i = 0; i < ALL_NHL_TEAMS.length; i += BATCH_SIZE) {
+            const batch = ALL_NHL_TEAMS.slice(i, i + BATCH_SIZE);
+            const results = await Promise.allSettled(batch.map(fetchTeam));
+            results.forEach(r => {
+                if (r.status === 'fulfilled') payload[r.value.abbrev] = r.value.games;
+            });
+            if (i + BATCH_SIZE < ALL_NHL_TEAMS.length) {
+                await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
+            }
+        }
 
         return new Response(JSON.stringify(payload), {
             headers: {
