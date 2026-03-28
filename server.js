@@ -227,6 +227,64 @@ app.get('/api/team-schedule/:team/:season', async (req, res) => {
     }
 });
 
+// Aggregated all-team schedules endpoint — fetches all 32 teams in parallel server-side
+// Returns { [abbrev]: games[] } with only the fields needed for the points-progression chart.
+// One client request replaces 32 individual team-schedule requests.
+const ALL_NHL_TEAMS = [
+    'ANA','BOS','BUF','CAR','CBJ','CGY','CHI','COL','DAL','DET',
+    'EDM','FLA','LAK','MIN','MTL','NJD','NSH','NYI','NYR','OTT',
+    'PHI','PIT','SEA','SJS','STL','TBL','TOR','UTA','VAN','VGK','WPG','WSH',
+];
+
+function stripGameFields(game) {
+    return {
+        id:          game.id,
+        season:      game.season,
+        gameType:    game.gameType,
+        gameDate:    game.gameDate,
+        gameState:   game.gameState,
+        homeTeam:    { abbrev: game.homeTeam?.abbrev, score: game.homeTeam?.score },
+        awayTeam:    { abbrev: game.awayTeam?.abbrev, score: game.awayTeam?.score },
+        gameOutcome: game.gameOutcome ? { lastPeriodType: game.gameOutcome.lastPeriodType } : undefined,
+    };
+}
+
+app.get('/api/all-team-schedules/:season', async (req, res) => {
+    const { season } = req.params;
+    try {
+        const results = await Promise.allSettled(
+            ALL_NHL_TEAMS.map(async abbrev => {
+                const controller = new AbortController();
+                const timeout = setTimeout(() => controller.abort(), 15000);
+                try {
+                    const response = await fetch(
+                        `https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`,
+                        { signal: controller.signal, redirect: 'follow' }
+                    );
+                    clearTimeout(timeout);
+                    if (!response.ok) return { abbrev, games: [] };
+                    const data = await response.json();
+                    return { abbrev, games: (data.games ?? []).map(stripGameFields) };
+                } catch {
+                    clearTimeout(timeout);
+                    return { abbrev, games: [] };
+                }
+            })
+        );
+
+        const payload = {};
+        results.forEach(r => {
+            if (r.status === 'fulfilled') payload[r.value.abbrev] = r.value.games;
+        });
+
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.json(payload);
+    } catch (error) {
+        console.error('Error fetching all-team schedules:', error);
+        res.status(500).json({ error: 'Failed to fetch schedules' });
+    }
+});
+
 // Live game data endpoint
 app.get('/api/game/:id/live', async (req, res) => {
     const gameId = req.params.id;

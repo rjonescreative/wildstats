@@ -1,5 +1,5 @@
 // Current Season view — team-level stats for 2025-26
-import { getTeamSchedule, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
+import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
 export const ALL_TEAMS = {
@@ -84,8 +84,11 @@ function computePointsProgression(games, abbrev) {
 
 export async function loadTeamData(abbrev) {
     if (dataCache[abbrev]) return dataCache[abbrev];
-    const schedule = await getTeamSchedule(abbrev, '20252026');
-    const data = computePointsProgression(schedule.games ?? [], abbrev);
+    // One aggregated request fetches all 32 teams at once (server-side fan-out).
+    // Subsequent calls for other teams hit the in-memory cache instantly.
+    const allSchedules = await getAllTeamSchedules('20252026');
+    const games = allSchedules[abbrev] ?? [];
+    const data = computePointsProgression(games, abbrev);
     dataCache[abbrev] = data;
     return data;
 }
@@ -1187,13 +1190,10 @@ export async function init() {
         const initSvg = container.querySelector('svg');
         if (initSvg) attachChartHoverHandlers(initSvg, teams, chartMode);
 
-        // Pre-load other divisions in background for instant toggling.
-        // Stagger requests to avoid rate-limiting the NHL API (50ms apart).
-        // Errors are silenced — data loads on demand when a division is toggled.
+        // All 32 team schedules are already in the aggregated response — pre-populate
+        // the dataCache for every team so division toggles are instant with no extra requests.
         const otherAbbrevs = Object.values(DIVISIONS).flat().filter(a => !DIVISIONS.Central.includes(a));
-        otherAbbrevs.forEach((abbrev, i) => {
-            setTimeout(() => loadTeamData(abbrev).catch(() => {}), i * 50);
-        });
+        otherAbbrevs.forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
 
         // Load stats sections using MIN schedule (already cached from chart)
         const minSchedule = await getTeamSchedule('MIN', '20252026');

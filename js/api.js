@@ -85,6 +85,13 @@ export async function getTeamSchedule(team, season = '20252026', forceRefresh = 
     return fetchWithCache(`/api/team-schedule/${team}/${season}`, `schedule_${team}_${season}`, forceRefresh);
 }
 
+// Fetches all 32 team schedules in a single server-side aggregated request.
+// Returns { [abbrev]: games[] } with chart-only fields stripped server-side.
+// Use this instead of 32 individual getTeamSchedule() calls.
+export async function getAllTeamSchedules(season = '20252026', forceRefresh = false) {
+    return fetchWithCache(`/api/all-team-schedules/${season}`, `allTeamSchedules_${season}`, forceRefresh);
+}
+
 // Get Wild news from multiple sources (supports pagination)
 export async function getNews(offset = 0, limit = 6) {
     // News pagination doesn't use cache - each page is a separate request
