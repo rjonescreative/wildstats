@@ -30,6 +30,9 @@ async function fetchWithRetry(url, maxAttempts = 3) {
     throw lastError;
 }
 
+// Tracks in-flight requests by cache key so concurrent callers share one fetch.
+const inFlight = new Map();
+
 // Generic fetch with caching
 async function fetchWithCache(url, cacheKey, forceRefresh = false) {
     // Return cached data if valid and not forcing refresh
@@ -37,27 +40,34 @@ async function fetchWithCache(url, cacheKey, forceRefresh = false) {
         return getCachedData(cacheKey);
     }
 
-    // Fetch fresh data (with retry)
-    try {
-        const response = await fetchWithRetry(url);
-        const data = await response.json();
-
-        // Cache the data
-        setCachedData(cacheKey, data);
-
-        return data;
-    } catch (error) {
-        console.error(`Error fetching ${url}:`, error);
-
-        // Try to return stale cache on error
-        const cached = getCachedData(cacheKey);
-        if (cached) {
-            console.warn(`Using stale cache for ${cacheKey}`);
-            return cached;
-        }
-
-        throw error;
+    // If a request for this key is already in flight, wait for it instead of
+    // firing a duplicate (fixes concurrent callers all missing an empty cache).
+    if (inFlight.has(cacheKey)) {
+        return inFlight.get(cacheKey);
     }
+
+    // Fetch fresh data (with retry)
+    const promise = (async () => {
+        try {
+            const response = await fetchWithRetry(url);
+            const data = await response.json();
+            setCachedData(cacheKey, data);
+            return data;
+        } catch (error) {
+            console.error(`Error fetching ${url}:`, error);
+            const cached = getCachedData(cacheKey);
+            if (cached) {
+                console.warn(`Using stale cache for ${cacheKey}`);
+                return cached;
+            }
+            throw error;
+        } finally {
+            inFlight.delete(cacheKey);
+        }
+    })();
+
+    inFlight.set(cacheKey, promise);
+    return promise;
 }
 
 // Get NHL standings
