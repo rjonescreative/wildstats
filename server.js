@@ -206,7 +206,19 @@ app.get('/api/team-schedule/:team/:season', async (req, res) => {
         );
         clearTimeout(timeout);
 
-        const data = await response.json();
+        if (!response.ok) {
+            console.error(`NHL API error for ${team} schedule: ${response.status}`);
+            return res.status(response.status).json({ error: `NHL API error: ${response.status}` });
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            console.error(`Invalid JSON from NHL API for ${team} schedule`);
+            return res.status(502).json({ error: 'Invalid response from NHL API' });
+        }
+
         res.set('Cache-Control', 'public, max-age=300');
         res.json(data);
     } catch (error) {

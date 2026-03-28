@@ -10,7 +10,22 @@ export async function onRequest(context) {
             { redirect: 'follow' }
         );
 
-        const data = await response.json();
+        if (!response.ok) {
+            return new Response(
+                JSON.stringify({ error: `NHL API error: ${response.status}` }),
+                { status: response.status, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
+
+        let data;
+        try {
+            data = await response.json();
+        } catch {
+            return new Response(
+                JSON.stringify({ error: 'Invalid response from NHL API' }),
+                { status: 502, headers: { 'Content-Type': 'application/json' } }
+            );
+        }
 
         return new Response(JSON.stringify(data), {
             headers: {

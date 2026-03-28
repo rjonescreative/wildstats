@@ -2,23 +2,25 @@
 import { isCacheValid, getCachedData, setCachedData } from './state.js';
 
 // Fetch with automatic retry + exponential backoff.
-// Retries up to `maxAttempts` times on network errors or 5xx responses.
-// 4xx errors are not retried (they indicate a bad request, not a transient failure).
+// Retries on network errors, 5xx responses, and 429 rate-limit responses.
+// Other 4xx errors are not retried (bad request, not transient).
 async function fetchWithRetry(url, maxAttempts = 3) {
     let lastError;
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
         try {
             const response = await fetch(url);
-            // Don't retry client errors
-            if (!response.ok && response.status < 500) {
+            // Retry on rate-limit or server errors
+            if (response.status === 429 || response.status >= 500) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                // Other 4xx — don't retry
+                throw Object.assign(new Error(`HTTP error! status: ${response.status}`), { permanent: true });
             }
             return response;
         } catch (err) {
             lastError = err;
+            if (err.permanent) throw err; // don't retry permanent errors
             // Don't wait after the last attempt
             if (attempt < maxAttempts) {
                 await new Promise(r => setTimeout(r, attempt * 1000));
