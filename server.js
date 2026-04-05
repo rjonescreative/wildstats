@@ -872,6 +872,26 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
     }
 });
 
+// Playoff bracket endpoint
+app.get('/api/playoff-bracket/:season', async (req, res) => {
+    try {
+        const controller = new AbortController();
+        const timeout = setTimeout(() => controller.abort(), 10000);
+
+        const response = await fetch(`https://api-web.nhle.com/v1/playoff-bracket/${req.params.season}`, {
+            signal: controller.signal,
+            redirect: 'follow'
+        });
+        clearTimeout(timeout);
+
+        const data = await response.json();
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching playoff bracket:', error);
+        res.status(500).json({ error: 'Failed to fetch playoff bracket' });
+    }
+});
+
 // SPA catch-all route - serve index.html for all non-API routes
 app.get('*', (req, res) => {
     // Don't serve index.html for API routes

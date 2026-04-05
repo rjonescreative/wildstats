@@ -139,6 +139,11 @@ export async function getCareerTotals(forceRefresh = false) {
     return fetchWithCache('/api/milestones/career-totals', 'careerTotals', forceRefresh);
 }
 
+// Get NHL playoff bracket
+export async function getPlayoffBracket(season = '2026', forceRefresh = false) {
+    return fetchWithCache(`/api/playoff-bracket/${season}`, `playoffBracket_${season}`, forceRefresh);
+}
+
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
     const response = await fetchWithRetry(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);

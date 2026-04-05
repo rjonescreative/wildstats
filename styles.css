@@ -1386,6 +1386,445 @@ td {
     letter-spacing: 0.05em;
 }
 
+/* ─── Playoff Bracket ──────────────────────────────────────────────────────── */
+
+.playoff-bracket-wrapper {
+    width: 100%;
+}
+
+.playoff-bracket-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.playoff-bracket-header h2 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Desktop bracket scroll container */
+.bracket-desktop {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 1rem;
+}
+
+.playoff-bracket {
+    min-width: 1280px;
+    padding: 0 1rem;
+}
+
+/* CSS Grid layout for bracket body — labels + content aligned */
+.bracket-body {
+    display: grid;
+    grid-template-columns: 1fr 20px 1fr 20px 1fr 20px 1fr 20px 1fr 20px 1fr 20px 1fr;
+    grid-template-rows: auto auto 1fr;
+    min-height: 560px;
+}
+
+/* Round labels — row 1 */
+.bracket-label {
+    grid-row: 1;
+    text-align: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-tertiary);
+    padding-bottom: 4px;
+    align-self: end;
+}
+
+.bracket-label-wr1 { grid-column: 1; }
+.bracket-label-wr2 { grid-column: 3; }
+.bracket-label-wcf { grid-column: 5; }
+.bracket-label-scf-text { grid-column: 7; line-height: 1.3; }
+.bracket-label-ecf { grid-column: 9; }
+.bracket-label-er2 { grid-column: 11; }
+.bracket-label-er1 { grid-column: 13; }
+
+/* Conference labels — row 2 */
+.bracket-conf-label {
+    grid-row: 2;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--wild-gold);
+    padding-bottom: 8px;
+}
+
+.bracket-conf-west { grid-column: 1 / 7; }
+.bracket-conf-east { grid-column: 8 / 14; text-align: right; }
+
+/* Round columns — row 3 */
+.bracket-body > .bracket-round,
+.bracket-body > .bracket-connector {
+    grid-row: 3;
+}
+
+.bracket-round {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-around;
+    position: relative;
+    z-index: 1;
+}
+
+/* Explicit grid column placement for rounds and connectors */
+.bracket-r1.bracket-west { grid-column: 1; }
+.bracket-connector.west-r1-r2 { grid-column: 2; }
+.bracket-r2.bracket-west { grid-column: 3; }
+.bracket-connector.west-r2-cf { grid-column: 4; }
+.bracket-cf.bracket-west { grid-column: 5; }
+.bracket-connector.west-cf-scf { grid-column: 6; }
+.bracket-scf { grid-column: 7; }
+.bracket-connector.east-cf-scf { grid-column: 8; }
+.bracket-cf.bracket-east { grid-column: 9; }
+.bracket-connector.east-r2-cf { grid-column: 10; }
+.bracket-r2.bracket-east { grid-column: 11; }
+.bracket-connector.east-r1-r2 { grid-column: 12; }
+.bracket-r1.bracket-east { grid-column: 13; }
+
+/* Pairs group two matchups that feed into one next-round matchup */
+.bracket-pair {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    position: relative;
+}
+
+/* Matchup card */
+.bracket-matchup {
+    background: rgba(20, 20, 20, 0.85);
+    border: 1px solid var(--border-subtle);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+
+.bracket-matchup-active {
+    border-color: var(--wild-gold);
+}
+
+.bracket-matchup-empty {
+    opacity: 0.4;
+}
+
+/* Team row within matchup */
+.bracket-team {
+    display: flex;
+    align-items: center;
+    padding: 8px 10px;
+    gap: 6px;
+    min-height: 36px;
+}
+
+.bracket-team + .bracket-team {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.bracket-team-winner {
+    background: rgba(6, 146, 52, 0.15);
+}
+
+.bracket-team-eliminated {
+    opacity: 0.45;
+}
+
+.bracket-team-wild {
+    background: rgba(6, 146, 52, 0.08);
+}
+
+.bracket-team-wild.bracket-team-winner {
+    background: rgba(6, 146, 52, 0.25);
+}
+
+.bracket-team-seed {
+    font-size: 0.6rem;
+    color: var(--text-tertiary);
+    min-width: 22px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.bracket-team-link {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex: 1;
+    text-decoration: none;
+    color: var(--text-primary);
+    min-width: 0;
+}
+
+.bracket-team-link:hover {
+    color: var(--wild-gold);
+}
+
+.bracket-team-logo {
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+}
+
+.bracket-team-name {
+    font-size: 0.75rem;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.bracket-team-abbrev {
+    display: none;
+}
+
+.bracket-team-wins {
+    font-weight: 700;
+    font-size: 0.9rem;
+    min-width: 18px;
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.bracket-team-wins.wins-highlight {
+    color: var(--wild-green);
+}
+
+.bracket-team-wins.wins-empty {
+    color: var(--text-tertiary);
+    font-size: 0.8rem;
+}
+
+.bracket-team-tbd {
+    justify-content: center;
+}
+
+.bracket-team-tbd .bracket-team-name {
+    color: var(--text-tertiary);
+    font-style: italic;
+    font-size: 0.7rem;
+}
+
+/* Series status labels */
+.bracket-series-status {
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--text-secondary);
+    padding: 2px 0;
+    background: var(--bg-tertiary);
+}
+
+.bracket-series-won {
+    text-align: center;
+    font-size: 0.6rem;
+    color: var(--wild-green);
+    font-weight: 600;
+    padding: 2px 0;
+    background: var(--bg-tertiary);
+}
+
+/* ─── Bracket Connector Lines ─────────────────────────────────────────────── */
+
+.bracket-connector {
+    position: relative;
+}
+
+/* West side connectors (left → right) */
+
+.bracket-connector.west-r1-r2::before,
+.bracket-connector.west-r1-r2::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    width: 100%;
+    border-right: 2px solid var(--border-medium);
+}
+
+.bracket-connector.west-r1-r2::before {
+    top: 12.5%;
+    height: 25%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+}
+
+.bracket-connector.west-r1-r2::after {
+    top: 62.5%;
+    height: 25%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+}
+
+.bracket-connector.west-r2-cf::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 25%;
+    height: 50%;
+    width: 100%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+    border-right: 2px solid var(--border-medium);
+}
+
+.bracket-connector.west-cf-scf::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    width: 100%;
+    border-top: 2px solid var(--border-medium);
+}
+
+/* East side connectors (right → left, mirrored) */
+
+.bracket-connector.east-r1-r2::before,
+.bracket-connector.east-r1-r2::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    width: 100%;
+    border-left: 2px solid var(--border-medium);
+}
+
+.bracket-connector.east-r1-r2::before {
+    top: 12.5%;
+    height: 25%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+}
+
+.bracket-connector.east-r1-r2::after {
+    top: 62.5%;
+    height: 25%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+}
+
+.bracket-connector.east-r2-cf::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 25%;
+    height: 50%;
+    width: 100%;
+    border-top: 2px solid var(--border-medium);
+    border-bottom: 2px solid var(--border-medium);
+    border-left: 2px solid var(--border-medium);
+}
+
+.bracket-connector.east-cf-scf::before {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 50%;
+    width: 100%;
+    border-top: 2px solid var(--border-medium);
+}
+
+/* ─── Mobile Bracket Layout ───────────────────────────────────────────────── */
+
+.bracket-mobile {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .bracket-desktop {
+        display: none;
+    }
+
+    .bracket-mobile {
+        display: block;
+    }
+
+    .bracket-mobile-conf {
+        margin-bottom: 1.5rem;
+    }
+
+    .bracket-mobile-conf-label {
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--wild-gold);
+        text-align: center;
+        padding-bottom: 0.75rem;
+        border-bottom: 1px solid var(--border-subtle);
+        margin-bottom: 0.75rem;
+    }
+
+    .bracket-mobile-round {
+        margin-bottom: 0.75rem;
+    }
+
+    .bracket-mobile-round-label {
+        font-size: 0.65rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--text-tertiary);
+        text-align: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .bracket-mobile-matchups {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 8px;
+    }
+
+    /* Single matchup rounds (CF, SCF) center the card */
+    .bracket-mobile-matchups:has(> :only-child) {
+        grid-template-columns: 1fr;
+        max-width: 260px;
+        margin: 0 auto;
+    }
+
+    .bracket-mobile-scf {
+        margin-bottom: 1.5rem;
+        padding: 1rem 0;
+        border-top: 1px solid var(--border-subtle);
+        border-bottom: 1px solid var(--border-subtle);
+    }
+
+    /* Mobile matchup cards — show abbreviation, hide full name */
+    .bracket-mobile .bracket-team-name {
+        display: none;
+    }
+
+    .bracket-mobile .bracket-team-abbrev {
+        display: inline;
+        font-size: 0.75rem;
+        font-weight: 600;
+    }
+
+    .bracket-mobile .bracket-team {
+        padding: 8px 8px;
+        gap: 5px;
+        min-height: 34px;
+    }
+
+    .bracket-mobile .bracket-team-logo {
+        width: 22px;
+        height: 22px;
+    }
+
+    .bracket-mobile .bracket-team-seed {
+        font-size: 0.55rem;
+        min-width: 20px;
+    }
+
+    .bracket-mobile .bracket-team-wins {
+        font-size: 0.85rem;
+        min-width: 16px;
+    }
+}
+
 /* Dashboard Games Section */
 .games-grid {
     display: grid;

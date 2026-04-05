@@ -1,8 +1,9 @@
 // Standings view module
-import { getStandings, getLeagueLeaders } from '../api.js';
+import { getStandings, getLeagueLeaders, getPlayoffBracket } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let standingsData = null;
+let bracketData = null;
 
 // NHL.com team slug mapping
 const TEAM_SLUGS = {
@@ -19,10 +20,15 @@ const TEAM_SLUGS = {
 export async function init(view = 'wildcard') {
     try {
         // Fetch standings and league leaders (cached if available)
-        standingsData = await getStandings();
-
-        // Fetch league leaders for player card rankings
-        await getLeagueLeaders();
+        const fetches = [getStandings(), getLeagueLeaders()];
+        if (view === 'playoffs') {
+            fetches.push(getPlayoffBracket('2026'));
+        }
+        const results = await Promise.all(fetches);
+        standingsData = results[0];
+        if (view === 'playoffs') {
+            bracketData = results[2];
+        }
 
         // Update UI state with initial view
         const state = getUIState('standings');
@@ -46,6 +52,9 @@ export function render() {
     const container = document.getElementById('standings-container');
 
     switch(state.currentView) {
+        case 'playoffs':
+            container.innerHTML = renderPlayoffBracket();
+            break;
         case 'league':
             container.innerHTML = renderLeagueStandings(state);
             break;
@@ -61,7 +70,9 @@ export function render() {
             break;
     }
 
-    setupSortListeners();
+    if (state.currentView !== 'playoffs') {
+        setupSortListeners();
+    }
 }
 
 export function cleanup() {
@@ -488,5 +499,196 @@ function createWildcardTable(teams, state) {
                 }).join('')}
             </tbody>
         </table>
+    `;
+}
+
+// ─── Playoff Bracket ─────────────────────────────────────────────────────────
+
+// Standard NHL bracket: series letter → position
+// West R1: A,B,C,D  East R1: E,F,G,H
+// West R2: I,J       East R2: K,L
+// West CF: M         East CF: N
+// SCF: O
+const BRACKET_MAP = {
+    west: { r1: ['E','F','G','H'], r2: ['K','L'], cf: ['N'] },
+    east: { r1: ['A','B','C','D'], r2: ['I','J'], cf: ['M'] },
+    scf: 'O'
+};
+
+function getSeriesByLetter(letter) {
+    if (!bracketData || !bracketData.series) return null;
+    return bracketData.series.find(s => s.seriesLetter === letter) || null;
+}
+
+function renderMatchupCard(series) {
+    if (!series) {
+        return `
+            <div class="bracket-matchup bracket-matchup-empty">
+                <div class="bracket-team bracket-team-tbd">
+                    <span class="bracket-team-name">TBD</span>
+                </div>
+                <div class="bracket-team bracket-team-tbd">
+                    <span class="bracket-team-name">TBD</span>
+                </div>
+            </div>
+        `;
+    }
+
+    const topTeam = series.topSeedTeam;
+    const bottomTeam = series.bottomSeedTeam;
+    const topWins = series.topSeedWins || 0;
+    const bottomWins = series.bottomSeedWins || 0;
+    const topWon = topWins === 4;
+    const bottomWon = bottomWins === 4;
+    const seriesActive = (topWins > 0 || bottomWins > 0) && !topWon && !bottomWon;
+
+    const renderTeam = (team, seedAbbrev, wins, isWinner, isEliminated) => {
+        if (!team) {
+            return `
+                <div class="bracket-team bracket-team-tbd">
+                    <span class="bracket-team-name">TBD</span>
+                </div>
+            `;
+        }
+        const abbrev = team.abbrev;
+        const isWild = abbrev === 'MIN';
+        const teamName = team.commonName?.default || team.name?.default || abbrev;
+        const logo = team.darkLogo || team.logo || `/logos/${abbrev}_dark.svg`;
+        const nhlSlug = TEAM_SLUGS[abbrev] || abbrev.toLowerCase();
+        return `
+            <div class="bracket-team${isWinner ? ' bracket-team-winner' : ''}${isEliminated ? ' bracket-team-eliminated' : ''}${isWild ? ' bracket-team-wild' : ''}">
+                <span class="bracket-team-seed">${seedAbbrev || ''}</span>
+                <a href="https://www.nhl.com/${nhlSlug}/" target="_blank" rel="noopener noreferrer" class="bracket-team-link">
+                    <img src="${logo}" alt="${abbrev}" class="bracket-team-logo">
+                    <span class="bracket-team-name">${teamName}</span>
+                    <span class="bracket-team-abbrev">${abbrev}</span>
+                </a>
+                <span class="bracket-team-wins${isWinner ? ' wins-highlight' : ''}${wins === 0 && topWins === 0 && bottomWins === 0 ? ' wins-empty' : ''}">${wins}</span>
+            </div>
+        `;
+    };
+
+    const seriesLabel = seriesActive ? `<div class="bracket-series-status">Series ${topWins > bottomWins ? `${topWins}-${bottomWins}` : `${bottomWins}-${topWins}`}</div>` : '';
+    const wonLabel = topWon ? `<div class="bracket-series-won">${topTeam?.commonName?.default || 'Team'} advance</div>` :
+                     bottomWon ? `<div class="bracket-series-won">${bottomTeam?.commonName?.default || 'Team'} advance</div>` : '';
+
+    return `
+        <div class="bracket-matchup${seriesActive ? ' bracket-matchup-active' : ''}">
+            ${renderTeam(topTeam, series.topSeedRankAbbrev, topWins, topWon, bottomWon)}
+            ${renderTeam(bottomTeam, series.bottomSeedRankAbbrev, bottomWins, bottomWon, topWon)}
+            ${seriesLabel}${wonLabel}
+        </div>
+    `;
+}
+
+function renderRoundColumn(seriesLetters, roundClass) {
+    // Group into pairs for connector styling (R1: 2 pairs of 2, R2: 1 pair of 2, CF: single)
+    if (seriesLetters.length === 4) {
+        return `
+            <div class="bracket-round ${roundClass}">
+                <div class="bracket-pair">
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[0]))}
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[1]))}
+                </div>
+                <div class="bracket-pair">
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[2]))}
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[3]))}
+                </div>
+            </div>
+        `;
+    }
+    if (seriesLetters.length === 2) {
+        return `
+            <div class="bracket-round ${roundClass}">
+                <div class="bracket-pair">
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[0]))}
+                </div>
+                <div class="bracket-pair">
+                    ${renderMatchupCard(getSeriesByLetter(seriesLetters[1]))}
+                </div>
+            </div>
+        `;
+    }
+    return `
+        <div class="bracket-round ${roundClass}">
+            ${renderMatchupCard(getSeriesByLetter(seriesLetters[0]))}
+        </div>
+    `;
+}
+
+function renderMobileRound(seriesLetters, roundName) {
+    return `
+        <div class="bracket-mobile-round">
+            <div class="bracket-mobile-round-label">${roundName}</div>
+            <div class="bracket-mobile-matchups">
+                ${seriesLetters.map(l => renderMatchupCard(getSeriesByLetter(l))).join('')}
+            </div>
+        </div>
+    `;
+}
+
+function renderPlayoffBracket() {
+    if (!bracketData || !bracketData.series) {
+        return '<div class="loading">Unable to load playoff bracket.</div>';
+    }
+
+    const title = bracketData.bracketTitle?.default || 'Playoff Bracket';
+
+    return `
+        <div class="playoff-bracket-wrapper">
+            <div class="playoff-bracket-header">
+                <h2>${title}</h2>
+            </div>
+            <div class="playoff-bracket-scroll bracket-desktop">
+                <div class="playoff-bracket">
+                    <div class="bracket-body">
+                        <div class="bracket-label bracket-label-wr1">1ST ROUND</div>
+                        <div class="bracket-label bracket-label-wr2">2ND ROUND</div>
+                        <div class="bracket-label bracket-label-wcf">CONF. FINALS</div>
+                        <div class="bracket-label bracket-label-scf-text">STANLEY CUP<br>FINAL</div>
+                        <div class="bracket-label bracket-label-ecf">CONF. FINALS</div>
+                        <div class="bracket-label bracket-label-er2">2ND ROUND</div>
+                        <div class="bracket-label bracket-label-er1">1ST ROUND</div>
+                        <div class="bracket-conf-label bracket-conf-west">WESTERN CONFERENCE</div>
+                        <div class="bracket-conf-label bracket-conf-east">EASTERN CONFERENCE</div>
+                        ${renderRoundColumn(BRACKET_MAP.west.r1, 'bracket-r1 bracket-west')}
+                        <div class="bracket-connector west-r1-r2"></div>
+                        ${renderRoundColumn(BRACKET_MAP.west.r2, 'bracket-r2 bracket-west')}
+                        <div class="bracket-connector west-r2-cf"></div>
+                        ${renderRoundColumn(BRACKET_MAP.west.cf, 'bracket-cf bracket-west')}
+                        <div class="bracket-connector west-cf-scf"></div>
+                        <div class="bracket-round bracket-scf">
+                            ${renderMatchupCard(getSeriesByLetter(BRACKET_MAP.scf))}
+                        </div>
+                        <div class="bracket-connector east-cf-scf"></div>
+                        ${renderRoundColumn(BRACKET_MAP.east.cf, 'bracket-cf bracket-east')}
+                        <div class="bracket-connector east-r2-cf"></div>
+                        ${renderRoundColumn(BRACKET_MAP.east.r2, 'bracket-r2 bracket-east')}
+                        <div class="bracket-connector east-r1-r2"></div>
+                        ${renderRoundColumn(BRACKET_MAP.east.r1, 'bracket-r1 bracket-east')}
+                    </div>
+                </div>
+            </div>
+            <div class="bracket-mobile">
+                <div class="bracket-mobile-conf">
+                    <div class="bracket-mobile-conf-label">WESTERN CONFERENCE</div>
+                    ${renderMobileRound(BRACKET_MAP.west.r1, 'R1')}
+                    ${renderMobileRound(BRACKET_MAP.west.r2, 'R2')}
+                    ${renderMobileRound(BRACKET_MAP.west.cf, 'CF')}
+                </div>
+                <div class="bracket-mobile-scf">
+                    <div class="bracket-mobile-conf-label">STANLEY CUP FINAL</div>
+                    <div class="bracket-mobile-matchups">
+                        ${renderMatchupCard(getSeriesByLetter(BRACKET_MAP.scf))}
+                    </div>
+                </div>
+                <div class="bracket-mobile-conf">
+                    <div class="bracket-mobile-conf-label">EASTERN CONFERENCE</div>
+                    ${renderMobileRound(BRACKET_MAP.east.r1, 'R1')}
+                    ${renderMobileRound(BRACKET_MAP.east.r2, 'R2')}
+                    ${renderMobileRound(BRACKET_MAP.east.cf, 'CF')}
+                </div>
+            </div>
+        </div>
     `;
 }

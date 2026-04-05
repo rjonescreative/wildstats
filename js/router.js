@@ -52,6 +52,7 @@ const routes = {
     '/standings/division': 'standings',
     '/standings/conference': 'standings',
     '/standings/league': 'standings',
+    '/standings/playoffs': 'standings',
     '/schedule': 'schedule',
     '/media': 'media',
     '/media/highlights': 'media',
@@ -218,7 +219,8 @@ function getPageTitle(viewName, subView = null) {
             wildcard: 'NHL Wildcard Standings 2025-26 | Minnesota Wild Playoff Race | Wild Hockey Hub',
             division: 'NHL Division Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
             conference: 'NHL Conference Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
-            league: 'NHL League Standings 2025-26 | Minnesota Wild | Wild Hockey Hub'
+            league: 'NHL League Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
+            playoffs: 'NHL Playoff Bracket 2026 – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub'
         };
         return standingsTitles[subView] || standingsTitles.wildcard;
     }
@@ -272,7 +274,8 @@ function getMetaDescription(viewName, subView = null) {
             wildcard: 'Minnesota Wild wildcard standings for 2025-26. View current NHL wildcard standings, points, wins, losses, and playoff positioning.',
             division: 'NHL division standings for 2025-26. View all four division standings including where the Minnesota Wild rank in the Central Division.',
             conference: 'NHL conference standings for 2025-26. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.',
-            league: 'Full NHL league standings for 2025-26. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.'
+            league: 'Full NHL league standings for 2025-26. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.',
+            playoffs: 'Live 2026 NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.'
         };
         return standingsDescriptions[subView] || standingsDescriptions.wildcard;
     }

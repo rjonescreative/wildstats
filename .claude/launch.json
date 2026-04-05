@@ -3,9 +3,10 @@
   "configurations": [
     {
       "name": "wildstats",
-      "runtimeExecutable": "node",
+      "runtimeExecutable": "/usr/local/bin/node",
       "runtimeArgs": ["server.js"],
-      "autoPort": true
+      "port": 3000,
+      "autoPort": false
     }
   ]
 }
