@@ -102,11 +102,32 @@ function setupSortListeners() {
     });
 }
 
+// Apply NHL tiebreaker rules when two teams have equal points (or equal P%).
+// Order: fewer GP → more RW → more ROW → more W → better DIFF → more GF
+function breakTie(a, b) {
+    if (a.gamesPlayed !== b.gamesPlayed) return a.gamesPlayed - b.gamesPlayed; // fewer GP wins
+    if (a.regulationWins !== b.regulationWins) return b.regulationWins - a.regulationWins;
+    if (a.regulationPlusOtWins !== b.regulationPlusOtWins) return b.regulationPlusOtWins - a.regulationPlusOtWins;
+    if (a.wins !== b.wins) return b.wins - a.wins;
+    // Rule 5 (head-to-head) is skipped — data not available
+    if (a.goalDifferential !== b.goalDifferential) return b.goalDifferential - a.goalDifferential;
+    return b.goalFor - a.goalFor;
+}
+
 function sortTeams(teams, state) {
     return [...teams].sort((a, b) => {
         const aVal = a[state.sortBy];
         const bVal = b[state.sortBy];
-        return state.sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
+        const primary = state.sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
+
+        if (primary !== 0) return primary;
+
+        // Apply full NHL tiebreaker chain when sorting by points or points percentage
+        if (state.sortBy === 'points' || state.sortBy === 'pointPctg') {
+            return breakTie(a, b);
+        }
+
+        return 0;
     });
 }
 
