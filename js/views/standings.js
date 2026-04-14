@@ -186,6 +186,12 @@ function calculateMagicNumber(team, conferenceTeams) {
     }
 }
 
+function isSeasonResolved() {
+    return standingsData.standings.every(team =>
+        team.clinchIndicator || team.eliminationNumber === 0
+    );
+}
+
 const CLINCH_LABELS = {
     'p': 'Presidents\' Trophy',
     'z': 'clinched conference',
@@ -206,12 +212,13 @@ function renderClinchKey() {
 
 function renderLeagueStandings(state) {
     const allTeams = sortTeams(standingsData.standings, state);
+    const hideMagicCol = isSeasonResolved();
 
     return `
         <div class="standings-section">
             <h2>League</h2>
             <div class="standings-table">
-                ${createStandingsTable(allTeams, state, true)}
+                ${createStandingsTable(allTeams, state, true, hideMagicCol)}
             </div>
         </div>
         ${renderClinchKey()}
@@ -221,18 +228,19 @@ function renderLeagueStandings(state) {
 function renderConferenceStandings(state) {
     const western = sortTeams(standingsData.standings.filter(team => team.conferenceName === 'Western'), state);
     const eastern = sortTeams(standingsData.standings.filter(team => team.conferenceName === 'Eastern'), state);
+    const hideMagicCol = isSeasonResolved();
 
     return `
         <div class="standings-section">
             <h2>Western Conference</h2>
             <div class="standings-table">
-                ${createStandingsTable(western, state)}
+                ${createStandingsTable(western, state, false, hideMagicCol)}
             </div>
         </div>
         <div class="standings-section">
             <h2>Eastern Conference</h2>
             <div class="standings-table">
-                ${createStandingsTable(eastern, state)}
+                ${createStandingsTable(eastern, state, false, hideMagicCol)}
             </div>
         </div>
         ${renderClinchKey()}
@@ -241,6 +249,7 @@ function renderConferenceStandings(state) {
 
 function renderDivisionStandings(state) {
     const divisions = ['Central', 'Pacific', 'Atlantic', 'Metropolitan'];
+    const hideMagicCol = isSeasonResolved();
 
     return divisions.map(division => {
         const teams = sortTeams(standingsData.standings.filter(team => team.divisionName === division), state);
@@ -249,7 +258,7 @@ function renderDivisionStandings(state) {
             <div class="standings-section">
                 <h2>${division} Division</h2>
                 <div class="standings-table">
-                    ${createStandingsTable(teams, state)}
+                    ${createStandingsTable(teams, state, false, hideMagicCol)}
                 </div>
             </div>
         `;
@@ -265,24 +274,26 @@ function renderWildcardStandings(state) {
         .filter(team => team.conferenceName === 'Eastern')
         .sort((a, b) => a.wildcardSequence - b.wildcardSequence);
 
+    const hideMagicCol = isSeasonResolved();
+
     return `
         <div class="standings-section">
             <h2>Western Conference - Wildcard</h2>
             <div class="standings-table">
-                ${createWildcardTable(western, state)}
+                ${createWildcardTable(western, state, hideMagicCol)}
             </div>
         </div>
         <div class="standings-section">
             <h2>Eastern Conference - Wildcard</h2>
             <div class="standings-table">
-                ${createWildcardTable(eastern, state)}
+                ${createWildcardTable(eastern, state, hideMagicCol)}
             </div>
         </div>
         ${renderClinchKey()}
     `;
 }
 
-function createStandingsTable(teams, state, showLeagueRank = false) {
+function createStandingsTable(teams, state, showLeagueRank = false, hideMagicCol = false) {
     const getSortIcon = (field) => {
         if (state.sortBy !== field) return '<span class="sort-arrow"> </span>';
         const arrow = state.sortDirection === 'desc' ? '↓' : '↑';
@@ -322,7 +333,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential" aria-label="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games" aria-label="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak" aria-label="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>
+                    ${!hideMagicCol ? '<th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>' : ''}
                 </tr>
             </thead>
             <tbody>
@@ -351,7 +362,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                                 <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
                                     <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
-                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}
+                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}${hideMagicCol && team.clinchIndicator ? `<span class="clinch-abbrev"> \u2013 ${team.clinchIndicator}</span>` : ''}
                                     <span class="external-link-icon">↗</span>
                                 </a>
                             </td>
@@ -368,11 +379,11 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
-                            <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
+                            ${!hideMagicCol ? `<td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>` : ''}
                         </tr>
                     `;
 
-                    const cutoffLine = showCutoff ? '<tr class="playoff-cutoff"><td colspan="16"></td></tr>' : '';
+                    const cutoffLine = showCutoff ? `<tr class="playoff-cutoff"><td colspan="${hideMagicCol ? 15 : 16}"></td></tr>` : '';
                     return row + cutoffLine;
                 }).join('')}
             </tbody>
@@ -380,7 +391,7 @@ function createStandingsTable(teams, state, showLeagueRank = false) {
     `;
 }
 
-function createWildcardTable(teams, state) {
+function createWildcardTable(teams, state, hideMagicCol = false) {
     // Group teams by division
     const divisions = {};
     teams.forEach(team => {
@@ -434,7 +445,7 @@ function createWildcardTable(teams, state) {
                     <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                     <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
                         <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
-                        <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}
+                        <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${team.clinchIndicator ? `<span class="clinch-mid"> \u2013 ${team.clinchIndicator}</span>` : ''}${hideMagicCol && team.clinchIndicator ? `<span class="clinch-abbrev"> \u2013 ${team.clinchIndicator}</span>` : ''}
                         <span class="external-link-icon">↗</span>
                     </a>
                 </td>
@@ -451,7 +462,7 @@ function createWildcardTable(teams, state) {
                 <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                 <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                 <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
-                <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
+                ${!hideMagicCol ? `<td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>` : ''}
             </tr>
         `;
     };
@@ -480,22 +491,22 @@ function createWildcardTable(teams, state) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential" aria-label="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games" aria-label="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak" aria-label="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>
+                    ${!hideMagicCol ? '<th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>' : ''}
                 </tr>
             </thead>
             <tbody>
                 ${divisionLeaders.map(div => `
                     <tr class="division-header">
-                        <td colspan="15"><strong>${div.name} Division</strong></td>
+                        <td colspan="${hideMagicCol ? 14 : 15}"><strong>${div.name} Division</strong></td>
                     </tr>
                     ${div.teams.map(team => createTeamRow(team)).join('')}
                 `).join('')}
                 <tr class="division-header">
-                    <td colspan="15"><strong>Wild Card</strong></td>
+                    <td colspan="${hideMagicCol ? 14 : 15}"><strong>Wild Card</strong></td>
                 </tr>
                 ${sortedWildcardTeams.map((team, index) => {
                     const row = createTeamRow(team);
-                    const cutoffLine = index === 1 ? '<tr class="playoff-cutoff"><td colspan="15"></td></tr>' : '';
+                    const cutoffLine = index === 1 ? `<tr class="playoff-cutoff"><td colspan="${hideMagicCol ? 14 : 15}"></td></tr>` : '';
                     return row + cutoffLine;
                 }).join('')}
             </tbody>
