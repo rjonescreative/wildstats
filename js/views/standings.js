@@ -187,7 +187,8 @@ function calculateMagicNumber(team, conferenceTeams) {
 }
 
 const CLINCH_LABELS = {
-    'z': 'clinched Presidents\' Trophy',
+    'p': 'Presidents\' Trophy',
+    'z': 'clinched conference',
     'y': 'clinched division',
     'x': 'clinched playoff spot',
     'e': 'eliminated from playoff contention',
