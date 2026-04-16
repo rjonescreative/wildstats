@@ -3038,7 +3038,7 @@ footer {
     display: inline-block;
     margin-left: 0.5rem;
     padding: 1px 6px;
-    background-color: var(--wild-gold, #eaaa00);
+    background-color: #fff;
     color: #000;
     font-size: 0.65rem;
     font-weight: 700;
@@ -3051,12 +3051,12 @@ footer {
 /* Playoff section on schedule page */
 .schedule-playoffs {
     margin-top: 2rem;
-    border-top: 2px solid var(--wild-gold, #eaaa00);
+    border-top: 2px solid var(--text-primary);
     padding-top: 0.5rem;
 }
 
 .schedule-playoffs h2 {
-    color: var(--wild-gold, #eaaa00);
+    color: var(--text-primary);
 }
 
 /* Playoff position key */
