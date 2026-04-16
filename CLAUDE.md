@@ -29,6 +29,8 @@ Cloudflare Functions pattern: `functions/api/[path]/[file].js` with `export asyn
 
 4. **Always work on the main branch.** Do not create feature branches or use git worktrees. Never use worktrees for this project. All work should be done on `main` and pushed directly to `main`.
 
+6. **Yellow (`--wild-gold`) is reserved for links.** Do not use `var(--wild-gold)` or `#EAAA00` for decorative elements, badges, borders, headings, or other non-link UI. Use white or `--text-secondary` instead.
+
 5. **Update page titles and analytics when adding pages.** When adding new pages or views:
    - Add the page title to `getPageTitle()` in `js/router.js` using format: `Wild Hockey Hub | Page Name`
    - Ensure GTM tracks the new page with a unique URL and page view event
