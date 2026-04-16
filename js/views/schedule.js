@@ -116,7 +116,7 @@ function renderPlayoffSection(hidePastGames) {
 
     return `
         <div class="standings-section schedule-month schedule-playoffs">
-            <h2>Stanley Cup Playoffs</h2>
+            <h2><img src="/images/stanley-cup.png" alt="Stanley Cup" class="stanley-cup-icon">Stanley Cup Playoffs</h2>
             <div class="standings-table schedule-table">
                 <table>
                     <thead>

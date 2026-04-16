@@ -3057,6 +3057,14 @@ footer {
 
 .schedule-playoffs h2 {
     color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.4em;
+}
+
+.stanley-cup-icon {
+    height: 1em;
+    width: auto;
 }
 
 /* Playoff position key */
