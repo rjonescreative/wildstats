@@ -88,8 +88,8 @@ async function renderGames() {
         return;
     }
 
-    // Filter to regular season games only
-    const regularSeasonGames = scheduleData.games.filter(g => g.gameType === 2);
+    // Include regular season and playoff games
+    const regularSeasonGames = scheduleData.games.filter(g => g.gameType === 2 || g.gameType === 3);
 
     // Find last game (most recent completed game)
     const completedGames = regularSeasonGames.filter(g =>
@@ -341,9 +341,11 @@ function renderGameCard(label, game, isPast, isLive) {
         }
     }
 
+    const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
+
     return `
         <div class="game-card ${resultClass}">
-            <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}</div>
+            <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}${playoffBadge}</div>
             <div class="game-matchup">
                 <div class="team-display ${isMinHome ? 'opponent-team' : 'wild-team'}">
                     <img src="/logos/${isMinHome ? oppTeam.abbrev : 'MIN'}_dark.svg" alt="${isMinHome ? oppTeam.abbrev : 'MIN'}" class="game-team-logo">

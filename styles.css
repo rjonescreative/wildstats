@@ -2714,6 +2714,10 @@ footer {
     z-index: 10;
 }
 
+.schedule-header + #schedule-tables {
+    padding-top: 2.5rem;
+}
+
 .schedule-month {
     margin-bottom: 2.5rem;
 }
@@ -3027,6 +3031,32 @@ footer {
 .game-card-h2h-link:hover {
     opacity: 0.8;
     text-decoration: underline;
+}
+
+/* Playoff badge on dashboard game cards */
+.playoff-badge {
+    display: inline-block;
+    margin-left: 0.5rem;
+    padding: 1px 6px;
+    background-color: var(--wild-gold, #eaaa00);
+    color: #000;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    border-radius: 3px;
+    text-transform: uppercase;
+    vertical-align: middle;
+}
+
+/* Playoff section on schedule page */
+.schedule-playoffs {
+    margin-top: 2rem;
+    border-top: 2px solid var(--wild-gold, #eaaa00);
+    padding-top: 0.5rem;
+}
+
+.schedule-playoffs h2 {
+    color: var(--wild-gold, #eaaa00);
 }
 
 /* Playoff position key */

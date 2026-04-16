@@ -3,25 +3,31 @@ import { getSchedule, getStandings } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 
 let allGames = [];
+let playoffGames = [];
 let playoffTeams = new Set();
 
 export async function init() {
     try {
-        const [scheduleData, standingsData] = await Promise.all([
+        const [scheduleData, standingsResult] = await Promise.all([
             getSchedule('20252026'),
-            getStandings()
+            getStandings().catch(() => null)
         ]);
 
         // Filter to regular season games only (gameType === 2)
         allGames = scheduleData.games.filter(g => g.gameType === 2);
 
+        // Store playoff games separately (gameType === 3)
+        playoffGames = scheduleData.games.filter(g => g.gameType === 3);
+
         // Build set of teams currently in playoff position (top 8 in each conference)
         playoffTeams = new Set();
-        standingsData.standings.forEach(team => {
-            if (team.conferenceSequence <= 8) {
-                playoffTeams.add(team.teamAbbrev.default);
-            }
-        });
+        if (standingsResult?.standings) {
+            standingsResult.standings.forEach(team => {
+                if (team.conferenceSequence <= 8) {
+                    playoffTeams.add(team.teamAbbrev.default);
+                }
+            });
+        }
 
         // Render the schedule
         renderToggle();
@@ -42,19 +48,35 @@ export function render() {
     renderTables();
 }
 
+function hasUpcomingRegularSeasonGames() {
+    return allGames.some(g =>
+        g.gameState === 'FUT' || g.gameState === 'PRE' ||
+        g.gameState === 'LIVE' || g.gameState === 'CRIT'
+    );
+}
+
+function hasUpcomingPlayoffGames() {
+    return playoffGames.some(g =>
+        g.gameState === 'FUT' || g.gameState === 'PRE' ||
+        g.gameState === 'LIVE' || g.gameState === 'CRIT'
+    );
+}
+
 function renderToggle() {
     const container = document.getElementById('schedule-container');
     const uiState = getUIState('schedule');
     const isChecked = uiState.hidePastGames ? 'checked' : '';
+    const showToggle = hasUpcomingRegularSeasonGames() || hasUpcomingPlayoffGames();
 
     const toggleHtml = `
+        ${showToggle ? `
         <div class="schedule-header">
             <label class="schedule-toggle">
                 <span class="toggle-label">Hide Past Games</span>
                 <input type="checkbox" id="hide-past-games-toggle" ${isChecked}>
                 <span class="toggle-slider"></span>
             </label>
-        </div>
+        </div>` : ''}
         <div id="schedule-tables"></div>
     `;
     container.innerHTML = toggleHtml;
@@ -78,11 +100,45 @@ function renderTables() {
     if (tablesContainer) {
         tablesContainer.innerHTML = Object.entries(gamesByMonth)
             .map(([month, games]) => createMonthTable(month, games))
-            .join('') + renderPlayoffKey();
+            .join('') + renderPlayoffKey() + renderPlayoffSection(hidePastGames);
     }
 }
 
+function renderPlayoffSection(hidePastGames) {
+    if (playoffGames.length === 0) return '';
+
+    let gamesToShow = playoffGames;
+    if (hidePastGames) {
+        gamesToShow = playoffGames.filter(g => g.gameState === 'FUT' || g.gameState === 'LIVE' || g.gameState === 'CRIT');
+    }
+
+    if (gamesToShow.length === 0) return '';
+
+    return `
+        <div class="standings-section schedule-month schedule-playoffs">
+            <h2>Stanley Cup Playoffs</h2>
+            <div class="standings-table schedule-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th></th>
+                            <th>Matchup</th>
+                            <th class="hide-mobile">TV</th>
+                            <th class="hide-mobile center">Links</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${gamesToShow.map(game => createGameRow(game, true)).join('')}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    `;
+}
+
 function renderPlayoffKey() {
+    if (!hasUpcomingRegularSeasonGames()) return '';
     return `
         <div class="schedule-playoff-key">
             <span class="key-item"><span class="opp-in-playoffs">OPP</span> In playoff position</span>
@@ -210,7 +266,7 @@ function createMonthTable(monthName, games) {
 }
 
 // Create game row HTML
-function createGameRow(game) {
+function createGameRow(game, isPlayoff = false) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
     const isFuture = game.gameState === 'FUT' || game.gameState === 'LIVE' || game.gameState === 'CRIT';
@@ -241,7 +297,7 @@ function createGameRow(game) {
             ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score">${oppScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score">${minScore}</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`
             : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
     } else {
-        const oppPlayoffClass = playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs';
+        const oppPlayoffClass = isPlayoff ? '' : (playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs');
         matchup = isMinHome
             ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`
             : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`;
