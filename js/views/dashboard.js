@@ -128,7 +128,7 @@ async function renderGames() {
 
     const gamesHtml = `
         <div class="games-grid">
-            ${lastGame ? renderGameCard('Last', lastGame, true, false) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
+            ${lastGame ? renderGameCard('Last', lastGame, true, false, lastGame.gameType === 3 ? getSeriesRecord(lastGame, scheduleData.games) : null) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
             ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
             ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
         </div>
@@ -241,7 +241,32 @@ function updateLiveGameCard(game) {
     liveInfo.innerHTML = `<span class="live-status"><span class="period-badge">${periodStr}</span>${timeRemaining ? ` <span class="time-remaining">${timeRemaining}</span>` : ''}</span>${liveLink}`;
 }
 
-function renderGameCard(label, game, isPast, isLive) {
+function getSeriesRecord(game, allGames) {
+    const isMinHome = game.homeTeam.abbrev === 'MIN';
+    const oppAbbrev = isMinHome ? game.awayTeam.abbrev : game.homeTeam.abbrev;
+
+    const seriesGames = allGames.filter(g =>
+        g.gameType === 3 &&
+        (g.gameState === 'FINAL' || g.gameState === 'OFF') &&
+        ((g.homeTeam.abbrev === 'MIN' && g.awayTeam.abbrev === oppAbbrev) ||
+         (g.awayTeam.abbrev === 'MIN' && g.homeTeam.abbrev === oppAbbrev))
+    );
+
+    let minWins = 0, oppWins = 0;
+    seriesGames.forEach(g => {
+        const minScore = g.homeTeam.abbrev === 'MIN' ? g.homeTeam.score : g.awayTeam.score;
+        const oppScore = g.homeTeam.abbrev === 'MIN' ? g.awayTeam.score : g.homeTeam.score;
+        if (minScore > oppScore) minWins++; else oppWins++;
+    });
+
+    if (minWins === 4) return `MIN wins series 4-${oppWins}`;
+    if (oppWins === 4) return `${oppAbbrev} wins series 4-${minWins}`;
+    if (minWins > oppWins) return `MIN leads series ${minWins}-${oppWins}`;
+    if (oppWins > minWins) return `${oppAbbrev} leads series ${oppWins}-${minWins}`;
+    return `Series tied ${minWins}-${minWins}`;
+}
+
+function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
 
@@ -357,6 +382,7 @@ function renderGameCard(label, game, isPast, isLive) {
                     <div class="team-abbrev">${isMinHome ? 'MIN' : oppTeam.abbrev}${homeScore}</div>
                 </div>
             </div>
+            ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
             ${liveInfo}
             ${h2hLink}
         </div>
