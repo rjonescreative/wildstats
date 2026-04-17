@@ -3071,8 +3071,9 @@ footer {
 }
 
 .stanley-cup-icon {
-    height: 1em;
+    height: 1.2em;
     width: auto;
+    vertical-align: middle;
 }
 
 /* Playoff position key */
