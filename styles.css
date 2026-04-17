@@ -3067,13 +3067,13 @@ footer {
     color: var(--text-primary);
     display: flex;
     align-items: center;
-    gap: 0.4em;
 }
 
 .stanley-cup-icon {
     height: 1.2em;
     width: auto;
     vertical-align: middle;
+    margin-right: 0.4em;
 }
 
 /* Playoff position key */
