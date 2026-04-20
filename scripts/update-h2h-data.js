@@ -280,9 +280,9 @@ function buildPlayoffSeries(playoffGames) {
     for (const games of Object.values(bySeason)) {
         const minWins = games.filter(g => g.minScore > g.oppScore).length;
         const oppWins = games.filter(g => g.oppScore > g.minScore).length;
-        if (minWins > oppWins) seriesWins++;
-        else if (oppWins > minWins) seriesLosses++;
-        // tied = in-progress series, not counted
+        if (minWins >= 4) seriesWins++;
+        else if (oppWins >= 4) seriesLosses++;
+        // series not yet complete (neither team at 4 wins) = not counted
     }
 
     const agg = aggregateGames(playoffGames);
