@@ -1741,7 +1741,7 @@ td {
     display: none;
 }
 
-@media (max-width: 768px) {
+@media (max-width: 1360px) {
     .bracket-desktop {
         display: none;
     }
@@ -1789,7 +1789,7 @@ td {
     /* Single matchup rounds (CF, SCF) center the card */
     .bracket-mobile-matchups:has(> :only-child) {
         grid-template-columns: 1fr;
-        max-width: 260px;
+        max-width: 360px;
         margin: 0 auto;
     }
 
@@ -1798,17 +1798,6 @@ td {
         padding: 1rem 0;
         border-top: 1px solid var(--border-subtle);
         border-bottom: 1px solid var(--border-subtle);
-    }
-
-    /* Mobile matchup cards — show abbreviation, hide full name */
-    .bracket-mobile .bracket-team-name {
-        display: none;
-    }
-
-    .bracket-mobile .bracket-team-abbrev {
-        display: inline;
-        font-size: 0.75rem;
-        font-weight: 600;
     }
 
     .bracket-mobile .bracket-team {
@@ -1830,6 +1819,19 @@ td {
     .bracket-mobile .bracket-team-wins {
         font-size: 0.85rem;
         min-width: 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* Switch to abbreviations on small screens */
+    .bracket-mobile .bracket-team-name {
+        display: none;
+    }
+
+    .bracket-mobile .bracket-team-abbrev {
+        display: inline;
+        font-size: 0.75rem;
+        font-weight: 600;
     }
 }
 

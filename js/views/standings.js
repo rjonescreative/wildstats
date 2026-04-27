@@ -580,7 +580,6 @@ function renderMatchupCard(series) {
         `;
     };
 
-    const seriesLabel = seriesActive ? `<div class="bracket-series-status">Series ${topWins > bottomWins ? `${topWins}-${bottomWins}` : `${bottomWins}-${topWins}`}</div>` : '';
     const wonLabel = topWon ? `<div class="bracket-series-won">${topTeam?.commonName?.default || 'Team'} advance</div>` :
                      bottomWon ? `<div class="bracket-series-won">${bottomTeam?.commonName?.default || 'Team'} advance</div>` : '';
 
@@ -588,7 +587,7 @@ function renderMatchupCard(series) {
         <div class="bracket-matchup${seriesActive ? ' bracket-matchup-active' : ''}">
             ${renderTeam(topTeam, series.topSeedRankAbbrev, topWins, topWon, bottomWon)}
             ${renderTeam(bottomTeam, series.bottomSeedRankAbbrev, bottomWins, bottomWon, topWon)}
-            ${seriesLabel}${wonLabel}
+            ${wonLabel}
         </div>
     `;
 }
