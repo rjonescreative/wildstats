@@ -1,7 +1,7 @@
 // Standings view module
 import { getStandings, getLeagueLeaders, getPlayoffBracket } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
-import { getSeasonGames } from '../seasonConfig.js';
+import { getSeasonGames, PLAYOFF_MODE } from '../seasonConfig.js';
 
 let standingsData = null;
 let bracketData = null;
@@ -213,7 +213,7 @@ function renderClinchKey() {
 
 function renderLeagueStandings(state) {
     const allTeams = sortTeams(standingsData.standings, state);
-    const hideMagicCol = isSeasonResolved();
+    const hideMagicCol = !PLAYOFF_MODE || isSeasonResolved();
 
     return `
         <div class="standings-section">
@@ -229,7 +229,7 @@ function renderLeagueStandings(state) {
 function renderConferenceStandings(state) {
     const western = sortTeams(standingsData.standings.filter(team => team.conferenceName === 'Western'), state);
     const eastern = sortTeams(standingsData.standings.filter(team => team.conferenceName === 'Eastern'), state);
-    const hideMagicCol = isSeasonResolved();
+    const hideMagicCol = !PLAYOFF_MODE || isSeasonResolved();
 
     return `
         <div class="standings-section">
@@ -250,7 +250,7 @@ function renderConferenceStandings(state) {
 
 function renderDivisionStandings(state) {
     const divisions = ['Central', 'Pacific', 'Atlantic', 'Metropolitan'];
-    const hideMagicCol = isSeasonResolved();
+    const hideMagicCol = !PLAYOFF_MODE || isSeasonResolved();
 
     return divisions.map(division => {
         const teams = sortTeams(standingsData.standings.filter(team => team.divisionName === division), state);
@@ -275,7 +275,7 @@ function renderWildcardStandings(state) {
         .filter(team => team.conferenceName === 'Eastern')
         .sort((a, b) => a.wildcardSequence - b.wildcardSequence);
 
-    const hideMagicCol = isSeasonResolved();
+    const hideMagicCol = !PLAYOFF_MODE || isSeasonResolved();
 
     return `
         <div class="standings-section">

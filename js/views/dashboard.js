@@ -1,7 +1,7 @@
 // Dashboard view module
 import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getVideos, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
-import { getSeasonGames } from '../seasonConfig.js';
+import { getSeasonGames, PLAYOFF_MODE } from '../seasonConfig.js';
 import { trackTableSort, trackNewsClick } from '../analytics.js';
 import { NHL_TEAMS } from '../teams.js';
 import { ALL_TEAMS, DIVISIONS, loadTeamData, buildChart, attachChartHoverHandlers } from './season.js';
@@ -720,11 +720,11 @@ function renderCentralDivision() {
         return state.sortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
-    document.getElementById('central-standings').innerHTML = createStandingsTable(sortedTeams, state);
+    document.getElementById('central-standings').innerHTML = createStandingsTable(sortedTeams, state, !PLAYOFF_MODE);
     setupSortListeners();
 }
 
-function createStandingsTable(teams, state) {
+function createStandingsTable(teams, state, hideMagicCol = false) {
     const getSortIcon = (field) => {
         if (state.sortBy !== field) return '<span class="sort-arrow"> </span>';
         const arrow = state.sortDirection === 'desc' ? '↓' : '↑';
@@ -764,7 +764,7 @@ function createStandingsTable(teams, state) {
                     <th class="center hide-mobile" data-tooltip="Goal Differential" aria-label="Goal Differential">DIFF</th>
                     <th class="center" data-tooltip="Last 10 Games" aria-label="Last 10 Games">L10</th>
                     <th class="center" data-tooltip="Streak" aria-label="Streak">STRK</th>
-                    <th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>
+                    ${!hideMagicCol ? '<th class="center" data-tooltip="Magic/Tragic Numbers" aria-label="Magic/Tragic Numbers">M#</th>' : ''}
                 </tr>
             </thead>
             <tbody>
@@ -776,7 +776,7 @@ function createStandingsTable(teams, state) {
 
                     // Calculate magic/tragic number
                     const conferenceTeams = standingsData.standings.filter(t => t.conferenceName === team.conferenceName);
-                    const magicNumber = calculateMagicNumber(team, conferenceTeams);
+                    const magicNumber = hideMagicCol ? null : calculateMagicNumber(team, conferenceTeams);
                     let magicDisplay = '';
                     if (magicNumber) {
                         const className = magicNumber.type === 'magic' ? 'magic-number' : 'tragic-number';
@@ -794,7 +794,7 @@ function createStandingsTable(teams, state) {
                                 <img src="/logos/${team.teamAbbrev.default}_dark.svg" alt="${team.teamAbbrev.default}" class="team-logo">
                                 <a href="https://www.nhl.com/${TEAM_SLUGS[team.teamAbbrev.default] || team.teamAbbrev.default.toLowerCase()}/" target="_blank" rel="noopener noreferrer" class="team-link">
                                     <span class="team-full-name">${team.teamName.default}${team.clinchIndicator ? ` \u2013 ${team.clinchIndicator}` : ''}</span>
-                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>
+                                    <span class="team-abbrev-text">${team.teamAbbrev.default}</span>${hideMagicCol && team.clinchIndicator ? `<span class="clinch-abbrev"> \u2013 ${team.clinchIndicator}</span>` : ''}
                                     <span class="external-link-icon">↗</span>
                                 </a>
                             </td>
@@ -811,11 +811,11 @@ function createStandingsTable(teams, state) {
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
                             <td class="center ${streakClass}">${team.streakCode ? `${team.streakCode}${team.streakCount}` : '--'}</td>
-                            <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
+                            ${!hideMagicCol ? `<td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>` : ''}
                         </tr>
                     `;
 
-                    const cutoffLine = showCutoff ? '<tr class="playoff-cutoff"><td colspan="16"></td></tr>' : '';
+                    const cutoffLine = showCutoff ? `<tr class="playoff-cutoff"><td colspan="${hideMagicCol ? 15 : 16}"></td></tr>` : '';
                     return row + cutoffLine;
                 }).join('')}
             </tbody>

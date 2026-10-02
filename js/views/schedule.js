@@ -1,6 +1,7 @@
 // Schedule view module
 import { getSchedule, getStandings } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
+import { PLAYOFF_MODE } from '../seasonConfig.js';
 
 let allGames = [];
 let playoffGames = [];
@@ -21,7 +22,7 @@ export async function init() {
 
         // Build set of teams currently in playoff position (top 8 in each conference)
         playoffTeams = new Set();
-        if (standingsResult?.standings) {
+        if (PLAYOFF_MODE && standingsResult?.standings) {
             standingsResult.standings.forEach(team => {
                 if (team.conferenceSequence <= 8) {
                     playoffTeams.add(team.teamAbbrev.default);
@@ -138,7 +139,7 @@ function renderPlayoffSection(hidePastGames) {
 }
 
 function renderPlayoffKey() {
-    if (!hasUpcomingRegularSeasonGames()) return '';
+    if (!PLAYOFF_MODE || !hasUpcomingRegularSeasonGames()) return '';
     return `
         <div class="schedule-playoff-key">
             <span class="key-item"><span class="opp-in-playoffs">OPP</span> In playoff position</span>
@@ -297,7 +298,7 @@ function createGameRow(game, isPlayoff = false) {
             ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score">${oppScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score">${minScore}</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`
             : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
     } else {
-        const oppPlayoffClass = isPlayoff ? '' : (playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs');
+        const oppPlayoffClass = (isPlayoff || !PLAYOFF_MODE) ? '' : (playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs');
         matchup = isMinHome
             ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`
             : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`;
