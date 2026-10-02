@@ -1895,8 +1895,7 @@ td {
 
 .upcoming-game {
     display: grid;
-    grid-template-columns: 3.25rem minmax(0, 9.5rem) auto;
-    justify-content: start;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.5rem;
     padding: 0.5rem 0;
@@ -1908,16 +1907,16 @@ td {
     border-bottom: none;
 }
 
-.upcoming-date {
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.upcoming-time {
+.upcoming-when {
     color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
+}
+
+.upcoming-date {
+    font-weight: 600;
+    color: var(--text-primary);
 }
 
 .upcoming-matchup {
@@ -1945,17 +1944,19 @@ td {
 
 /* Narrow cards (three side by side, or small phones): stack the time under the date so it fits */
 @media (min-width: 1025px) and (max-width: 1279px), (max-width: 440px) {
-    .upcoming-game {
-        grid-template-columns: 1fr auto;
-        grid-template-areas:
-            "date matchup"
-            "time matchup";
-        row-gap: 0.125rem;
+    .upcoming-when {
+        display: flex;
+        flex-direction: column;
+        gap: 0.125rem;
     }
 
-    .upcoming-date { grid-area: date; }
-    .upcoming-time { grid-area: time; font-size: 0.75rem; }
-    .upcoming-matchup { grid-area: matchup; }
+    .upcoming-sep {
+        display: none;
+    }
+
+    .upcoming-time {
+        font-size: 0.75rem;
+    }
 }
 
 .game-matchup {

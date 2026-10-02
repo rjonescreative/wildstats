@@ -390,7 +390,7 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     `;
 }
 
-// Compact schedule-style list of upcoming games (date, time, matchup)
+// Compact schedule-style list of upcoming games ("Sat, Oct 3 • 5:00 PM PDT" + matchup)
 function renderUpcomingGames(games) {
     if (games.length === 0) {
         return '<div class="game-card upcoming-games-card"><div class="game-label">Upcoming games</div><div class="loading">No games scheduled</div></div>';
@@ -401,16 +401,16 @@ function renderUpcomingGames(games) {
         const away = isMinHome ? game.awayTeam.abbrev : 'MIN';
         const home = isMinHome ? 'MIN' : game.homeTeam.abbrev;
         const gameDate = new Date(game.gameDate + 'T00:00:00');
-        const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        const dayStr = gameDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const dateStr = gameDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const timeStr = game.startTimeUTC
             ? new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }).format(new Date(game.startTimeUTC))
             : 'TBD';
 
         return `
-            <li class="upcoming-game ${isMinHome ? 'game-home' : 'game-away'}">
-                <span class="upcoming-date">${dateStr}</span>
-                <span class="upcoming-time">${dayStr}, ${timeStr}</span>
+            <li class="upcoming-game">
+                <span class="upcoming-when">
+                    <span class="upcoming-date">${dateStr}</span><span class="upcoming-sep"> • </span><span class="upcoming-time">${timeStr}</span>
+                </span>
                 <span class="upcoming-matchup">
                     <img src="/logos/${away}_dark.svg" alt="" class="upcoming-logo">
                     <span class="upcoming-team">${away}</span>
