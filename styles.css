@@ -1877,6 +1877,87 @@ td {
     color: var(--text-secondary);
 }
 
+/* Upcoming games list card */
+.upcoming-games-card {
+    align-items: stretch;
+    gap: 0.75rem;
+}
+
+.upcoming-games-card > .game-label {
+    text-align: center;
+}
+
+.upcoming-games-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.upcoming-game {
+    display: grid;
+    grid-template-columns: 3.25rem minmax(0, 9.5rem) auto;
+    justify-content: start;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+    font-size: 0.8125rem;
+}
+
+.upcoming-game:last-child {
+    border-bottom: none;
+}
+
+.upcoming-date {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.upcoming-time {
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.upcoming-matchup {
+    display: grid;
+    grid-template-columns: 20px 2.25rem 1rem 2.25rem 20px;
+    align-items: center;
+    gap: 3px;
+    text-align: center;
+}
+
+.upcoming-team {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.upcoming-at {
+    color: var(--text-secondary);
+}
+
+.upcoming-logo {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+/* Narrow cards (three side by side, or small phones): stack the time under the date so it fits */
+@media (min-width: 1025px) and (max-width: 1279px), (max-width: 440px) {
+    .upcoming-game {
+        grid-template-columns: 1fr auto;
+        grid-template-areas:
+            "date matchup"
+            "time matchup";
+        row-gap: 0.125rem;
+    }
+
+    .upcoming-date { grid-area: date; }
+    .upcoming-time { grid-area: time; font-size: 0.75rem; }
+    .upcoming-matchup { grid-area: matchup; }
+}
+
 .game-matchup {
     display: flex;
     align-items: center;
@@ -2283,11 +2364,6 @@ footer {
     .game-at {
         font-size: 0.9rem;
         margin: 0 0.25rem;
-    }
-
-    /* Hide upcoming game card on mobile */
-    .games-grid > .game-card:nth-child(3) {
-        display: none;
     }
 
     /* Records: single column below 768px */

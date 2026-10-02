@@ -104,7 +104,7 @@ async function renderGames() {
         g.gameState === 'FUT' || g.gameState === 'PRE' || g.gameState === 'LIVE' || g.gameState === 'CRIT'
     );
     const currentOrNextGame = futureGames[0];
-    const upcomingGame = futureGames[1];
+    const upcomingGames = futureGames.slice(1, 6); // the five games after the Next card
 
     // Fetch live game data if there's a live or starting game
     liveGameData = null;
@@ -131,7 +131,7 @@ async function renderGames() {
         <div class="games-grid">
             ${lastGame ? renderGameCard('Last', lastGame, true, false, lastGame.gameType === 3 ? getSeriesRecord(lastGame, scheduleData.games) : null) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
             ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
-            ${upcomingGame ? renderGameCard('Upcoming', upcomingGame, false, false) : '<div class="game-card"><div class="loading">No games scheduled</div></div>'}
+            ${renderUpcomingGames(upcomingGames)}
         </div>
         <div class="section-footer">
             <a href="/schedule" class="text-link" data-link>View full schedule →</a>
@@ -386,6 +386,46 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
             ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
             ${liveInfo}
             ${h2hLink}
+        </div>
+    `;
+}
+
+// Compact schedule-style list of upcoming games (date, time, matchup)
+function renderUpcomingGames(games) {
+    if (games.length === 0) {
+        return '<div class="game-card upcoming-games-card"><div class="game-label">Upcoming games</div><div class="loading">No games scheduled</div></div>';
+    }
+
+    const rows = games.map(game => {
+        const isMinHome = game.homeTeam.abbrev === 'MIN';
+        const away = isMinHome ? game.awayTeam.abbrev : 'MIN';
+        const home = isMinHome ? 'MIN' : game.homeTeam.abbrev;
+        const gameDate = new Date(game.gameDate + 'T00:00:00');
+        const dateStr = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        const dayStr = gameDate.toLocaleDateString('en-US', { weekday: 'short' });
+        const timeStr = game.startTimeUTC
+            ? new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit', hour12: true, timeZoneName: 'short' }).format(new Date(game.startTimeUTC))
+            : 'TBD';
+
+        return `
+            <li class="upcoming-game ${isMinHome ? 'game-home' : 'game-away'}">
+                <span class="upcoming-date">${dateStr}</span>
+                <span class="upcoming-time">${dayStr}, ${timeStr}</span>
+                <span class="upcoming-matchup">
+                    <img src="/logos/${away}_dark.svg" alt="" class="upcoming-logo">
+                    <span class="upcoming-team">${away}</span>
+                    <span class="upcoming-at">@</span>
+                    <span class="upcoming-team">${home}</span>
+                    <img src="/logos/${home}_dark.svg" alt="" class="upcoming-logo">
+                </span>
+            </li>
+        `;
+    }).join('');
+
+    return `
+        <div class="game-card upcoming-games-card">
+            <div class="game-label">Upcoming games</div>
+            <ul class="upcoming-games-list">${rows}</ul>
         </div>
     `;
 }
