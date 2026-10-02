@@ -2504,6 +2504,35 @@ footer {
     border-color: var(--wild-gold);
 }
 
+.player-card-status {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 1.5rem 2.75rem 1.5rem 1rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.player-card-spinner {
+    flex-shrink: 0;
+    width: 18px;
+    height: 18px;
+    border: 2px solid var(--border-medium);
+    border-top-color: var(--text-primary);
+    border-radius: 50%;
+    animation: playerCardSpin 0.8s linear infinite;
+}
+
+@keyframes playerCardSpin {
+    to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .player-card-spinner {
+        animation-duration: 2.4s;
+    }
+}
+
 .player-card-header {
     display: flex;
     gap: 0.75rem;

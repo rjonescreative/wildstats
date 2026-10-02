@@ -137,14 +137,25 @@ function handleClick(e) {
 // Show card
 async function showPlayerCard(playerId, x, y) {
     currentPlayerId = playerId;
+    const container = document.getElementById('player-card-container');
+
+    // Open immediately with a loading state unless the data is already cached
+    if (!getCachedPlayerCard(playerId)) {
+        renderStatus('loading');
+        positionCard(x, y);
+        container.classList.add('visible');
+        if (openedViaKeyboard) container.querySelector('.player-card-close')?.focus();
+    }
 
     const cardData = await fetchPlayerCardData(playerId);
-    if (!cardData || currentPlayerId !== playerId) return;
+    if (currentPlayerId !== playerId) return;
 
-    renderCard(cardData);
+    if (cardData) {
+        renderCard(cardData);
+    } else {
+        renderStatus('error');
+    }
     positionCard(x, y);
-
-    const container = document.getElementById('player-card-container');
     container.classList.add('visible');
 
     // Focus the close button if opened via keyboard
@@ -380,9 +391,24 @@ function positionCard(mouseX, mouseY) {
     card.style.top = `${y}px`;
 }
 
+// Render loading or error placeholder while card data is unavailable
+function renderStatus(status) {
+    const container = document.getElementById('player-card-container');
+    const isLoading = status === 'loading';
+    container.setAttribute('aria-busy', String(isLoading));
+    container.innerHTML = `
+        <button class="player-card-close" aria-label="Close">&times;</button>
+        <div class="player-card-status" role="status">
+            ${isLoading ? '<span class="player-card-spinner" aria-hidden="true"></span>' : ''}
+            <span>${isLoading ? 'Loading player stats…' : 'Couldn’t load player stats. Try again in a moment.'}</span>
+        </div>
+    `;
+}
+
 // Render card HTML
 function renderCard(data) {
     const container = document.getElementById('player-card-container');
+    container.setAttribute('aria-busy', 'false');
     container.innerHTML = generateCardHTML(data);
 
     // Track player card view
