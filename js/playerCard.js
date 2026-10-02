@@ -1,5 +1,6 @@
 import { getCachedPlayerCard, setCachedPlayerCard, getCachedData } from './state.js';
 import { trackPlayerCardView } from './analytics.js';
+import { getSeasonGames, getPreviousSeason } from './seasonConfig.js';
 
 // State
 let hoverTimeout = null;
@@ -269,7 +270,7 @@ function processPlayerData(details, gameLog) {
     // Sum points from all teams played for in the previous season
     if (details.seasonTotals) {
         const prevSeasonEntries = details.seasonTotals.filter(
-            s => s.season === 20242025 && s.leagueAbbrev === 'NHL' && s.gameTypeId === 2
+            s => s.season === Number(getPreviousSeason()) && s.leagueAbbrev === 'NHL' && s.gameTypeId === 2
         );
         if (prevSeasonEntries.length > 0) {
             prevSeasonPoints = prevSeasonEntries.reduce((total, entry) => {
@@ -279,13 +280,13 @@ function processPlayerData(details, gameLog) {
     }
 
     // Get team's games played from cached standings
-    let teamGamesPlayed = 82;
+    let teamGamesPlayed = getSeasonGames();
     const standings = getCachedData('standings');
     if (standings?.standings) {
         const teamAbbr = details.currentTeamAbbrev || 'MIN';
         const teamData = standings.standings.find(t => t.teamAbbrev?.default === teamAbbr);
         if (teamData) {
-            teamGamesPlayed = teamData.gamesPlayed || 82;
+            teamGamesPlayed = teamData.gamesPlayed || getSeasonGames();
         }
     }
 
@@ -438,9 +439,9 @@ function generateCardHTML(data) {
                 const ppgClass = ppgDiff > 0 ? 'ppg-up' : ppgDiff < 0 ? 'ppg-down' : 'ppg-neutral';
                 const ppgArrow = ppgDiff > 0 ? '↑' : ppgDiff < 0 ? '↓' : '';
 
-                // Calculate max games (82 minus games missed)
+                // Calculate max games (season length minus games missed)
                 const missedGames = Math.max(0, data.teamGamesPlayed - seasonStats.gamesPlayed);
-                const maxGames = 82 - missedGames;
+                const maxGames = getSeasonGames() - missedGames;
 
                 // Calculate pace based on max possible games
                 const paceGoals = seasonStats.gamesPlayed > 0 ? Math.round((seasonStats.goals / seasonStats.gamesPlayed) * maxGames) : 0;

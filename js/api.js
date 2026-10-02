@@ -1,5 +1,6 @@
 // API module with caching
 import { isCacheValid, getCachedData, setCachedData } from './state.js';
+import { getCurrentSeason } from './seasonConfig.js';
 
 // Fetch with automatic retry + exponential backoff.
 // Retries on network errors, 5xx responses, and 429 rate-limit responses.
@@ -86,19 +87,19 @@ export async function getLeagueLeaders(forceRefresh = false) {
 }
 
 // Get Minnesota Wild schedule
-export async function getSchedule(season = '20252026', forceRefresh = false) {
+export async function getSchedule(season = getCurrentSeason(), forceRefresh = false) {
     return fetchWithCache(`/api/schedule/${season}`, `schedule_${season}`, forceRefresh);
 }
 
 // Get any team's schedule (used for multi-team points chart)
-export async function getTeamSchedule(team, season = '20252026', forceRefresh = false) {
+export async function getTeamSchedule(team, season = getCurrentSeason(), forceRefresh = false) {
     return fetchWithCache(`/api/team-schedule/${team}/${season}`, `schedule_${team}_${season}`, forceRefresh);
 }
 
 // Fetches all 32 team schedules in a single server-side aggregated request.
 // Returns { [abbrev]: games[] } with chart-only fields stripped server-side.
 // Use this instead of 32 individual getTeamSchedule() calls.
-export async function getAllTeamSchedules(season = '20252026', forceRefresh = false) {
+export async function getAllTeamSchedules(season = getCurrentSeason(), forceRefresh = false) {
     return fetchWithCache(`/api/all-team-schedules/${season}`, `allTeamSchedules_${season}`, forceRefresh);
 }
 

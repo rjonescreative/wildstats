@@ -1,8 +1,7 @@
 // Cloudflare Pages Function — Wild season breakdown (incremental R2 cache)
 // Stores per-game period scores + SO scorers + goalie data in R2, only fetching new games on each request.
 
-const R2_KEY = 'wild/season-breakdown-20252026-v5.json';
-const SEASON  = '20252026';
+import { getCurrentSeason } from '../../../js/seasonConfig.js';
 
 // Extract period scores, SO scorers, and goalie data from a play-by-play response
 function extractGameData(pbp) {
@@ -70,6 +69,8 @@ function extractGameData(pbp) {
 
 export async function onRequest(context) {
     const { env } = context;
+    const SEASON = getCurrentSeason();
+    const R2_KEY = `wild/season-breakdown-${SEASON}-v5.json`;
 
     const jsonHeaders = {
         'Content-Type': 'application/json',

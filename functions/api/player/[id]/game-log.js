@@ -1,7 +1,9 @@
+import { getCurrentSeason } from '../../../../js/seasonConfig.js';
+
 export async function onRequest(context) {
     const playerId = context.params.id;
     try {
-        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/20252026/2`);
+        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`);
         const data = await response.json();
         return new Response(JSON.stringify(data), {
             headers: {

@@ -1,4 +1,4 @@
-// Current Season view — team-level stats for 2025-26
+// Current Season view — team-level stats for the current season
 import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
@@ -86,7 +86,7 @@ export async function loadTeamData(abbrev) {
     if (dataCache[abbrev]) return dataCache[abbrev];
     // One aggregated request fetches all 32 teams at once (server-side fan-out).
     // Subsequent calls for other teams hit the in-memory cache instantly.
-    const allSchedules = await getAllTeamSchedules('20252026');
+    const allSchedules = await getAllTeamSchedules();
     const games = allSchedules[abbrev] ?? [];
     const data = computePointsProgression(games, abbrev);
     dataCache[abbrev] = data;
@@ -1196,7 +1196,7 @@ export async function init() {
         otherAbbrevs.forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
 
         // Load stats sections using MIN schedule (already cached from chart)
-        const minSchedule = await getTeamSchedule('MIN', '20252026');
+        const minSchedule = await getTeamSchedule('MIN');
         loadAndRenderStats(minSchedule.games ?? []);
     } catch (err) {
         console.error('Error loading season view:', err);

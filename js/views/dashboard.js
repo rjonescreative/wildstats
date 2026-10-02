@@ -1,6 +1,7 @@
 // Dashboard view module
 import { getStandings, getWildStats, getLeagueLeaders, getSchedule, getNews, getVideos, getLiveGame } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
+import { getSeasonGames } from '../seasonConfig.js';
 import { trackTableSort, trackNewsClick } from '../analytics.js';
 import { NHL_TEAMS } from '../teams.js';
 import { ALL_TEAMS, DIVISIONS, loadTeamData, buildChart, attachChartHoverHandlers } from './season.js';
@@ -34,7 +35,7 @@ export async function init() {
             getStandings(),
             getWildStats(),
             getLeagueLeaders(),
-            getSchedule('20252026')
+            getSchedule()
         ]);
 
         standingsData = standings;
@@ -665,7 +666,7 @@ function setupSortListeners() {
 }
 
 function calculateMagicNumber(team, conferenceTeams) {
-    const TOTAL_GAMES = 82;
+    const TOTAL_GAMES = getSeasonGames();
     const PLAYOFF_SPOTS = 8;
 
     // Sort teams by wildcard sequence (current playoff standings)
@@ -802,14 +803,14 @@ function createStandingsTable(teams, state) {
                             <td class="center">${team.losses}</td>
                             <td class="center">${team.otLosses}</td>
                             <td class="center"><strong>${team.points}</strong></td>
-                            <td class="center"><span class="p-pct-full">${team.pointPctg.toFixed(3)}</span><span class="p-pct-mobile">${team.pointPctg.toFixed(2).substring(1)}</span></td>
+                            <td class="center"><span class="p-pct-full">${(team.pointPctg ?? 0).toFixed(3)}</span><span class="p-pct-mobile">${(team.pointPctg ?? 0).toFixed(2).substring(1)}</span></td>
                             <td class="center hide-mobile">${team.regulationWins}</td>
                             <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                             <td class="center hide-mobile">${team.goalFor}</td>
                             <td class="center hide-mobile">${team.goalAgainst}</td>
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
-                            <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                            <td class="center ${streakClass}">${team.streakCode ? `${team.streakCode}${team.streakCount}` : '--'}</td>
                             <td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>
                         </tr>
                     `;

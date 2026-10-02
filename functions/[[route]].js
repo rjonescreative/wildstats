@@ -1,6 +1,10 @@
 // Catch-all Cloudflare Pages Function for SSR <head> injection
 // Intercepts SPA route requests and injects page-specific title/meta tags
 // so search engines see correct metadata without needing to execute JS.
+import { getSeasonLabel } from '../js/seasonConfig.js';
+
+const SEASON_LABEL = getSeasonLabel();
+
 
 const NHL_TEAMS = [
     { name: 'Anaheim Ducks',         slug: 'anaheim' },
@@ -38,68 +42,68 @@ const NHL_TEAMS = [
 
 const PAGE_META = {
     '/': {
-        title: 'Minnesota Wild Stats, Standings & Schedule 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild stats, standings, schedules, and news for 2025-26. Your hub for Wild hockey with live game updates, player statistics, and NHL standings.'
+        title: `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild stats, standings, schedules, and news for ${SEASON_LABEL}. Your hub for Wild hockey with live game updates, player statistics, and NHL standings.`
     },
     '/stats': {
-        title: 'Minnesota Wild Player Stats 2025-26 – Goals, Assists & Points | Wild Hockey Hub',
-        description: 'Minnesota Wild player statistics for 2025-26. View skater and goalie stats including goals, assists, points, save percentage, and more.'
+        title: `Minnesota Wild Player Stats ${SEASON_LABEL} – Goals, Assists & Points | Wild Hockey Hub`,
+        description: `Minnesota Wild player statistics for ${SEASON_LABEL}. View skater and goalie stats including goals, assists, points, save percentage, and more.`
     },
     '/schedule': {
-        title: 'Minnesota Wild 2025-26 Schedule – Upcoming Games & Results | Wild Hockey Hub',
-        description: 'Minnesota Wild game schedule for 2025-26. See upcoming games, past results, scores, and the full season schedule.'
+        title: `Minnesota Wild ${SEASON_LABEL} Schedule – Upcoming Games & Results | Wild Hockey Hub`,
+        description: `Minnesota Wild game schedule for ${SEASON_LABEL}. See upcoming games, past results, scores, and the full season schedule.`
     },
     '/standings': {
-        title: 'NHL Wildcard Standings 2025-26 | Minnesota Wild Playoff Race | Wild Hockey Hub',
-        description: 'Minnesota Wild wildcard standings for 2025-26. View current NHL wildcard standings, points, wins, losses, and playoff positioning.'
+        title: `NHL Wildcard Standings ${SEASON_LABEL} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
+        description: `Minnesota Wild wildcard standings for ${SEASON_LABEL}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
     },
     '/standings/wildcard': {
-        title: 'NHL Wildcard Standings 2025-26 | Minnesota Wild Playoff Race | Wild Hockey Hub',
-        description: 'Minnesota Wild wildcard standings for 2025-26. View current NHL wildcard standings, points, wins, losses, and playoff positioning.'
+        title: `NHL Wildcard Standings ${SEASON_LABEL} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
+        description: `Minnesota Wild wildcard standings for ${SEASON_LABEL}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
     },
     '/standings/division': {
-        title: 'NHL Division Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
-        description: 'NHL division standings for 2025-26. View all four division standings including where the Minnesota Wild rank in the Central Division.'
+        title: `NHL Division Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
+        description: `NHL division standings for ${SEASON_LABEL}. View all four division standings including where the Minnesota Wild rank in the Central Division.`
     },
     '/standings/conference': {
-        title: 'NHL Conference Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
-        description: 'NHL conference standings for 2025-26. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.'
+        title: `NHL Conference Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
+        description: `NHL conference standings for ${SEASON_LABEL}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`
     },
     '/standings/league': {
-        title: 'NHL League Standings 2025-26 | Minnesota Wild | Wild Hockey Hub',
-        description: 'Full NHL league standings for 2025-26. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.'
+        title: `NHL League Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
+        description: `Full NHL league standings for ${SEASON_LABEL}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`
     },
     '/media': {
-        title: 'Minnesota Wild Videos & Highlights 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild videos for 2025-26. Watch highlights, game recaps, interviews, and more from the Wild.'
+        title: `Minnesota Wild Videos & Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild videos for ${SEASON_LABEL}. Watch highlights, game recaps, interviews, and more from the Wild.`
     },
     '/media/highlights': {
-        title: 'Minnesota Wild Game Highlights 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild game highlights for 2025-26. Watch the best plays, goals, and saves from Wild games this season.'
+        title: `Minnesota Wild Game Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild game highlights for ${SEASON_LABEL}. Watch the best plays, goals, and saves from Wild games this season.`
     },
     '/media/recaps': {
-        title: 'Minnesota Wild Game Recaps 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild game recaps for 2025-26. Watch condensed game recaps and full game summaries.'
+        title: `Minnesota Wild Game Recaps ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild game recaps for ${SEASON_LABEL}. Watch condensed game recaps and full game summaries.`
     },
     '/media/condensed': {
-        title: 'Minnesota Wild Condensed Games 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild condensed games for 2025-26. Watch full condensed game replays for every Wild game this season.'
+        title: `Minnesota Wild Condensed Games ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild condensed games for ${SEASON_LABEL}. Watch full condensed game replays for every Wild game this season.`
     },
     '/stats/milestones': {
-        title: 'Minnesota Wild Player Milestones 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild player milestones for 2025-26. See which Wild players are approaching franchise records and which milestones have already been achieved this season.'
+        title: `Minnesota Wild Player Milestones ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild player milestones for ${SEASON_LABEL}. See which Wild players are approaching franchise records and which milestones have already been achieved this season.`
     },
     '/stats/season': {
-        title: 'Minnesota Wild Current Season Stats 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild current season stats for 2025-26. Track team points progression, standings trends, and season-long statistics.'
+        title: `Minnesota Wild Current Season Stats ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild current season stats for ${SEASON_LABEL}. Track team points progression, standings trends, and season-long statistics.`
     },
     '/stats/team-records': {
         title: 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub',
         description: 'Minnesota Wild all-time franchise records and single-season statistical leaders. Find career and season bests for goals, assists, points, wins, save percentage, GAA, and more.'
     },
     '/stats/head-to-head': {
-        title: 'Minnesota Wild Head-to-Head Record vs Every NHL Team 2025-26 | Wild Hockey Hub',
-        description: 'Minnesota Wild head-to-head record against all 31 NHL opponents in 2025-26. Win-loss records, goals for, goals against, and results broken down by opponent.'
+        title: `Minnesota Wild Head-to-Head Record vs Every NHL Team ${SEASON_LABEL} | Wild Hockey Hub`,
+        description: `Minnesota Wild head-to-head record against all 31 NHL opponents in ${SEASON_LABEL}. Win-loss records, goals for, goals against, and results broken down by opponent.`
     },
 };
 
@@ -122,8 +126,8 @@ function resolveMeta(path) {
         const team = NHL_TEAMS.find(t => t.slug === h2hMatch[1]);
         if (team) {
             return {
-                title: `Minnesota Wild vs ${team.name} Head-to-Head 2025-26 – Record, Goals & Results | Wild Hockey Hub`,
-                description: `Minnesota Wild vs ${team.name} head-to-head results for 2025-26. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
+                title: `Minnesota Wild vs ${team.name} Head-to-Head ${SEASON_LABEL} – Record, Goals & Results | Wild Hockey Hub`,
+                description: `Minnesota Wild vs ${team.name} head-to-head results for ${SEASON_LABEL}. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
             };
         }
     }

@@ -9,7 +9,7 @@ let playoffTeams = new Set();
 export async function init() {
     try {
         const [scheduleData, standingsResult] = await Promise.all([
-            getSchedule('20252026'),
+            getSchedule(),
             getStandings().catch(() => null)
         ]);
 

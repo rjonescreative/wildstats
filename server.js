@@ -4,6 +4,7 @@ import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getCurrentSeason } from './js/seasonConfig.js';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
 setDefaultResultOrder('ipv4first');
@@ -53,7 +54,7 @@ app.get('/api/wild/stats', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/20252026/2', {
+        const response = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
             signal: controller.signal,
             redirect: 'follow'
         });
@@ -75,36 +76,36 @@ app.get('/api/league/leaders', async (req, res) => {
 
         const [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes] = await Promise.all([
             // Skater stats
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=goals&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=goals&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=assists&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=assists&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=points&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=points&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=plusMinus&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=plusMinus&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
             // Goalie stats
-            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=wins&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=wins&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=savePctg&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=savePctg&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=goalsAgainstAverage&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=goalsAgainstAverage&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             }),
-            fetch('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=shutouts&limit=100', {
+            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, {
                 signal: controller.signal,
                 redirect: 'follow'
             })
@@ -156,7 +157,7 @@ app.get('/api/player/:id/game-log', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/20252026/2`, {
+        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`, {
             signal: controller.signal,
             redirect: 'follow'
         });
@@ -592,7 +593,7 @@ app.get('/api/milestones/career-totals', async (req, res) => {
         // Step 1: get current Wild roster
         const rosterController = new AbortController();
         const rosterTimeout = setTimeout(() => rosterController.abort(), 10000);
-        const rosterRes = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/20252026/2', {
+        const rosterRes = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
             signal: rosterController.signal,
             redirect: 'follow',
         });
@@ -736,7 +737,7 @@ function extractGameData(pbp) {
 
 // Wild season breakdown — incremental R2 cache of per-game period scores
 app.get('/api/wild/season-breakdown', async (req, res) => {
-    const R2_KEY = 'wild/season-breakdown-20252026-v5.json';
+    const R2_KEY = `wild/season-breakdown-${getCurrentSeason()}-v5.json`;
 
     try {
         // 1. Read cached data from R2
@@ -758,7 +759,7 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
 
         // 2. Fetch MIN schedule to find all completed games
         const schedResponse = await fetch(
-            'https://api-web.nhle.com/v1/club-schedule-season/MIN/20252026',
+            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`,
             { redirect: 'follow' }
         );
         if (!schedResponse.ok || !schedResponse.headers.get('content-type')?.includes('json')) {

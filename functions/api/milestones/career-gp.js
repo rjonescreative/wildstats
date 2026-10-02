@@ -1,9 +1,11 @@
 // Returns all-team career regular season stats for current Wild roster.
 // Response: { [playerId]: { gamesPlayed, goals, assists, points } }
+import { getCurrentSeason } from '../../../js/seasonConfig.js';
+
 export async function onRequest() {
     try {
         // Step 1: get current Wild roster
-        const rosterRes = await fetch('https://api-web.nhle.com/v1/club-stats/MIN/20252026/2', {
+        const rosterRes = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
             redirect: 'follow',
         });
         if (!rosterRes.ok) throw new Error(`Roster fetch failed: ${rosterRes.status}`);

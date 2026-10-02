@@ -1,6 +1,7 @@
 // Standings view module
 import { getStandings, getLeagueLeaders, getPlayoffBracket } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
+import { getSeasonGames } from '../seasonConfig.js';
 
 let standingsData = null;
 let bracketData = null;
@@ -143,7 +144,7 @@ function sortTeams(teams, state) {
 }
 
 function calculateMagicNumber(team, conferenceTeams) {
-    const TOTAL_GAMES = 82;
+    const TOTAL_GAMES = getSeasonGames();
     const PLAYOFF_SPOTS = 8;
 
     // Sort teams by wildcard sequence (current playoff standings)
@@ -371,14 +372,14 @@ function createStandingsTable(teams, state, showLeagueRank = false, hideMagicCol
                             <td class="center">${team.losses}</td>
                             <td class="center">${team.otLosses}</td>
                             <td class="center"><strong>${team.points}</strong></td>
-                            <td class="center"><span class="p-pct-full">${team.pointPctg.toFixed(3)}</span><span class="p-pct-mobile">${team.pointPctg.toFixed(2).substring(1)}</span></td>
+                            <td class="center"><span class="p-pct-full">${(team.pointPctg ?? 0).toFixed(3)}</span><span class="p-pct-mobile">${(team.pointPctg ?? 0).toFixed(2).substring(1)}</span></td>
                             <td class="center hide-mobile">${team.regulationWins}</td>
                             <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                             <td class="center hide-mobile">${team.goalFor}</td>
                             <td class="center hide-mobile">${team.goalAgainst}</td>
                             <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                             <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
-                            <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                            <td class="center ${streakClass}">${team.streakCode ? `${team.streakCode}${team.streakCount}` : '--'}</td>
                             ${!hideMagicCol ? `<td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>` : ''}
                         </tr>
                     `;
@@ -454,14 +455,14 @@ function createWildcardTable(teams, state, hideMagicCol = false) {
                 <td class="center">${team.losses}</td>
                 <td class="center">${team.otLosses}</td>
                 <td class="center"><strong>${team.points}</strong></td>
-                <td class="center"><span class="p-pct-full">${team.pointPctg.toFixed(3)}</span><span class="p-pct-mobile">${team.pointPctg.toFixed(2).substring(1)}</span></td>
+                <td class="center"><span class="p-pct-full">${(team.pointPctg ?? 0).toFixed(3)}</span><span class="p-pct-mobile">${(team.pointPctg ?? 0).toFixed(2).substring(1)}</span></td>
                 <td class="center hide-mobile">${team.regulationWins}</td>
                 <td class="center hide-mobile">${team.regulationPlusOtWins}</td>
                 <td class="center hide-mobile">${team.goalFor}</td>
                 <td class="center hide-mobile">${team.goalAgainst}</td>
                 <td class="center hide-mobile ${diffClass}">${team.goalDifferential > 0 ? '+' : ''}${team.goalDifferential}</td>
                 <td class="center">${team.l10Wins}-${team.l10Losses}-${team.l10OtLosses}</td>
-                <td class="center ${streakClass}">${team.streakCode}${team.streakCount}</td>
+                <td class="center ${streakClass}">${team.streakCode ? `${team.streakCode}${team.streakCount}` : '--'}</td>
                 ${!hideMagicCol ? `<td class="center">${magicDisplay}${team.clinchIndicator ? `<span class="clinch-mobile">${team.clinchIndicator}</span>` : ''}</td>` : ''}
             </tr>
         `;

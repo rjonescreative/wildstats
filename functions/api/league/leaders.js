@@ -1,4 +1,6 @@
 // Cloudflare Pages Function for league stat leaders
+import { getCurrentSeason } from '../../../js/seasonConfig.js';
+
 export async function onRequest() {
     const fetchCategory = async (url, category) => {
         try {
@@ -17,15 +19,15 @@ export async function onRequest() {
     try {
         const [goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts] = await Promise.all([
             // Skater stats
-            fetchCategory('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=goals&limit=100', 'goals'),
-            fetchCategory('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=assists&limit=100', 'assists'),
-            fetchCategory('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=points&limit=100', 'points'),
-            fetchCategory('https://api-web.nhle.com/v1/skater-stats-leaders/20252026/2?categories=plusMinus&limit=100', 'plusMinus'),
+            fetchCategory(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=goals&limit=100`, 'goals'),
+            fetchCategory(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=assists&limit=100`, 'assists'),
+            fetchCategory(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=points&limit=100`, 'points'),
+            fetchCategory(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=plusMinus&limit=100`, 'plusMinus'),
             // Goalie stats
-            fetchCategory('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=wins&limit=100', 'wins'),
-            fetchCategory('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=savePctg&limit=100', 'savePctg'),
-            fetchCategory('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=goalsAgainstAverage&limit=100', 'goalsAgainstAverage'),
-            fetchCategory('https://api-web.nhle.com/v1/goalie-stats-leaders/20252026/2?categories=shutouts&limit=100', 'shutouts')
+            fetchCategory(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=wins&limit=100`, 'wins'),
+            fetchCategory(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=savePctg&limit=100`, 'savePctg'),
+            fetchCategory(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=goalsAgainstAverage&limit=100`, 'goalsAgainstAverage'),
+            fetchCategory(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, 'shutouts')
         ]);
 
         // Filter out null values and build response

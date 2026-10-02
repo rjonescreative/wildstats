@@ -13,8 +13,13 @@ jobs:
     steps:
       - name: Refresh all-team-schedules R2 cache
         run: |
+          # Season rolls over in October (matches getCurrentSeasonStartYear in scripts/)
+          YEAR=$(date -u +%Y); MONTH=$(date -u +%-m)
+          if [ "$MONTH" -lt 10 ]; then YEAR=$((YEAR - 1)); fi
+          SEASON="${YEAR}$((YEAR + 1))"
+          echo "Warming season $SEASON"
           STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-            https://wildhockey.win/api/all-team-schedules/20252026)
+            https://wildhockey.win/api/all-team-schedules/$SEASON)
           echo "Response status: $STATUS"
           if [ "$STATUS" != "200" ]; then
             echo "Warning: endpoint returned $STATUS"
