@@ -1002,6 +1002,10 @@ main {
     white-space: nowrap;
 }
 
+.view-btn[hidden] {
+    display: none;
+}
+
 .view-btn:hover {
     color: var(--wild-gold);
 }
@@ -3105,6 +3109,32 @@ footer {
     width: auto;
     vertical-align: middle;
     margin-right: 0.4em;
+}
+
+/* Playoff bracket placeholder (outside playoff mode) */
+.playoff-paused {
+    text-align: center;
+    padding: 3rem 1rem;
+    max-width: 420px;
+    margin: 0 auto;
+}
+
+.playoff-paused-icon {
+    height: 56px;
+    width: auto;
+    margin-bottom: 1rem;
+    opacity: 0.85;
+}
+
+.playoff-paused h2 {
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.playoff-paused p {
+    color: var(--text-secondary);
+    font-size: 0.9375rem;
+    margin-bottom: 1.25rem;
 }
 
 /* Playoff position key */

@@ -19,15 +19,19 @@ const TEAM_SLUGS = {
 };
 
 export async function init(view = 'wildcard') {
+    // Playoffs tab only appears in playoff mode (the page itself stays reachable)
+    const playoffsBtn = document.querySelector('.view-btn[data-view="playoffs"]');
+    if (playoffsBtn) playoffsBtn.hidden = !PLAYOFF_MODE;
+
     try {
         // Fetch standings and league leaders (cached if available)
         const fetches = [getStandings(), getLeagueLeaders()];
-        if (view === 'playoffs') {
+        if (view === 'playoffs' && PLAYOFF_MODE) {
             fetches.push(getPlayoffBracket('2026'));
         }
         const results = await Promise.all(fetches);
         standingsData = results[0];
-        if (view === 'playoffs') {
+        if (view === 'playoffs' && PLAYOFF_MODE) {
             bracketData = results[2];
         }
 
@@ -54,7 +58,7 @@ export function render() {
 
     switch(state.currentView) {
         case 'playoffs':
-            container.innerHTML = renderPlayoffBracket();
+            container.innerHTML = PLAYOFF_MODE ? renderPlayoffBracket() : renderPlayoffBracketPaused();
             break;
         case 'league':
             container.innerHTML = renderLeagueStandings(state);
@@ -635,6 +639,17 @@ function renderMobileRound(seriesLetters, roundName) {
             <div class="bracket-mobile-matchups">
                 ${seriesLetters.map(l => renderMatchupCard(getSeriesByLetter(l))).join('')}
             </div>
+        </div>
+    `;
+}
+
+function renderPlayoffBracketPaused() {
+    return `
+        <div class="playoff-paused">
+            <img src="/images/stanley-cup.png" alt="" class="playoff-paused-icon">
+            <h2>Playoff Bracket</h2>
+            <p>The playoff bracket will return as we approach the playoffs.</p>
+            <a href="/standings/wildcard" class="text-link" data-link>View the wildcard race →</a>
         </div>
     `;
 }
