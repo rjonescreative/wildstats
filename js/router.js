@@ -10,11 +10,21 @@ const PLAYOFF_YEAR = getPlayoffYear();
 // ─── Team Records URL slug mappings ───────────────────────────────────────────
 
 const RECORDS_TIME_TO_SLUG = { alltime: 'all-time', season: 'season' };
-const RECORDS_STAT_TO_SLUG = { goals: 'goals', assists: 'assists', points: 'points', ppGoals: 'pp-goals', ppAssists: 'pp-assists', ppPoints: 'pp-points', shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins' };
+const RECORDS_STAT_TO_SLUG = {
+    goals: 'goals', assists: 'assists', points: 'points',
+    shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins',
+    ppGoals: 'power-play-goals', ppAssists: 'power-play-assists', ppPoints: 'power-play-points',
+    shGoals: 'short-handed-goals', shAssists: 'short-handed-assists', shPoints: 'short-handed-points',
+    enGoals: 'empty-net-goals', enAssists: 'empty-net-assists', enPoints: 'empty-net-points',
+};
 const RECORDS_POS_TO_SLUG  = { all: 'all-skaters', forwards: 'forwards', defense: 'defense', goalies: 'goalies' };
 
 const RECORDS_SLUG_TO_TIME = Object.fromEntries(Object.entries(RECORDS_TIME_TO_SLUG).map(([k, v]) => [v, k]));
-const RECORDS_SLUG_TO_STAT = Object.fromEntries(Object.entries(RECORDS_STAT_TO_SLUG).map(([k, v]) => [v, k]));
+const RECORDS_SLUG_TO_STAT = {
+    ...Object.fromEntries(Object.entries(RECORDS_STAT_TO_SLUG).map(([k, v]) => [v, k])),
+    // Earlier power-play slugs, kept so shared links still work
+    'pp-goals': 'ppGoals', 'pp-assists': 'ppAssists', 'pp-points': 'ppPoints',
+};
 const RECORDS_SLUG_TO_POS  = Object.fromEntries(Object.entries(RECORDS_POS_TO_SLUG).map(([k, v]) => [v, k]));
 
 // Parse /stats/team-records/{time}/{stat}/{pos} → { timeMode, statMode, posMode } or null
@@ -190,6 +200,8 @@ export async function navigateTo(path) {
 const _RECORDS_STAT_LABEL = {
     goals: 'Goals', assists: 'Assists', points: 'Points',
     ppGoals: 'Power Play Goals', ppAssists: 'Power Play Assists', ppPoints: 'Power Play Points',
+    shGoals: 'Short-Handed Goals', shAssists: 'Short-Handed Assists', shPoints: 'Short-Handed Points',
+    enGoals: 'Empty-Net Goals', enAssists: 'Empty-Net Assists', enPoints: 'Empty-Net Points',
     shootout: 'Shootout Goals', penaltyMinutes: 'Penalty Minutes',
     gamesPlayed: 'Games Played', wins: 'Wins',
 };

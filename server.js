@@ -586,6 +586,45 @@ app.get('/api/milestones/leaders', async (req, res) => {
     }
 });
 
+// A missing split value can only be inferred when the matching total is 0; otherwise it's null (excluded)
+function inferred(value, total) {
+    return value ?? (total === 0 ? 0 : null);
+}
+
+// Power-play and short-handed career totals from a player landing page
+function situationalFromLanding(rs) {
+    const ppGoals  = inferred(rs.powerPlayGoals, rs.goals ?? 0);
+    const ppPoints = inferred(rs.powerPlayPoints, rs.points ?? 0);
+    const shGoals  = inferred(rs.shorthandedGoals, rs.goals ?? 0);
+    const shPoints = inferred(rs.shorthandedPoints, rs.points ?? 0);
+    return {
+        ppGoals, ppPoints, ppAssists: ppGoals === null || ppPoints === null ? null : ppPoints - ppGoals,
+        shGoals, shPoints, shAssists: shGoals === null || shPoints === null ? null : shPoints - shGoals,
+    };
+}
+
+// All-team career empty-net totals (landing pages don't include them), one stats API request
+async function fetchEmptyNetCareers(playerIds) {
+    const cayenne = `gameTypeId=2 and playerId in (${playerIds.join(',')})`;
+    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=true&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
+    const r = await fetch(url, { redirect: 'follow' });
+    if (!r.ok) throw new Error(`Empty-net fetch failed: ${r.status}`);
+    const { data = [] } = await r.json();
+    return new Map(data.map(row => [row.playerId, row]));
+}
+
+// Merge empty-net career totals into careerTotals (missing data stays null → excluded)
+function addEmptyNetCareers(careerTotals, enByPlayer) {
+    for (const [playerId, stats] of Object.entries(careerTotals)) {
+        const row = enByPlayer?.get(Number(playerId)) ?? {};
+        const enGoals   = inferred(row.emptyNetGoals, stats.goals);
+        const enAssists = inferred(row.emptyNetAssists, stats.assists);
+        stats.enGoals   = enGoals;
+        stats.enAssists = enAssists;
+        stats.enPoints  = enGoals === null || enAssists === null ? null : enGoals + enAssists;
+    }
+}
+
 // Career totals endpoint — fetches all-team career stats for current Wild roster
 // Returns: { playerId: { gamesPlayed, goals, assists, points } }
 app.get('/api/milestones/career-totals', async (req, res) => {
@@ -624,6 +663,7 @@ app.get('/api/milestones/career-totals', async (req, res) => {
                         goals:       rs.goals       ?? 0,
                         assists:     rs.assists     ?? 0,
                         points:      rs.points      ?? 0,
+                        ...situationalFromLanding(rs),
                     };
                 } catch {
                     clearTimeout(t);
@@ -639,6 +679,15 @@ app.get('/api/milestones/career-totals', async (req, res) => {
                 careerTotals[playerId] = stats;
             }
         });
+
+        // Step 3: empty-net career totals (if this fails, those milestones are just skipped)
+        let enByPlayer = null;
+        try {
+            enByPlayer = await fetchEmptyNetCareers(players);
+        } catch (err) {
+            console.warn('Empty-net career totals unavailable:', err.message);
+        }
+        addEmptyNetCareers(careerTotals, enByPlayer);
 
         res.set('Cache-Control', 'public, max-age=3600'); // 1 hour
         res.json(careerTotals);

@@ -446,6 +446,10 @@ main {
     display: contents;
 }
 
+.records-btn-row[hidden] {
+    display: none;
+}
+
 .records-table-wrap {
     flex: 1;
     min-width: 0;

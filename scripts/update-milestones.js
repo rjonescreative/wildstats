@@ -99,37 +99,75 @@ async function fetchClubStats(season) {
     return fetchWithRetry(`${NHL_API}/club-stats/${TEAM}/${season}/2`);
 }
 
-// Power-play goals and points for every Wild player-season, from the NHL stats API.
-// Filtering by franchise returns Wild-only numbers, even for players traded mid-season.
+// Situational scoring (power play, short-handed, empty net) for every Wild player-season,
+// from the NHL stats API. Filtering by franchise returns Wild-only numbers, even for
+// players traded mid-season.
 const STATS_API = 'https://api.nhle.com/stats/rest/en';
 const WILD_FRANCHISE_ID = 37;
 
-async function fetchPowerPlayStats() {
+async function fetchStatsReport(report) {
     const cayenne = `gameTypeId=2 and franchiseId=${WILD_FRANCHISE_ID}`;
-    const url = `${STATS_API}/skater/summary?isAggregate=false&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
+    const url = `${STATS_API}/skater/${report}?isAggregate=false&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
     const { data = [] } = await fetchWithRetry(url);
+    return data;
+}
+
+// A missing split value can only be inferred when the player's matching total is 0
+// (e.g. no assists at all → no empty-net assists). Otherwise it stays null and the
+// player-season is left out of that category.
+function orInferred(value, total) {
+    if (value !== null && value !== undefined) return value;
+    return total === 0 ? 0 : null;
+}
+
+async function fetchSituationalStats() {
+    const [summary, realtime] = await Promise.all([fetchStatsReport('summary'), fetchStatsReport('realtime')]);
+    const realtimeByKey = new Map(realtime.map(r => [`${r.seasonId}|${r.playerId}`, r]));
+
     const bySeason = {};
-    for (const row of data) {
-        const season = String(row.seasonId);
-        (bySeason[season] ??= {})[row.playerId] = { ppGoals: row.ppGoals ?? 0, ppPoints: row.ppPoints ?? 0 };
+    for (const row of summary) {
+        const rt = realtimeByKey.get(`${row.seasonId}|${row.playerId}`) ?? {};
+        const goals = row.goals ?? null;
+        const assists = row.assists ?? null;
+        const points = row.points ?? null;
+
+        const ppGoals = orInferred(row.ppGoals, goals);
+        const ppPoints = orInferred(row.ppPoints, points);
+        const shGoals = orInferred(row.shGoals, goals);
+        const shPoints = orInferred(row.shPoints, points);
+        const enGoals = orInferred(rt.emptyNetGoals, goals);
+        const enAssists = orInferred(rt.emptyNetAssists, assists);
+
+        (bySeason[String(row.seasonId)] ??= {})[row.playerId] = {
+            ppGoals, ppPoints,
+            ppAssists: ppGoals === null || ppPoints === null ? null : ppPoints - ppGoals,
+            shGoals, shPoints,
+            shAssists: shGoals === null || shPoints === null ? null : shPoints - shGoals,
+            enGoals, enAssists,
+            enPoints: enGoals === null || enAssists === null ? null : enGoals + enAssists,
+        };
     }
     return bySeason;
 }
 
-// Attach ppGoals / ppAssists / ppPoints to each skater in seasonData
-function mergePowerPlayStats(seasonData, ppBySeason) {
+// Attach situational stats to each skater in seasonData
+function mergeSituationalStats(seasonData, bySeason) {
     let merged = 0;
+    let missing = 0;
     for (const [season, { skaters = [] }] of Object.entries(seasonData)) {
-        const seasonPP = ppBySeason[season] ?? {};
+        const seasonStats = bySeason[season] ?? {};
         for (const p of skaters) {
-            const pp = seasonPP[p.playerId] ?? { ppGoals: 0, ppPoints: 0 };
-            p.ppGoals = pp.ppGoals;
-            p.ppPoints = pp.ppPoints;
-            p.ppAssists = pp.ppPoints - pp.ppGoals;
-            if (seasonPP[p.playerId]) merged++;
+            const stats = seasonStats[p.playerId];
+            for (const cat of SITUATION_CATS) {
+                // No stats-API row at all: only a scoreless season can be inferred
+                const value = stats ? stats[cat] : orInferred(null, (p.goals ?? 0) + (p.assists ?? 0));
+                p[cat] = value;
+                if (value === null) missing++;
+            }
+            if (stats) merged++;
         }
     }
-    return merged;
+    return { merged, missing };
 }
 
 async function fetchSchedule(season) {
@@ -167,19 +205,23 @@ async function writeToR2(payload) {
 
 const SHOOTOUT_FIRST_SEASON_YEAR = 2005; // shootouts introduced in 2005-06
 
-// Power-play stats come from the stats API already Wild-only, so they skip split-season correction
-const PP_CATS = ['ppGoals', 'ppAssists', 'ppPoints'];
+// Situational stats come from the stats API already Wild-only, so they skip split-season correction
+const SITUATION_CATS = [
+    'ppGoals', 'ppAssists', 'ppPoints',
+    'shGoals', 'shAssists', 'shPoints',
+    'enGoals', 'enAssists', 'enPoints',
+];
 
 const SKATER_CAREER_CATS = [
     'goals', 'assists', 'points', 'gamesPlayed', 'penaltyMinutes',
     'powerPlayGoals', 'shorthandedGoals', 'gameWinningGoals', 'overtimeGoals',
-    ...PP_CATS,
+    ...SITUATION_CATS,
 ];
 
 const SKATER_SEASON_CATS = [
     'goals', 'assists', 'points', 'gamesPlayed', 'penaltyMinutes',
     'powerPlayGoals', 'shorthandedGoals', 'gameWinningGoals',
-    ...PP_CATS,
+    ...SITUATION_CATS,
 ];
 
 const GOALIE_CAREER_CATS = ['wins', 'gamesPlayed', 'shutouts', 'goals', 'assists', 'points', 'penaltyMinutes'];
@@ -214,7 +256,8 @@ function aggregateCareerTotals(seasonData) {
             const acc = skaterMap.get(id);
             acc.seasons.add(season);
             for (const cat of SKATER_CAREER_CATS) {
-                acc[cat] = (acc[cat] ?? 0) + (p[cat] ?? 0);
+                // A missing (null) situational season makes that career total unknown
+                acc[cat] = acc[cat] === null || p[cat] === null ? null : (acc[cat] ?? 0) + (p[cat] ?? 0);
             }
             // Keep most recent name/headshot/position
             acc.name = playerName(p);
@@ -687,7 +730,7 @@ async function buildPayload(seasonData, shootoutData) {
     // fetching landing pages for every historical Wild player.
     const CAREER_CANDIDATE_LIMIT = 75;
     const candidateIds = new Set();
-    for (const cat of SKATER_CAREER_CATS.filter(c => !PP_CATS.includes(c))) {
+    for (const cat of SKATER_CAREER_CATS.filter(c => !SITUATION_CATS.includes(c))) {
         [...skaters].sort((a, b) => (b[cat] ?? 0) - (a[cat] ?? 0))
             .slice(0, CAREER_CANDIDATE_LIMIT)
             .forEach(p => candidateIds.add(p.playerId));
@@ -840,11 +883,11 @@ async function main() {
         console.log(`\n   ${fetched} fetched, ${failed} failed`);
     }
 
-    // Power-play stats: one request covers every season, so refresh them all each run
-    console.log('\n⚡ Fetching power-play stats (all seasons)...');
-    const ppBySeason = await fetchPowerPlayStats();
-    const ppMerged = mergePowerPlayStats(seasonData, ppBySeason);
-    console.log(`   ✓ ${ppMerged} player-seasons with power-play stats`);
+    // Situational stats: two requests cover every season, so refresh them all each run
+    console.log('\n⚡ Fetching power-play, short-handed, and empty-net stats (all seasons)...');
+    const situationalBySeason = await fetchSituationalStats();
+    const { merged, missing } = mergeSituationalStats(seasonData, situationalBySeason);
+    console.log(`   ✓ ${merged} player-seasons with situational stats (${missing} missing value(s) excluded)`);
 
     // Shootout data: seed all seasons, only missing seasons, or update current season only
     let shootoutSeasons, existingShootout;

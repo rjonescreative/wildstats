@@ -17,9 +17,10 @@ function formatSeason(s) {
 
 // ─── State ────────────────────────────────────────────────────────────────────
 
-let timeMode = 'alltime';   // 'alltime' | 'season'
-let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'ppGoals' | 'ppAssists' | 'ppPoints' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
-let posMode  = 'all';       // 'all' | 'forwards' | 'defense' | 'goalies'
+let timeMode  = 'alltime';  // 'alltime' | 'season'
+let situation = 'all';      // 'all' | 'pp' (power play) | 'sh' (short-handed) | 'en' (empty net)
+let statMode  = 'goals';    // 'goals' | 'assists' | 'points' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
+let posMode   = 'all';      // 'all' | 'forwards' | 'defense' | 'goalies'
 
 let milestones = null;
 let currentSet = null;
@@ -28,8 +29,23 @@ let currentSet = null;
 
 const FORWARDS = new Set(['L', 'R', 'C']);
 
-// Skater-only stats (no goalie leaderboard)
-const SKATER_ONLY_STATS = new Set(['shootout', 'ppGoals', 'ppAssists', 'ppPoints']);
+// Stats available in a specific situation (power play, short-handed, empty net)
+const SITUATION_STATS = new Set(['goals', 'assists', 'points']);
+const SITUATION_LABELS = { pp: 'Power Play', sh: 'Short-Handed', en: 'Empty-Net' };
+
+// Data key for the current selection, e.g. 'goals' or 'ppGoals' / 'shAssists' / 'enPoints'
+function statKey() {
+    if (situation === 'all') return statMode;
+    return situation + statMode[0].toUpperCase() + statMode.slice(1);
+}
+
+// Split a data key back into situation + stat (inverse of statKey)
+function splitStatKey(key) {
+    const m = key.match(/^(pp|sh|en)(Goals|Assists|Points)$/);
+    return m
+        ? { situation: m[1], statMode: m[2].toLowerCase() }
+        : { situation: 'all', statMode: key };
+}
 
 function getEntries() {
     const { skaters, goalies } = milestones;
@@ -61,18 +77,19 @@ function getEntries() {
         return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
     }
 
-    // All skater stats — position-specific pools
+    // All skater stats (including situational) — position-specific pools
     const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
     const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
-    const entries = pool[posKey]?.[statMode] ?? [];
+    const entries = pool[posKey]?.[statKey()] ?? [];
     return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
 }
 
 function tableLabel() {
     const time = timeMode === 'alltime' ? 'All-Time' : 'Single Season';
-    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', ppGoals: 'Power Play Goals', ppAssists: 'Power Play Assists', ppPoints: 'Power Play Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
+    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
+    const sit  = situation === 'all' ? '' : `${SITUATION_LABELS[situation]} `;
     const pos  = { all: '', forwards: ' — Forwards', defense: ' — Defense', goalies: '' }[posMode];
-    return `${time} ${stat}${pos}`;
+    return `${time} ${sit}${stat}${pos}`;
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -138,12 +155,17 @@ function renderTable() {
 // ─── Selector state enforcement ───────────────────────────────────────────────
 
 function applyConstraints() {
+    // Specific situation → only goals/assists/points, skaters only
+    if (situation !== 'all') {
+        if (!SITUATION_STATS.has(statMode)) statMode = 'goals';
+        if (posMode === 'goalies') posMode = 'all';
+    }
     // Wins → force goalies
     if (statMode === 'wins') posMode = 'goalies';
     // gamesPlayed → force all-time
     if (statMode === 'gamesPlayed') timeMode = 'alltime';
-    // Skater-only stats (shootout, power play) → can't be goalies
-    if (SKATER_ONLY_STATS.has(statMode) && posMode === 'goalies') posMode = 'all';
+    // Shootout → can't be goalies
+    if (statMode === 'shootout' && posMode === 'goalies') posMode = 'all';
 }
 
 function updateSelectorUI() {
@@ -154,10 +176,17 @@ function updateSelectorUI() {
         btn.classList.toggle('active', t === timeMode);
     });
 
-    // Stat buttons — skater-only stats are disabled for goalies
+    // Situation buttons — always selectable; applyConstraints resets an impossible stat/position
+    document.querySelectorAll('[data-situation]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.situation === situation);
+    });
+
+    // Stat buttons — a specific situation only offers goals/assists/points
+    const extraRow = document.getElementById('records-stat-extra');
+    if (extraRow) extraRow.hidden = situation !== 'all';
     document.querySelectorAll('[data-stat]').forEach(btn => {
         const s = btn.dataset.stat;
-        btn.disabled = (SKATER_ONLY_STATS.has(s) && posMode === 'goalies');
+        btn.disabled = (s === 'shootout' && posMode === 'goalies');
         btn.classList.toggle('active', s === statMode);
     });
 
@@ -166,7 +195,7 @@ function updateSelectorUI() {
         const p = btn.dataset.pos;
         let disabled = false;
         if (statMode === 'wins' && p !== 'goalies') disabled = true;
-        if (SKATER_ONLY_STATS.has(statMode) && p === 'goalies') disabled = true;
+        if ((statMode === 'shootout' || situation !== 'all') && p === 'goalies') disabled = true;
         btn.disabled = disabled;
         btn.classList.toggle('active', p === posMode);
     });
@@ -179,13 +208,14 @@ export async function init() {
     const urlParams = parseTeamRecordsPath(window.location.pathname);
     if (urlParams) {
         timeMode = urlParams.timeMode;
-        statMode = urlParams.statMode;
+        ({ situation, statMode } = splitStatKey(urlParams.statMode));
         posMode  = urlParams.posMode;
     } else {
         // Reset to defaults when loading the base /stats/team-records URL
-        timeMode = 'alltime';
-        statMode = 'goals';
-        posMode  = 'all';
+        timeMode  = 'alltime';
+        situation = 'all';
+        statMode  = 'goals';
+        posMode   = 'all';
     }
     applyConstraints();
 
@@ -211,6 +241,15 @@ export async function init() {
                         </div>
                     </div>
                     <div class="records-selector-group">
+                        <span class="records-selector-label">Situation</span>
+                        <div class="records-selector-btns">
+                            <button class="division-toggle active" data-situation="all">All Situations</button>
+                            <button class="division-toggle" data-situation="pp">Power Play</button>
+                            <button class="division-toggle" data-situation="sh">Short Handed</button>
+                            <button class="division-toggle" data-situation="en">Empty Net</button>
+                        </div>
+                    </div>
+                    <div class="records-selector-group">
                         <span class="records-selector-label">Stat</span>
                         <div class="records-selector-btns">
                             <div class="records-btn-row">
@@ -218,12 +257,7 @@ export async function init() {
                                 <button class="division-toggle" data-stat="assists">Assists</button>
                                 <button class="division-toggle" data-stat="points">Points</button>
                             </div>
-                            <div class="records-btn-row">
-                                <button class="division-toggle" data-stat="ppGoals">PP Goals</button>
-                                <button class="division-toggle" data-stat="ppAssists">PP Assists</button>
-                                <button class="division-toggle" data-stat="ppPoints">PP Points</button>
-                            </div>
-                            <div class="records-btn-row">
+                            <div class="records-btn-row" id="records-stat-extra">
                                 <button class="division-toggle" data-stat="shootout">Shootout</button>
                                 <button class="division-toggle" data-stat="penaltyMinutes">Penalty Min</button>
                                 <button class="division-toggle" data-stat="gamesPlayed">Games Played</button>
@@ -251,27 +285,29 @@ export async function init() {
         // Wire up selector events
         container.addEventListener('click', e => {
             if (e.target.closest('#records-reset')) {
-                timeMode = 'alltime';
-                statMode = 'goals';
-                posMode  = 'all';
+                timeMode  = 'alltime';
+                situation = 'all';
+                statMode  = 'goals';
+                posMode   = 'all';
                 applyConstraints();
                 updateSelectorUI();
                 renderTable();
-                updateTeamRecordsURL(timeMode, statMode, posMode);
+                updateTeamRecordsURL(timeMode, statKey(), posMode);
                 return;
             }
 
-            const btn = e.target.closest('[data-time],[data-stat],[data-pos]');
+            const btn = e.target.closest('[data-time],[data-situation],[data-stat],[data-pos]');
             if (!btn || btn.disabled) return;
 
             if (btn.dataset.time) timeMode = btn.dataset.time;
+            if (btn.dataset.situation) situation = btn.dataset.situation;
             if (btn.dataset.stat) statMode = btn.dataset.stat;
             if (btn.dataset.pos)  posMode  = btn.dataset.pos;
 
             applyConstraints();
             updateSelectorUI();
             renderTable();
-            updateTeamRecordsURL(timeMode, statMode, posMode);
+            updateTeamRecordsURL(timeMode, statKey(), posMode);
         });
 
         // Sync button active/disabled states with loaded state (important for URL-direct loads)
