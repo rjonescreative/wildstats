@@ -27,7 +27,7 @@ export async function init(view = 'wildcard') {
         // Fetch standings and league leaders (cached if available)
         const fetches = [getStandings(), getLeagueLeaders()];
         if (view === 'playoffs' && PLAYOFF_MODE) {
-            fetches.push(getPlayoffBracket('2026'));
+            fetches.push(getPlayoffBracket());
         }
         const results = await Promise.all(fetches);
         standingsData = results[0];
@@ -532,9 +532,81 @@ const BRACKET_MAP = {
     scf: 'O'
 };
 
+// Series currently drawn in the bracket (real NHL series or a standings projection)
+let bracketSeries = [];
+let isProjectedBracket = false;
+
 function getSeriesByLetter(letter) {
-    if (!bracketData || !bracketData.series) return null;
-    return bracketData.series.find(s => s.seriesLetter === letter) || null;
+    return bracketSeries.find(s => s.seriesLetter === letter) || null;
+}
+
+// First-round series letter → division and matchup type (matches the NHL bracket layout)
+const PROJECTED_R1 = {
+    A: { division: 'A', matchup: 'wildcard' }, B: { division: 'A', matchup: '2v3' },
+    C: { division: 'M', matchup: 'wildcard' }, D: { division: 'M', matchup: '2v3' },
+    E: { division: 'C', matchup: 'wildcard' }, F: { division: 'C', matchup: '2v3' },
+    G: { division: 'P', matchup: 'wildcard' }, H: { division: 'P', matchup: '2v3' },
+};
+
+// "If the season ended today": project first-round matchups from current standings.
+// Top 3 in each division plus two wild cards per conference; the division winner
+// with the better conference rank plays WC2, the other plays WC1.
+function buildProjectedSeries() {
+    if (!standingsData?.standings) return [];
+
+    const toTeam = t => ({
+        abbrev: t.teamAbbrev.default,
+        commonName: t.teamCommonName,
+        name: t.teamName,
+    });
+
+    const seeds = {}; // divisionAbbrev → [D1, D2, D3]
+    const wildcards = {}; // conferenceAbbrev → [WC1, WC2]
+
+    ['E', 'W'].forEach(conf => {
+        const confTeams = standingsData.standings.filter(t => t.conferenceAbbrev === conf);
+        const divisions = [...new Set(confTeams.map(t => t.divisionAbbrev))];
+        const divisionTop3 = new Set();
+
+        divisions.forEach(div => {
+            seeds[div] = confTeams
+                .filter(t => t.divisionAbbrev === div)
+                .sort((a, b) => a.divisionSequence - b.divisionSequence)
+                .slice(0, 3);
+            seeds[div].forEach(t => divisionTop3.add(t.teamAbbrev.default));
+        });
+
+        wildcards[conf] = confTeams
+            .filter(t => !divisionTop3.has(t.teamAbbrev.default))
+            .sort((a, b) => a.wildcardSequence - b.wildcardSequence)
+            .slice(0, 2);
+
+        // Better division winner draws the second wild card
+        const [divA, divB] = divisions;
+        const aIsBetter = seeds[divA][0].conferenceSequence < seeds[divB][0].conferenceSequence;
+        seeds[divA].wildcard = aIsBetter ? 1 : 0;
+        seeds[divB].wildcard = aIsBetter ? 0 : 1;
+    });
+
+    return Object.entries(PROJECTED_R1).map(([letter, { division, matchup }]) => {
+        const div = seeds[division];
+        if (!div || div.length < 3) return null;
+
+        if (matchup === '2v3') {
+            return {
+                seriesLetter: letter,
+                topSeedTeam: toTeam(div[1]), topSeedRankAbbrev: 'D2',
+                bottomSeedTeam: toTeam(div[2]), bottomSeedRankAbbrev: 'D3',
+            };
+        }
+
+        const wc = wildcards[div[0].conferenceAbbrev]?.[div.wildcard];
+        return {
+            seriesLetter: letter,
+            topSeedTeam: toTeam(div[0]), topSeedRankAbbrev: 'D1',
+            bottomSeedTeam: wc ? toTeam(wc) : null, bottomSeedRankAbbrev: `WC${div.wildcard + 1}`,
+        };
+    }).filter(Boolean);
 }
 
 function renderMatchupCard(series) {
@@ -580,7 +652,7 @@ function renderMatchupCard(series) {
                     <span class="bracket-team-name">${teamName}</span>
                     <span class="bracket-team-abbrev">${abbrev}</span>
                 </a>
-                <span class="bracket-team-wins${isWinner ? ' wins-highlight' : ''}${wins === 0 && topWins === 0 && bottomWins === 0 ? ' wins-empty' : ''}">${wins}</span>
+                ${isProjectedBracket ? '' : `<span class="bracket-team-wins${isWinner ? ' wins-highlight' : ''}${wins === 0 && topWins === 0 && bottomWins === 0 ? ' wins-empty' : ''}">${wins}</span>`}
             </div>
         `;
     };
@@ -659,12 +731,22 @@ function renderPlayoffBracket() {
         return '<div class="loading">Unable to load playoff bracket.</div>';
     }
 
-    const title = bracketData.bracketTitle?.default || 'Playoff Bracket';
+    // Use the NHL bracket once series are published; until then, project from standings
+    isProjectedBracket = bracketData.series.length === 0;
+    bracketSeries = isProjectedBracket ? buildProjectedSeries() : bracketData.series;
+
+    const title = isProjectedBracket
+        ? 'If the Season Ended Today'
+        : (bracketData.bracketTitle?.default || 'Playoff Bracket');
+    const subtitle = isProjectedBracket
+        ? '<p class="playoff-bracket-subtitle">Projected first-round matchups based on current standings.</p>'
+        : '';
 
     return `
         <div class="playoff-bracket-wrapper">
             <div class="playoff-bracket-header">
                 <h2>${title}</h2>
+                ${subtitle}
             </div>
             <div class="playoff-bracket-scroll bracket-desktop">
                 <div class="playoff-bracket">

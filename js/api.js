@@ -1,6 +1,6 @@
 // API module with caching
 import { isCacheValid, getCachedData, setCachedData } from './state.js';
-import { getCurrentSeason } from './seasonConfig.js';
+import { getCurrentSeason, getPlayoffYear } from './seasonConfig.js';
 
 // Fetch with automatic retry + exponential backoff.
 // Retries on network errors, 5xx responses, and 429 rate-limit responses.
@@ -141,7 +141,7 @@ export async function getCareerTotals(forceRefresh = false) {
 }
 
 // Get NHL playoff bracket
-export async function getPlayoffBracket(season = '2026', forceRefresh = false) {
+export async function getPlayoffBracket(season = getPlayoffYear(), forceRefresh = false) {
     return fetchWithCache(`/api/playoff-bracket/${season}`, `playoffBracket_${season}`, forceRefresh);
 }
 

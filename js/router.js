@@ -2,9 +2,10 @@
 import { setCurrentView, getCurrentView } from './state.js';
 import { trackPageView, trackNavigation, trackStandingsView } from './analytics.js';
 import { teamBySlug } from './teams.js';
-import { getSeasonLabel } from './seasonConfig.js';
+import { getSeasonLabel, getPlayoffYear } from './seasonConfig.js';
 
 const SEASON_LABEL = getSeasonLabel();
+const PLAYOFF_YEAR = getPlayoffYear();
 
 // ─── Team Records URL slug mappings ───────────────────────────────────────────
 
@@ -223,7 +224,7 @@ function getPageTitle(viewName, subView = null) {
             division: `NHL Division Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             conference: `NHL Conference Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             league: `NHL League Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
-            playoffs: 'NHL Playoff Bracket 2026 – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub'
+            playoffs: `NHL Playoff Bracket ${PLAYOFF_YEAR} – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub`
         };
         return standingsTitles[subView] || standingsTitles.wildcard;
     }
@@ -278,7 +279,7 @@ function getMetaDescription(viewName, subView = null) {
             division: `NHL division standings for ${SEASON_LABEL}. View all four division standings including where the Minnesota Wild rank in the Central Division.`,
             conference: `NHL conference standings for ${SEASON_LABEL}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`,
             league: `Full NHL league standings for ${SEASON_LABEL}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`,
-            playoffs: 'Live 2026 NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.'
+            playoffs: `Live ${PLAYOFF_YEAR} NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.`
         };
         return standingsDescriptions[subView] || standingsDescriptions.wildcard;
     }

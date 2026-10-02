@@ -38,3 +38,8 @@ export function getSeasonLabel(season = getCurrentSeason()) {
     const s = String(season);
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
+
+// Playoffs are named for the year the season ends, e.g. "20262027" → "2027"
+export function getPlayoffYear(season = getCurrentSeason()) {
+    return String(season).slice(4, 8);
+}
