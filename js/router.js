@@ -13,6 +13,7 @@ const RECORDS_TIME_TO_SLUG = { alltime: 'all-time', season: 'season' };
 const RECORDS_STAT_TO_SLUG = {
     goals: 'goals', assists: 'assists', points: 'points',
     shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins',
+    evGoals: 'even-strength-goals', evAssists: 'even-strength-assists', evPoints: 'even-strength-points',
     ppGoals: 'power-play-goals', ppAssists: 'power-play-assists', ppPoints: 'power-play-points',
     shGoals: 'short-handed-goals', shAssists: 'short-handed-assists', shPoints: 'short-handed-points',
     enGoals: 'empty-net-goals', enAssists: 'empty-net-assists', enPoints: 'empty-net-points',
@@ -199,6 +200,7 @@ export async function navigateTo(path) {
 
 const _RECORDS_STAT_LABEL = {
     goals: 'Goals', assists: 'Assists', points: 'Points',
+    evGoals: 'Even-Strength Goals', evAssists: 'Even-Strength Assists', evPoints: 'Even-Strength Points',
     ppGoals: 'Power Play Goals', ppAssists: 'Power Play Assists', ppPoints: 'Power Play Points',
     shGoals: 'Short-Handed Goals', shAssists: 'Short-Handed Assists', shPoints: 'Short-Handed Points',
     enGoals: 'Empty-Net Goals', enAssists: 'Empty-Net Assists', enPoints: 'Empty-Net Points',

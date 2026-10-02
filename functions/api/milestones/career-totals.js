@@ -1,5 +1,5 @@
 // Returns all-team career regular season stats for current Wild roster.
-// Response: { [playerId]: { gamesPlayed, goals, assists, points, pp/sh/en Goals/Assists/Points } }
+// Response: { [playerId]: { gamesPlayed, goals, assists, points, ev/pp/sh/en Goals/Assists/Points } }
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
 
 // A missing split value can only be inferred when the matching total is 0; otherwise it's null (excluded)
@@ -7,13 +7,17 @@ function inferred(value, total) {
     return value ?? (total === 0 ? 0 : null);
 }
 
-// Power-play and short-handed career totals from a player landing page
+// Even-strength, power-play, and short-handed career totals from a player landing page.
+// Landing pages have no even-strength split, but goals/points = EV + PP + SH, so EV is the remainder.
 function situationalFromLanding(rs) {
     const ppGoals  = inferred(rs.powerPlayGoals, rs.goals ?? 0);
     const ppPoints = inferred(rs.powerPlayPoints, rs.points ?? 0);
     const shGoals  = inferred(rs.shorthandedGoals, rs.goals ?? 0);
     const shPoints = inferred(rs.shorthandedPoints, rs.points ?? 0);
+    const evGoals  = ppGoals === null || shGoals === null ? null : (rs.goals ?? 0) - ppGoals - shGoals;
+    const evPoints = ppPoints === null || shPoints === null ? null : (rs.points ?? 0) - ppPoints - shPoints;
     return {
+        evGoals, evPoints, evAssists: evGoals === null || evPoints === null ? null : evPoints - evGoals,
         ppGoals, ppPoints, ppAssists: ppGoals === null || ppPoints === null ? null : ppPoints - ppGoals,
         shGoals, shPoints, shAssists: shGoals === null || shPoints === null ? null : shPoints - shGoals,
     };

@@ -25,12 +25,13 @@ const DEFENSE_CAREER_ROUNDS = {
     shootoutGoals:  [5, 10, 15, 20],
 };
 
-// Situational stats (power play, short-handed, empty net): every milestone — round numbers
+// Situational stats (even strength, power play, short-handed, empty net): every milestone — round numbers
 // and record chases, Wild or all-team NHL — needs a target of at least 50. Defense uses the
 // same targets, so defense lists only track records (round numbers would duplicate skater cards).
 const SITUATION_MIN_TARGET = 50;
 const SITUATION_ROUNDS = [50, 100, 150, 200, 250, 300, 400, 500];
 const SITUATIONS = [
+    { prefix: 'ev', label: 'Even-Strength', unit: 'even-strength' },
     { prefix: 'pp', label: 'Power Play',   unit: 'power-play' },
     { prefix: 'sh', label: 'Short-Handed', unit: 'short-handed' },
     { prefix: 'en', label: 'Empty-Net',    unit: 'empty-net' },

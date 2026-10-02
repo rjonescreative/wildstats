@@ -99,7 +99,7 @@ async function fetchClubStats(season) {
     return fetchWithRetry(`${NHL_API}/club-stats/${TEAM}/${season}/2`);
 }
 
-// Situational scoring (power play, short-handed, empty net) for every Wild player-season,
+// Situational scoring (even strength, power play, short-handed, empty net) for every Wild player-season,
 // from the NHL stats API. Filtering by franchise returns Wild-only numbers, even for
 // players traded mid-season.
 const STATS_API = 'https://api.nhle.com/stats/rest/en';
@@ -131,6 +131,8 @@ async function fetchSituationalStats() {
         const assists = row.assists ?? null;
         const points = row.points ?? null;
 
+        const evGoals = orInferred(row.evGoals, goals);
+        const evPoints = orInferred(row.evPoints, points);
         const ppGoals = orInferred(row.ppGoals, goals);
         const ppPoints = orInferred(row.ppPoints, points);
         const shGoals = orInferred(row.shGoals, goals);
@@ -139,6 +141,8 @@ async function fetchSituationalStats() {
         const enAssists = orInferred(rt.emptyNetAssists, assists);
 
         (bySeason[String(row.seasonId)] ??= {})[row.playerId] = {
+            evGoals, evPoints,
+            evAssists: evGoals === null || evPoints === null ? null : evPoints - evGoals,
             ppGoals, ppPoints,
             ppAssists: ppGoals === null || ppPoints === null ? null : ppPoints - ppGoals,
             shGoals, shPoints,
@@ -207,6 +211,7 @@ const SHOOTOUT_FIRST_SEASON_YEAR = 2005; // shootouts introduced in 2005-06
 
 // Situational stats come from the stats API already Wild-only, so they skip split-season correction
 const SITUATION_CATS = [
+    'evGoals', 'evAssists', 'evPoints',
     'ppGoals', 'ppAssists', 'ppPoints',
     'shGoals', 'shAssists', 'shPoints',
     'enGoals', 'enAssists', 'enPoints',
@@ -884,7 +889,7 @@ async function main() {
     }
 
     // Situational stats: two requests cover every season, so refresh them all each run
-    console.log('\n⚡ Fetching power-play, short-handed, and empty-net stats (all seasons)...');
+    console.log('\n⚡ Fetching even-strength, power-play, short-handed, and empty-net stats (all seasons)...');
     const situationalBySeason = await fetchSituationalStats();
     const { merged, missing } = mergeSituationalStats(seasonData, situationalBySeason);
     console.log(`   ✓ ${merged} player-seasons with situational stats (${missing} missing value(s) excluded)`);

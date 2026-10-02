@@ -18,7 +18,7 @@ function formatSeason(s) {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let timeMode  = 'alltime';  // 'alltime' | 'season'
-let situation = 'all';      // 'all' | 'pp' (power play) | 'sh' (short-handed) | 'en' (empty net)
+let situation = 'all';      // 'all' | 'ev' (even strength) | 'pp' (power play) | 'sh' (short-handed) | 'en' (empty net)
 let statMode  = 'goals';    // 'goals' | 'assists' | 'points' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
 let posMode   = 'all';      // 'all' | 'forwards' | 'defense' | 'goalies'
 
@@ -29,11 +29,11 @@ let currentSet = null;
 
 const FORWARDS = new Set(['L', 'R', 'C']);
 
-// Stats available in a specific situation (power play, short-handed, empty net)
+// Stats available in a specific situation (even strength, power play, short-handed, empty net)
 const SITUATION_STATS = new Set(['goals', 'assists', 'points']);
-const SITUATION_LABELS = { pp: 'Power Play', sh: 'Short-Handed', en: 'Empty-Net' };
+const SITUATION_LABELS = { ev: 'Even-Strength', pp: 'Power Play', sh: 'Short-Handed', en: 'Empty-Net' };
 
-// Data key for the current selection, e.g. 'goals' or 'ppGoals' / 'shAssists' / 'enPoints'
+// Data key for the current selection, e.g. 'goals' or 'evGoals' / 'ppGoals' / 'shAssists' / 'enPoints'
 function statKey() {
     if (situation === 'all') return statMode;
     return situation + statMode[0].toUpperCase() + statMode.slice(1);
@@ -41,7 +41,7 @@ function statKey() {
 
 // Split a data key back into situation + stat (inverse of statKey)
 function splitStatKey(key) {
-    const m = key.match(/^(pp|sh|en)(Goals|Assists|Points)$/);
+    const m = key.match(/^(ev|pp|sh|en)(Goals|Assists|Points)$/);
     return m
         ? { situation: m[1], statMode: m[2].toLowerCase() }
         : { situation: 'all', statMode: key };
@@ -243,10 +243,15 @@ export async function init() {
                     <div class="records-selector-group">
                         <span class="records-selector-label">Situation</span>
                         <div class="records-selector-btns">
-                            <button class="division-toggle active" data-situation="all">All Situations</button>
-                            <button class="division-toggle" data-situation="pp">Power Play</button>
-                            <button class="division-toggle" data-situation="sh">Short Handed</button>
-                            <button class="division-toggle" data-situation="en">Empty Net</button>
+                            <div class="records-btn-row">
+                                <button class="division-toggle active" data-situation="all">All Situations</button>
+                            </div>
+                            <div class="records-btn-row">
+                                <button class="division-toggle" data-situation="ev">Even Strength</button>
+                                <button class="division-toggle" data-situation="pp">Power Play</button>
+                                <button class="division-toggle" data-situation="sh">Short Handed</button>
+                                <button class="division-toggle" data-situation="en">Empty Net</button>
+                            </div>
                         </div>
                     </div>
                     <div class="records-selector-group">
