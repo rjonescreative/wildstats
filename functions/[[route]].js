@@ -3,8 +3,6 @@
 // so search engines see correct metadata without needing to execute JS.
 import { getSeasonLabel } from '../js/seasonConfig.js';
 
-const SEASON_LABEL = getSeasonLabel();
-
 
 const NHL_TEAMS = [
     { name: 'Anaheim Ducks',         slug: 'anaheim' },
@@ -42,68 +40,68 @@ const NHL_TEAMS = [
 
 const PAGE_META = {
     '/': {
-        title: `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild stats, standings, schedules, and news for ${SEASON_LABEL}. Your hub for Wild hockey with live game updates, player statistics, and NHL standings.`
+        title: `Minnesota Wild Stats, Standings & Schedule {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild stats, standings, schedules, and news for {season}. Your hub for Wild hockey with live game updates, player statistics, and NHL standings.`
     },
     '/stats': {
-        title: `Minnesota Wild Player Stats ${SEASON_LABEL} – Goals, Assists & Points | Wild Hockey Hub`,
-        description: `Minnesota Wild player statistics for ${SEASON_LABEL}. View skater and goalie stats including goals, assists, points, save percentage, and more.`
+        title: `Minnesota Wild Player Stats {season} – Goals, Assists & Points | Wild Hockey Hub`,
+        description: `Minnesota Wild player statistics for {season}. View skater and goalie stats including goals, assists, points, save percentage, and more.`
     },
     '/schedule': {
-        title: `Minnesota Wild ${SEASON_LABEL} Schedule – Upcoming Games & Results | Wild Hockey Hub`,
-        description: `Minnesota Wild game schedule for ${SEASON_LABEL}. See upcoming games, past results, scores, and the full season schedule.`
+        title: `Minnesota Wild {season} Schedule – Upcoming Games & Results | Wild Hockey Hub`,
+        description: `Minnesota Wild game schedule for {season}. See upcoming games, past results, scores, and the full season schedule.`
     },
     '/standings': {
-        title: `NHL Wildcard Standings ${SEASON_LABEL} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
-        description: `Minnesota Wild wildcard standings for ${SEASON_LABEL}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
+        title: `NHL Wildcard Standings {season} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
+        description: `Minnesota Wild wildcard standings for {season}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
     },
     '/standings/wildcard': {
-        title: `NHL Wildcard Standings ${SEASON_LABEL} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
-        description: `Minnesota Wild wildcard standings for ${SEASON_LABEL}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
+        title: `NHL Wildcard Standings {season} | Minnesota Wild Playoff Race | Wild Hockey Hub`,
+        description: `Minnesota Wild wildcard standings for {season}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`
     },
     '/standings/division': {
-        title: `NHL Division Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
-        description: `NHL division standings for ${SEASON_LABEL}. View all four division standings including where the Minnesota Wild rank in the Central Division.`
+        title: `NHL Division Standings {season} | Minnesota Wild | Wild Hockey Hub`,
+        description: `NHL division standings for {season}. View all four division standings including where the Minnesota Wild rank in the Central Division.`
     },
     '/standings/conference': {
-        title: `NHL Conference Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
-        description: `NHL conference standings for ${SEASON_LABEL}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`
+        title: `NHL Conference Standings {season} | Minnesota Wild | Wild Hockey Hub`,
+        description: `NHL conference standings for {season}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`
     },
     '/standings/league': {
-        title: `NHL League Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
-        description: `Full NHL league standings for ${SEASON_LABEL}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`
+        title: `NHL League Standings {season} | Minnesota Wild | Wild Hockey Hub`,
+        description: `Full NHL league standings for {season}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`
     },
     '/media': {
-        title: `Minnesota Wild Videos & Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild videos for ${SEASON_LABEL}. Watch highlights, game recaps, interviews, and more from the Wild.`
+        title: `Minnesota Wild Videos & Highlights {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild videos for {season}. Watch highlights, game recaps, interviews, and more from the Wild.`
     },
     '/media/highlights': {
-        title: `Minnesota Wild Game Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild game highlights for ${SEASON_LABEL}. Watch the best plays, goals, and saves from Wild games this season.`
+        title: `Minnesota Wild Game Highlights {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild game highlights for {season}. Watch the best plays, goals, and saves from Wild games this season.`
     },
     '/media/recaps': {
-        title: `Minnesota Wild Game Recaps ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild game recaps for ${SEASON_LABEL}. Watch condensed game recaps and full game summaries.`
+        title: `Minnesota Wild Game Recaps {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild game recaps for {season}. Watch condensed game recaps and full game summaries.`
     },
     '/media/condensed': {
-        title: `Minnesota Wild Condensed Games ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild condensed games for ${SEASON_LABEL}. Watch full condensed game replays for every Wild game this season.`
+        title: `Minnesota Wild Condensed Games {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild condensed games for {season}. Watch full condensed game replays for every Wild game this season.`
     },
     '/stats/milestones': {
-        title: `Minnesota Wild Player Milestones ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild player milestones for ${SEASON_LABEL}. See which Wild players are approaching franchise records and which milestones have already been achieved this season.`
+        title: `Minnesota Wild Player Milestones {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild player milestones for {season}. See which Wild players are approaching franchise records and which milestones have already been achieved this season.`
     },
     '/stats/season': {
-        title: `Minnesota Wild Current Season Stats ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild current season stats for ${SEASON_LABEL}. Track team points progression, standings trends, and season-long statistics.`
+        title: `Minnesota Wild Current Season Stats {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild current season stats for {season}. Track team points progression, standings trends, and season-long statistics.`
     },
     '/stats/team-records': {
         title: 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub',
         description: 'Minnesota Wild all-time franchise records and single-season statistical leaders. Find career and season bests for goals, assists, points, wins, save percentage, GAA, and more.'
     },
     '/stats/head-to-head': {
-        title: `Minnesota Wild Head-to-Head Record vs Every NHL Team ${SEASON_LABEL} | Wild Hockey Hub`,
-        description: `Minnesota Wild head-to-head record against all 31 NHL opponents in ${SEASON_LABEL}. Win-loss records, goals for, goals against, and results broken down by opponent.`
+        title: `Minnesota Wild Head-to-Head Record vs Every NHL Team {season} | Wild Hockey Hub`,
+        description: `Minnesota Wild head-to-head record against all 31 NHL opponents in {season}. Win-loss records, goals for, goals against, and results broken down by opponent.`
     },
 };
 
@@ -117,6 +115,16 @@ function isSpaRoute(path) {
     return false;
 }
 
+// Fill in the {season} placeholder. Must run per request: Workers freeze the clock
+// at the Unix epoch during module initialization, so the date isn't valid at load time.
+function withSeason(meta) {
+    const label = getSeasonLabel();
+    return {
+        title: meta.title.replace('{season}', label),
+        description: meta.description.replace('{season}', label),
+    };
+}
+
 // Resolve meta for a given path, including dynamic head-to-head team routes
 function resolveMeta(path) {
     if (PAGE_META[path]) return PAGE_META[path];
@@ -126,8 +134,8 @@ function resolveMeta(path) {
         const team = NHL_TEAMS.find(t => t.slug === h2hMatch[1]);
         if (team) {
             return {
-                title: `Minnesota Wild vs ${team.name} Head-to-Head ${SEASON_LABEL} – Record, Goals & Results | Wild Hockey Hub`,
-                description: `Minnesota Wild vs ${team.name} head-to-head results for ${SEASON_LABEL}. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
+                title: `Minnesota Wild vs ${team.name} Head-to-Head {season} – Record, Goals & Results | Wild Hockey Hub`,
+                description: `Minnesota Wild vs ${team.name} head-to-head results for {season}. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
             };
         }
     }
@@ -149,7 +157,7 @@ export async function onRequest(context) {
     const assetRequest = new Request(new URL('/', url).href, request);
     const response = await env.ASSETS.fetch(assetRequest);
 
-    const meta = resolveMeta(path);
+    const meta = withSeason(resolveMeta(path));
     const canonicalUrl = `https://wildhockey.win${path}`;
 
     return new HTMLRewriter()
