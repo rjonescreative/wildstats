@@ -1,5 +1,5 @@
 // Stats view module
-import { getWildStats, getLeagueLeaders, getH2HData } from '../api.js';
+import { getWildStats, getLeagueLeaders, getH2HData, getSchedule } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
 import { NHL_TEAMS, teamBySlug } from '../teams.js';
@@ -123,16 +123,41 @@ function showSubView(subView) {
     document.getElementById('stats-season-view').style.display = subView === 'season' ? '' : 'none';
 }
 
-function initHeadToHead() {
+async function initHeadToHead() {
     const pathMatch = window.location.pathname.match(/^\/stats\/head-to-head\/(.+)$/);
     const slug = pathMatch ? pathMatch[1] : null;
-    const team = slug ? teamBySlug(slug) : NHL_TEAMS[0];
 
-    if (!slug) {
-        history.replaceState({}, '', `/stats/head-to-head/${team.slug}`);
+    if (slug) {
+        renderH2HContent(teamBySlug(slug));
+        return;
     }
 
+    // No team in the URL — default to the Wild's next opponent
+    document.getElementById('h2h-content').innerHTML = '<div class="loading">Loading head-to-head stats...</div>';
+    const team = (await getNextOpponent()) || NHL_TEAMS[0];
+
+    // Bail if the user navigated elsewhere while the schedule loaded
+    if (window.location.pathname !== '/stats/head-to-head') return;
+
+    history.replaceState({}, '', `/stats/head-to-head/${team.slug}`);
     renderH2HContent(team);
+}
+
+// Opponent in the Wild's next regular-season or playoff game (null in the offseason)
+async function getNextOpponent() {
+    try {
+        const schedule = await getSchedule();
+        const nextGame = (schedule.games || []).find(g =>
+            (g.gameType === 2 || g.gameType === 3) &&
+            ['FUT', 'PRE', 'LIVE', 'CRIT'].includes(g.gameState)
+        );
+        if (!nextGame) return null;
+        const oppAbbrev = nextGame.homeTeam.abbrev === 'MIN' ? nextGame.awayTeam.abbrev : nextGame.homeTeam.abbrev;
+        return NHL_TEAMS.find(t => t.abbrev === oppAbbrev) || null;
+    } catch (error) {
+        console.error('Error loading schedule for H2H default:', error);
+        return null;
+    }
 }
 
 function renderH2HContent(team) {
