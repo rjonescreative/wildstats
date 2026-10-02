@@ -441,6 +441,11 @@ main {
     padding: 0.45rem 0.85rem;
 }
 
+/* Stat button groups: invisible in the vertical sidebar, separate wrapping rows once buttons go horizontal */
+.records-btn-row {
+    display: contents;
+}
+
 .records-table-wrap {
     flex: 1;
     min-width: 0;
@@ -2199,6 +2204,13 @@ footer {
     .records-selector-btns .division-toggle {
         width: auto;
         text-align: center;
+    }
+
+    .records-btn-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        flex-basis: 100%;
     }
 
     .league-rank-inline {

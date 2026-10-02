@@ -18,7 +18,7 @@ function formatSeason(s) {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let timeMode = 'alltime';   // 'alltime' | 'season'
-let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
+let statMode = 'goals';     // 'goals' | 'assists' | 'points' | 'ppGoals' | 'ppAssists' | 'ppPoints' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
 let posMode  = 'all';       // 'all' | 'forwards' | 'defense' | 'goalies'
 
 let milestones = null;
@@ -27,6 +27,9 @@ let currentSet = null;
 // ─── Data selection ───────────────────────────────────────────────────────────
 
 const FORWARDS = new Set(['L', 'R', 'C']);
+
+// Skater-only stats (no goalie leaderboard)
+const SKATER_ONLY_STATS = new Set(['shootout', 'ppGoals', 'ppAssists', 'ppPoints']);
 
 function getEntries() {
     const { skaters, goalies } = milestones;
@@ -67,7 +70,7 @@ function getEntries() {
 
 function tableLabel() {
     const time = timeMode === 'alltime' ? 'All-Time' : 'Single Season';
-    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
+    const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', ppGoals: 'Power Play Goals', ppAssists: 'Power Play Assists', ppPoints: 'Power Play Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
     const pos  = { all: '', forwards: ' — Forwards', defense: ' — Defense', goalies: '' }[posMode];
     return `${time} ${stat}${pos}`;
 }
@@ -139,10 +142,8 @@ function applyConstraints() {
     if (statMode === 'wins') posMode = 'goalies';
     // gamesPlayed → force all-time
     if (statMode === 'gamesPlayed') timeMode = 'alltime';
-    // Shootout → can't be goalies
-    if (statMode === 'shootout' && posMode === 'goalies') posMode = 'all';
-    // Goalies → shootout not valid
-    if (posMode === 'goalies' && statMode === 'shootout') statMode = 'goals';
+    // Skater-only stats (shootout, power play) → can't be goalies
+    if (SKATER_ONLY_STATS.has(statMode) && posMode === 'goalies') posMode = 'all';
 }
 
 function updateSelectorUI() {
@@ -153,10 +154,10 @@ function updateSelectorUI() {
         btn.classList.toggle('active', t === timeMode);
     });
 
-    // Stat buttons — only shootout is disabled for goalies
+    // Stat buttons — skater-only stats are disabled for goalies
     document.querySelectorAll('[data-stat]').forEach(btn => {
         const s = btn.dataset.stat;
-        btn.disabled = (s === 'shootout' && posMode === 'goalies');
+        btn.disabled = (SKATER_ONLY_STATS.has(s) && posMode === 'goalies');
         btn.classList.toggle('active', s === statMode);
     });
 
@@ -165,7 +166,7 @@ function updateSelectorUI() {
         const p = btn.dataset.pos;
         let disabled = false;
         if (statMode === 'wins' && p !== 'goalies') disabled = true;
-        if (statMode === 'shootout' && p === 'goalies') disabled = true;
+        if (SKATER_ONLY_STATS.has(statMode) && p === 'goalies') disabled = true;
         btn.disabled = disabled;
         btn.classList.toggle('active', p === posMode);
     });
@@ -212,13 +213,22 @@ export async function init() {
                     <div class="records-selector-group">
                         <span class="records-selector-label">Stat</span>
                         <div class="records-selector-btns">
-                            <button class="division-toggle active" data-stat="goals">Goals</button>
-                            <button class="division-toggle" data-stat="assists">Assists</button>
-                            <button class="division-toggle" data-stat="points">Points</button>
-                            <button class="division-toggle" data-stat="shootout">Shootout</button>
-                            <button class="division-toggle" data-stat="penaltyMinutes">Penalty Min</button>
-                            <button class="division-toggle" data-stat="gamesPlayed">Games Played</button>
-                            <button class="division-toggle" data-stat="wins">Wins</button>
+                            <div class="records-btn-row">
+                                <button class="division-toggle active" data-stat="goals">Goals</button>
+                                <button class="division-toggle" data-stat="assists">Assists</button>
+                                <button class="division-toggle" data-stat="points">Points</button>
+                            </div>
+                            <div class="records-btn-row">
+                                <button class="division-toggle" data-stat="ppGoals">PP Goals</button>
+                                <button class="division-toggle" data-stat="ppAssists">PP Assists</button>
+                                <button class="division-toggle" data-stat="ppPoints">PP Points</button>
+                            </div>
+                            <div class="records-btn-row">
+                                <button class="division-toggle" data-stat="shootout">Shootout</button>
+                                <button class="division-toggle" data-stat="penaltyMinutes">Penalty Min</button>
+                                <button class="division-toggle" data-stat="gamesPlayed">Games Played</button>
+                                <button class="division-toggle" data-stat="wins">Wins</button>
+                            </div>
                         </div>
                     </div>
                     <div class="records-selector-group">

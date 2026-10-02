@@ -14,6 +14,9 @@ const CAREER_ROUNDS = {
     wins:           [100, 200, 300],
     penaltyMinutes: [100, 200, 300, 400, 500],
     shootoutGoals:  [10, 20, 30, 40],
+    ppGoals:        [25, 50, 75, 100],
+    ppAssists:      [50, 100, 150, 200],
+    ppPoints:       [50, 100, 150, 200, 250, 300],
 };
 
 // Defense-specific career round number targets (lower thresholds than skaters)
@@ -23,6 +26,19 @@ const DEFENSE_CAREER_ROUNDS = {
     points:         [100, 200, 300, 400, 500],
     penaltyMinutes: [100, 200, 300, 400, 500],
     shootoutGoals:  [5, 10, 15, 20],
+    ppGoals:        [10, 20, 30, 40],
+    ppAssists:      [25, 50, 75, 100, 125],
+    ppPoints:       [25, 50, 75, 100, 125, 150],
+};
+
+// Readable stat names for "N more ___ to reach" text
+const STAT_UNITS = {
+    penaltyMinutes: 'penalty minutes',
+    shootoutGoals:  'shootout goals',
+    gamesPlayed:    'games',
+    ppGoals:        'power-play goals',
+    ppAssists:      'power-play assists',
+    ppPoints:       'power-play points',
 };
 
 // Round number targets for all-team career NHL games played
@@ -61,7 +77,16 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     const approaching = [];
     const achieved    = [];
 
-    const currentSkaterMap = new Map((wildStats.skaters || []).map(p => [p.playerId, p]));
+    // Live stats don't include power-play assists/points, so fill this season's
+    // power-play numbers from the milestones data (Wild-only, refreshed daily)
+    const seasonPP = new Map(
+        (milestonesData.seasonData?.[getCurrentSeason()]?.skaters || [])
+            .map(p => [p.playerId, { ppGoals: p.ppGoals ?? 0, ppAssists: p.ppAssists ?? 0, ppPoints: p.ppPoints ?? 0 }])
+    );
+    const currentSkaterMap = new Map((wildStats.skaters || []).map(p => [
+        p.playerId,
+        { ...p, ...(seasonPP.get(p.playerId) ?? { ppGoals: 0, ppAssists: 0, ppPoints: 0 }) },
+    ]));
     const currentGoalieMap = new Map((wildStats.goalies  || []).map(p => [p.playerId, p]));
 
     // Process a career leader list for a single stat category
@@ -115,7 +140,7 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
                         name:     entry.name,
                         headshot,
                         label:    `${nextRound} Career Wild ${label}`,
-                        sublabel: `${remaining} more ${stat} to reach ${nextRound}`,
+                        sublabel: `${remaining} more ${STAT_UNITS[stat] ?? stat} to reach ${nextRound}`,
                         current:  careerTotal,
                         target:   nextRound,
                         stat,
@@ -259,6 +284,10 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processCareer(skaters.careerLeaders.all.penaltyMinutes, 'penaltyMinutes', 'Penalty Minutes',CAREER_ROUNDS.penaltyMinutes, currentSkaterMap);
     processCareer(skaters.careerLeaders.all.shootoutGoals,  'shootoutGoals',  'Shootout Goals', [],                           currentSkaterMap);
 
+    processCareer(skaters.careerLeaders.all.ppGoals,        'ppGoals',        'Power Play Goals',  CAREER_ROUNDS.ppGoals,   currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.ppAssists,      'ppAssists',      'Power Play Assists',CAREER_ROUNDS.ppAssists, currentSkaterMap);
+    processCareer(skaters.careerLeaders.all.ppPoints,       'ppPoints',       'Power Play Points', CAREER_ROUNDS.ppPoints,  currentSkaterMap);
+
     // Wild franchise Games Played record — all skaters only, no round numbers
     processCareer(skaters.careerLeaders.all.gamesPlayed, 'gamesPlayed', 'Games Played', [], currentSkaterMap);
 
@@ -268,6 +297,9 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processCareer(skaters.careerLeaders.defense.points,         'points',         'Defense Points',         DEFENSE_CAREER_ROUNDS.points,         currentDefenseMap);
     processCareer(skaters.careerLeaders.defense.penaltyMinutes, 'penaltyMinutes', 'Defense Penalty Minutes',DEFENSE_CAREER_ROUNDS.penaltyMinutes, currentDefenseMap);
     processCareer(skaters.careerLeaders.defense.shootoutGoals,  'shootoutGoals',  'Defense Shootout Goals', [],                                   currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.ppGoals,        'ppGoals',        'Defense Power Play Goals',  DEFENSE_CAREER_ROUNDS.ppGoals,   currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.ppAssists,      'ppAssists',      'Defense Power Play Assists',DEFENSE_CAREER_ROUNDS.ppAssists, currentDefenseMap);
+    processCareer(skaters.careerLeaders.defense.ppPoints,       'ppPoints',       'Defense Power Play Points', DEFENSE_CAREER_ROUNDS.ppPoints,  currentDefenseMap);
 
     // ── Goalie career milestones (wins only — no goals/assists/points/PIM) ──
     processCareer(goalies.careerLeaders.wins, 'wins', 'Goalie Wins', CAREER_ROUNDS.wins, currentGoalieMap);
@@ -331,12 +363,18 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
     processSeason(skaters.singleSeasonRecords.all.assists,        'assists',        'Assists',        currentSkaterMap);
     processSeason(skaters.singleSeasonRecords.all.points,         'points',         'Points',         currentSkaterMap);
     processSeason(skaters.singleSeasonRecords.all.penaltyMinutes, 'penaltyMinutes', 'Penalty Minutes',currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.ppGoals,        'ppGoals',        'Power Play Goals',  currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.ppAssists,      'ppAssists',      'Power Play Assists',currentSkaterMap);
+    processSeason(skaters.singleSeasonRecords.all.ppPoints,       'ppPoints',       'Power Play Points', currentSkaterMap);
 
     // Defense-specific single-season records
     processSeason(skaters.singleSeasonRecords.defense.goals,          'goals',          'Defense Goals',          currentDefenseMap);
     processSeason(skaters.singleSeasonRecords.defense.assists,        'assists',        'Defense Assists',        currentDefenseMap);
     processSeason(skaters.singleSeasonRecords.defense.points,         'points',         'Defense Points',         currentDefenseMap);
     processSeason(skaters.singleSeasonRecords.defense.penaltyMinutes, 'penaltyMinutes', 'Defense Penalty Minutes',currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.ppGoals,        'ppGoals',        'Defense Power Play Goals',  currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.ppAssists,      'ppAssists',      'Defense Power Play Assists',currentDefenseMap);
+    processSeason(skaters.singleSeasonRecords.defense.ppPoints,       'ppPoints',       'Defense Power Play Points', currentDefenseMap);
 
     // Deduplicate (same playerId + label)
     function dedup(list) {

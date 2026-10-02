@@ -459,8 +459,9 @@ function generateCardHTML(data) {
             ` : `
             ${(() => {
                 const seasonPPG = seasonStats.gamesPlayed > 0 ? seasonStats.points / seasonStats.gamesPlayed : 0;
-                const last10Games = Math.min(10, seasonStats.gamesPlayed);
-                const last10PPG = last10Games > 0 ? last10Stats.points / last10Games : 0;
+                // Last 10 row only once the player has a full 10 games this season
+                const showLast10 = seasonStats.gamesPlayed >= 10;
+                const last10PPG = last10Stats.points / 10;
                 const ppgDiff = last10PPG - seasonPPG;
                 const ppgClass = ppgDiff > 0 ? 'ppg-up' : ppgDiff < 0 ? 'ppg-down' : 'ppg-neutral';
                 const ppgArrow = ppgDiff > 0 ? '↑' : ppgDiff < 0 ? '↓' : '';
@@ -487,6 +488,7 @@ function generateCardHTML(data) {
                         <td class="stat-number">${seasonStats.points || 0}</td>
                         <td class="stat-ppg">${seasonPPG.toFixed(2)} PPG</td>
                     </tr>
+                    ${showLast10 ? `
                     <tr>
                         <td class="stat-label">Last 10</td>
                         <td class="stat-number">${last10Stats.goals}</td>
@@ -495,7 +497,7 @@ function generateCardHTML(data) {
                         <td class="stat-separator">-</td>
                         <td class="stat-number">${last10Stats.points}</td>
                         <td class="stat-ppg ${ppgClass}">${ppgArrow} ${last10PPG.toFixed(2)} PPG</td>
-                    </tr>
+                    </tr>` : ''}
                     <tr>
                         <td class="stat-label">Pace/${maxGames}</td>
                         <td class="stat-number">${paceGoals}</td>

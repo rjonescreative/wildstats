@@ -10,7 +10,7 @@ const PLAYOFF_YEAR = getPlayoffYear();
 // ─── Team Records URL slug mappings ───────────────────────────────────────────
 
 const RECORDS_TIME_TO_SLUG = { alltime: 'all-time', season: 'season' };
-const RECORDS_STAT_TO_SLUG = { goals: 'goals', assists: 'assists', points: 'points', shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins' };
+const RECORDS_STAT_TO_SLUG = { goals: 'goals', assists: 'assists', points: 'points', ppGoals: 'pp-goals', ppAssists: 'pp-assists', ppPoints: 'pp-points', shootout: 'shootout', penaltyMinutes: 'penalty-minutes', gamesPlayed: 'games-played', wins: 'wins' };
 const RECORDS_POS_TO_SLUG  = { all: 'all-skaters', forwards: 'forwards', defense: 'defense', goalies: 'goalies' };
 
 const RECORDS_SLUG_TO_TIME = Object.fromEntries(Object.entries(RECORDS_TIME_TO_SLUG).map(([k, v]) => [v, k]));
@@ -189,6 +189,7 @@ export async function navigateTo(path) {
 
 const _RECORDS_STAT_LABEL = {
     goals: 'Goals', assists: 'Assists', points: 'Points',
+    ppGoals: 'Power Play Goals', ppAssists: 'Power Play Assists', ppPoints: 'Power Play Points',
     shootout: 'Shootout Goals', penaltyMinutes: 'Penalty Minutes',
     gamesPlayed: 'Games Played', wins: 'Wins',
 };

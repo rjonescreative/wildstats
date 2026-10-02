@@ -99,6 +99,39 @@ async function fetchClubStats(season) {
     return fetchWithRetry(`${NHL_API}/club-stats/${TEAM}/${season}/2`);
 }
 
+// Power-play goals and points for every Wild player-season, from the NHL stats API.
+// Filtering by franchise returns Wild-only numbers, even for players traded mid-season.
+const STATS_API = 'https://api.nhle.com/stats/rest/en';
+const WILD_FRANCHISE_ID = 37;
+
+async function fetchPowerPlayStats() {
+    const cayenne = `gameTypeId=2 and franchiseId=${WILD_FRANCHISE_ID}`;
+    const url = `${STATS_API}/skater/summary?isAggregate=false&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
+    const { data = [] } = await fetchWithRetry(url);
+    const bySeason = {};
+    for (const row of data) {
+        const season = String(row.seasonId);
+        (bySeason[season] ??= {})[row.playerId] = { ppGoals: row.ppGoals ?? 0, ppPoints: row.ppPoints ?? 0 };
+    }
+    return bySeason;
+}
+
+// Attach ppGoals / ppAssists / ppPoints to each skater in seasonData
+function mergePowerPlayStats(seasonData, ppBySeason) {
+    let merged = 0;
+    for (const [season, { skaters = [] }] of Object.entries(seasonData)) {
+        const seasonPP = ppBySeason[season] ?? {};
+        for (const p of skaters) {
+            const pp = seasonPP[p.playerId] ?? { ppGoals: 0, ppPoints: 0 };
+            p.ppGoals = pp.ppGoals;
+            p.ppPoints = pp.ppPoints;
+            p.ppAssists = pp.ppPoints - pp.ppGoals;
+            if (seasonPP[p.playerId]) merged++;
+        }
+    }
+    return merged;
+}
+
 async function fetchSchedule(season) {
     return fetchWithRetry(`${NHL_API}/club-schedule-season/${TEAM}/${season}`);
 }
@@ -134,14 +167,19 @@ async function writeToR2(payload) {
 
 const SHOOTOUT_FIRST_SEASON_YEAR = 2005; // shootouts introduced in 2005-06
 
+// Power-play stats come from the stats API already Wild-only, so they skip split-season correction
+const PP_CATS = ['ppGoals', 'ppAssists', 'ppPoints'];
+
 const SKATER_CAREER_CATS = [
     'goals', 'assists', 'points', 'gamesPlayed', 'penaltyMinutes',
     'powerPlayGoals', 'shorthandedGoals', 'gameWinningGoals', 'overtimeGoals',
+    ...PP_CATS,
 ];
 
 const SKATER_SEASON_CATS = [
     'goals', 'assists', 'points', 'gamesPlayed', 'penaltyMinutes',
     'powerPlayGoals', 'shorthandedGoals', 'gameWinningGoals',
+    ...PP_CATS,
 ];
 
 const GOALIE_CAREER_CATS = ['wins', 'gamesPlayed', 'shutouts', 'goals', 'assists', 'points', 'penaltyMinutes'];
@@ -581,7 +619,8 @@ async function correctSplitSeasonCareerTotals(players, seasonData, statMap) {
 async function correctSplitSeasonRecords(records, statMap) {
     // Collect unique player IDs across all record categories
     const playerIds = new Set();
-    for (const entries of Object.values(records)) {
+    for (const [cat, entries] of Object.entries(records)) {
+        if (!statMap[cat]) continue; // category isn't corrected — no landing page needed
         for (const e of entries) playerIds.add(e.playerId);
     }
 
@@ -648,7 +687,7 @@ async function buildPayload(seasonData, shootoutData) {
     // fetching landing pages for every historical Wild player.
     const CAREER_CANDIDATE_LIMIT = 75;
     const candidateIds = new Set();
-    for (const cat of SKATER_CAREER_CATS) {
+    for (const cat of SKATER_CAREER_CATS.filter(c => !PP_CATS.includes(c))) {
         [...skaters].sort((a, b) => (b[cat] ?? 0) - (a[cat] ?? 0))
             .slice(0, CAREER_CANDIDATE_LIMIT)
             .forEach(p => candidateIds.add(p.playerId));
@@ -800,6 +839,12 @@ async function main() {
 
         console.log(`\n   ${fetched} fetched, ${failed} failed`);
     }
+
+    // Power-play stats: one request covers every season, so refresh them all each run
+    console.log('\n⚡ Fetching power-play stats (all seasons)...');
+    const ppBySeason = await fetchPowerPlayStats();
+    const ppMerged = mergePowerPlayStats(seasonData, ppBySeason);
+    console.log(`   ✓ ${ppMerged} player-seasons with power-play stats`);
 
     // Shootout data: seed all seasons, only missing seasons, or update current season only
     let shootoutSeasons, existingShootout;
