@@ -225,7 +225,7 @@ function getGameResult(game) {
 }
 
 // Extract local TV broadcast
-function getTVBroadcast(game) {
+export function getTVBroadcast(game) {
     if (!game.tvBroadcasts?.length) return '--';
 
     const isMinHome = game.homeTeam.abbrev === 'MIN';

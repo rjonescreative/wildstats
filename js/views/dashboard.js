@@ -5,6 +5,7 @@ import { getSeasonGames, PLAYOFF_MODE } from '../seasonConfig.js';
 import { trackTableSort, trackNewsClick } from '../analytics.js';
 import { NHL_TEAMS } from '../teams.js';
 import { ALL_TEAMS, DIVISIONS, loadTeamData, buildChart, attachChartHoverHandlers } from './season.js';
+import { getTVBroadcast } from './schedule.js';
 
 let standingsData = null;
 let leagueLeaders = null;
@@ -297,14 +298,20 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     } else if (!isLive) {
         const today = new Date();
         const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        // Each "• piece" stays together so a long label only wraps between pieces
+        const part = text => `<span class="game-label-part"> • ${text}</span>`;
         if (game.gameDate === todayStr) {
-            labelDateTimePart = ' • Today';
+            labelDateTimePart = part('Today');
         } else {
             const dayStr = gameDate.toLocaleDateString('en-US', { weekday: 'short' });
-            labelDateTimePart = ` • ${dayStr}, ${dateStr}`;
+            labelDateTimePart = part(`${dayStr}, ${dateStr}`);
         }
         if (timeStr) {
-            labelDateTimePart += ` • ${timeStr}`;
+            labelDateTimePart += part(timeStr);
+        }
+        const tv = getTVBroadcast(game);
+        if (tv !== '--') {
+            labelDateTimePart += part(tv);
         }
     }
 
@@ -390,7 +397,7 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     `;
 }
 
-// Compact schedule-style list of upcoming games ("Sat, Oct 3 • 5:00 PM PDT" + matchup)
+// Compact schedule-style list of upcoming games ("Sat, Oct 3 • 5:00 PM PDT", "@ BUF" / "vs VGK", TV)
 function renderUpcomingGames(games) {
     if (games.length === 0) {
         return '<div class="game-card upcoming-games-card"><div class="game-label">Upcoming games</div><div class="loading">No games scheduled</div></div>';
@@ -398,8 +405,8 @@ function renderUpcomingGames(games) {
 
     const rows = games.map(game => {
         const isMinHome = game.homeTeam.abbrev === 'MIN';
-        const away = isMinHome ? game.awayTeam.abbrev : 'MIN';
-        const home = isMinHome ? 'MIN' : game.homeTeam.abbrev;
+        const opp = isMinHome ? game.awayTeam.abbrev : game.homeTeam.abbrev;
+        const tv = getTVBroadcast(game);
         const gameDate = new Date(game.gameDate + 'T00:00:00');
         const dateStr = gameDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
         const timeStr = game.startTimeUTC
@@ -412,12 +419,11 @@ function renderUpcomingGames(games) {
                     <span class="upcoming-date">${dateStr}</span><span class="upcoming-sep"> • </span><span class="upcoming-time">${timeStr}</span>
                 </span>
                 <span class="upcoming-matchup">
-                    <img src="/logos/${away}_dark.svg" alt="" class="upcoming-logo">
-                    <span class="upcoming-team">${away}</span>
-                    <span class="upcoming-at">@</span>
-                    <span class="upcoming-team">${home}</span>
-                    <img src="/logos/${home}_dark.svg" alt="" class="upcoming-logo">
+                    <span class="upcoming-at">${isMinHome ? 'vs' : '@'}</span>
+                    <img src="/logos/${opp}_dark.svg" alt="" class="upcoming-logo">
+                    <span class="upcoming-team">${opp}</span>
                 </span>
+                <span class="upcoming-tv">${tv}</span>
             </li>
         `;
     }).join('');
