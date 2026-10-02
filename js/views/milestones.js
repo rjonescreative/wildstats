@@ -1,5 +1,6 @@
 // Milestones view — approaching and achieved Wild franchise milestones
 import { getMilestones, getWildStats, getCareerTotals } from '../api.js';
+import { getCurrentSeason } from '../seasonConfig.js';
 
 const APPROACHING_PCT = 0.97; // within 3% of target
 
@@ -164,7 +165,8 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
         const recordValue  = records[0].value;
         const recordSeason = records[0].season || '';
         const recordHolder = records[0].name;
-        const isThisSeason = recordSeason.startsWith('2025');
+        const currentSeason = getCurrentSeason();
+        const isThisSeason = recordSeason === currentSeason;
 
         // Build a map of Wild-only current-season stats from the records data.
         // The records list is already split-season corrected (e.g. Quinn Hughes'
@@ -172,7 +174,7 @@ function computeMilestones(milestonesData, wildStats, careerTotalsMap) {
         // raw wildStats value which may include stats from other teams.
         const wildOnlySeasonStat = new Map();
         records.forEach(entry => {
-            if (entry.season && entry.season.startsWith('2025')) {
+            if (entry.season === currentSeason) {
                 wildOnlySeasonStat.set(entry.playerId, entry.value);
             }
         });

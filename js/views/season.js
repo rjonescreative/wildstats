@@ -1,5 +1,6 @@
 // Current Season view — team-level stats for the current season
 import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
+import { getSeasonLabel } from '../seasonConfig.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
 export const ALL_TEAMS = {
@@ -709,7 +710,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
 
       <div class="ot-tables-grid">
         <div>
-          <h3 class="season-subsection-title">OT Goal Scorers (2025–26)</h3>
+          <h3 class="season-subsection-title">OT Goal Scorers (${getSeasonLabel().replace('-', '–')})</h3>
           <div class="season-table-wrap">
             <table class="season-table">
               <thead>
@@ -726,7 +727,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
           </div>
         </div>
         <div>
-          <h3 class="season-subsection-title">Shootout Scorers (2025–26)</h3>
+          <h3 class="season-subsection-title">Shootout Scorers (${getSeasonLabel().replace('-', '–')})</h3>
           <div class="season-table-wrap">
             <table class="season-table">
               <thead>
