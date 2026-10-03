@@ -450,6 +450,13 @@ main {
     display: none;
 }
 
+/* Mobile-only selector pieces (trigger, menu title, backdrop) */
+.records-mobile-trigger,
+.records-drawer-title,
+.records-drawer-backdrop {
+    display: none;
+}
+
 .records-table-wrap {
     flex: 1;
     min-width: 0;
@@ -2388,25 +2395,124 @@ footer {
         margin: 0 0.25rem;
     }
 
-    /* Records: single column below 768px */
+    /* Records: each selector collapses to "LABEL / current choice ▾"; tapping opens a slide-out menu */
     .records-selectors {
-        flex-direction: column;
-        flex-wrap: nowrap;
+        display: grid;
+        grid-template-columns: repeat(4, auto);
+        justify-content: space-between;
+        align-items: start;
+        gap: 0.5rem 0.75rem;
     }
 
     .records-selector-group {
         flex: unset;
-        min-width: unset;
-        width: 100%;
+        min-width: 0;
+        width: auto;
+        align-items: flex-start;
+        gap: 0.25rem;
     }
 
+    .records-reset-btn {
+        grid-column: 1 / -1;
+        justify-self: center;
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+    }
+
+    .records-mobile-trigger {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        min-height: 44px;
+        padding: 0;
+        background: none;
+        border: none;
+        color: var(--wild-gold);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        line-height: 1.25;
+        white-space: nowrap;
+        text-align: left;
+        cursor: pointer;
+    }
+
+    .records-mobile-trigger::after {
+        content: '';
+        flex-shrink: 0;
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-top: 6px solid var(--wild-gold);
+    }
+
+    /* Options list becomes a menu that slides in from the left */
     .records-selector-btns {
-        flex-direction: row;
-        flex-wrap: wrap;
+        position: fixed;
+        top: 0;
+        bottom: 0;
+        left: 0;
+        z-index: 10051;
+        width: min(80vw, 320px);
+        flex-direction: column;
+        flex-wrap: nowrap;
+        gap: 0.75rem;
+        padding: 1.5rem 1.25rem;
+        background: var(--bg-secondary);
+        border-right: 1px solid var(--border-medium);
+        box-shadow: 8px 0 24px rgba(0, 0, 0, 0.6);
+        overflow-y: auto;
+        transform: translateX(-100%);
+        visibility: hidden;
+        transition: transform 0.25s ease, visibility 0s linear 0.25s;
+    }
+
+    .records-selector-group.drawer-open .records-selector-btns {
+        transform: translateX(0);
+        visibility: visible;
+        transition: transform 0.25s ease, visibility 0s;
+    }
+
+    .records-selector-btns .records-btn-row:not([hidden]) {
+        display: contents;
+    }
+
+    .records-drawer-title {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+        font-size: 1rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.12em;
     }
 
     .records-selector-btns .division-toggle {
-        width: auto;
+        width: 100%;
+        min-height: 48px;
+        padding: 0.75rem 1.25rem;
+        border-color: var(--border-medium);
+        font-size: 0.9rem;
+        text-align: left;
+    }
+
+    .records-drawer-backdrop {
+        display: block;
+        position: fixed;
+        inset: 0;
+        z-index: 10050;
+        background: rgba(0, 0, 0, 0.55);
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.25s ease;
+    }
+
+    .records-drawer-backdrop.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+
+    body.records-drawer-locked {
+        overflow: hidden;
     }
 
     .records-big-photo {
@@ -2426,6 +2532,13 @@ footer {
     .records-big-rank {
         font-size: 0.85rem;
         min-width: 1.25rem;
+    }
+}
+
+/* Team records selectors: 2×2 on phones too narrow for all four in a row */
+@media (max-width: 479px) {
+    .records-selectors {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
@@ -2636,6 +2749,11 @@ footer {
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .records-selector-btns,
+    .records-drawer-backdrop {
+        transition: none !important;
+    }
+
     .player-card-spinner {
         animation-duration: 2.4s;
     }

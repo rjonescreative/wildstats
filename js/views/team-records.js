@@ -169,6 +169,7 @@ function applyConstraints() {
 }
 
 function updateSelectorUI() {
+
     // Time buttons — Season disabled when gamesPlayed selected
     document.querySelectorAll('[data-time]').forEach(btn => {
         const t = btn.dataset.time;
@@ -199,11 +200,49 @@ function updateSelectorUI() {
         btn.disabled = disabled;
         btn.classList.toggle('active', p === posMode);
     });
+
+    // Mobile triggers show the current choice in each group (after active states are set)
+    document.querySelectorAll('.records-mobile-trigger').forEach(trigger => {
+        const group = trigger.closest('.records-selector-group');
+        trigger.textContent = group.querySelector('.division-toggle.active')?.textContent ?? '';
+    });
+}
+
+// ─── Mobile slide-out menus ───────────────────────────────────────────────────
+
+let openGroup = null;
+
+function openDrawer(groupKey) {
+    closeDrawer(false);
+    const group = document.querySelector(`.records-selector-group[data-group="${groupKey}"]`);
+    if (!group) return;
+    openGroup = groupKey;
+    group.classList.add('drawer-open');
+    group.querySelector('.records-mobile-trigger')?.setAttribute('aria-expanded', 'true');
+    document.getElementById('records-drawer-backdrop')?.classList.add('visible');
+    document.body.classList.add('records-drawer-locked');
+    (group.querySelector('.division-toggle.active') ?? group.querySelector('.division-toggle'))?.focus();
+}
+
+function closeDrawer(restoreFocus = true) {
+    if (!openGroup) return;
+    const group = document.querySelector(`.records-selector-group[data-group="${openGroup}"]`);
+    const trigger = group?.querySelector('.records-mobile-trigger');
+    group?.classList.remove('drawer-open');
+    trigger?.setAttribute('aria-expanded', 'false');
+    document.getElementById('records-drawer-backdrop')?.classList.remove('visible');
+    document.body.classList.remove('records-drawer-locked');
+    openGroup = null;
+    if (restoreFocus) trigger?.focus();
 }
 
 // ─── Init ─────────────────────────────────────────────────────────────────────
 
 export async function init() {
+    // A previous visit may have left a mobile menu open
+    openGroup = null;
+    document.body.classList.remove('records-drawer-locked');
+
     // Restore state from URL if a valid sub-path is present
     const urlParams = parseTeamRecordsPath(window.location.pathname);
     if (urlParams) {
@@ -233,16 +272,20 @@ export async function init() {
         container.innerHTML = `
             <div class="records-layout">
                 <div class="records-selectors">
-                    <div class="records-selector-group">
-                        <span class="records-selector-label">Time</span>
-                        <div class="records-selector-btns">
+                    <div class="records-selector-group" data-group="time">
+                        <span class="records-selector-label" id="records-label-time">Time</span>
+                        <button class="records-mobile-trigger" data-open-group="time" aria-haspopup="true" aria-expanded="false" aria-describedby="records-label-time"></button>
+                        <div class="records-selector-btns" role="group" aria-label="Time">
+                            <div class="records-drawer-title">Time</div>
                             <button class="division-toggle active" data-time="alltime">All-Time</button>
                             <button class="division-toggle" data-time="season">Season</button>
                         </div>
                     </div>
-                    <div class="records-selector-group">
-                        <span class="records-selector-label">Situation</span>
-                        <div class="records-selector-btns">
+                    <div class="records-selector-group" data-group="situation">
+                        <span class="records-selector-label" id="records-label-situation">Situation</span>
+                        <button class="records-mobile-trigger" data-open-group="situation" aria-haspopup="true" aria-expanded="false" aria-describedby="records-label-situation"></button>
+                        <div class="records-selector-btns" role="group" aria-label="Situation">
+                            <div class="records-drawer-title">Situation</div>
                             <div class="records-btn-row">
                                 <button class="division-toggle active" data-situation="all">All Situations</button>
                             </div>
@@ -254,9 +297,11 @@ export async function init() {
                             </div>
                         </div>
                     </div>
-                    <div class="records-selector-group">
-                        <span class="records-selector-label">Stat</span>
-                        <div class="records-selector-btns">
+                    <div class="records-selector-group" data-group="stat">
+                        <span class="records-selector-label" id="records-label-stat">Stat</span>
+                        <button class="records-mobile-trigger" data-open-group="stat" aria-haspopup="true" aria-expanded="false" aria-describedby="records-label-stat"></button>
+                        <div class="records-selector-btns" role="group" aria-label="Stat">
+                            <div class="records-drawer-title">Stat</div>
                             <div class="records-btn-row">
                                 <button class="division-toggle active" data-stat="goals">Goals</button>
                                 <button class="division-toggle" data-stat="assists">Assists</button>
@@ -270,9 +315,11 @@ export async function init() {
                             </div>
                         </div>
                     </div>
-                    <div class="records-selector-group">
-                        <span class="records-selector-label">Position</span>
-                        <div class="records-selector-btns">
+                    <div class="records-selector-group" data-group="pos">
+                        <span class="records-selector-label" id="records-label-pos">Position</span>
+                        <button class="records-mobile-trigger" data-open-group="pos" aria-haspopup="true" aria-expanded="false" aria-describedby="records-label-pos"></button>
+                        <div class="records-selector-btns" role="group" aria-label="Position">
+                            <div class="records-drawer-title">Position</div>
                             <button class="division-toggle active" data-pos="all">All Skaters</button>
                             <button class="division-toggle" data-pos="forwards">Forwards</button>
                             <button class="division-toggle" data-pos="defense">Defense</button>
@@ -281,6 +328,7 @@ export async function init() {
                     </div>
                     <button class="records-reset-btn" id="records-reset">Reset</button>
                 </div>
+                <div class="records-drawer-backdrop" id="records-drawer-backdrop"></div>
                 <div class="records-table-wrap">
                     <div class="records-table-header" id="records-table-label">All-Time Goals</div>
                     <div class="records-big-list" id="records-table"></div>
@@ -289,6 +337,16 @@ export async function init() {
 
         // Wire up selector events
         container.addEventListener('click', e => {
+            const trigger = e.target.closest('[data-open-group]');
+            if (trigger) {
+                openDrawer(trigger.dataset.openGroup);
+                return;
+            }
+            if (e.target.closest('#records-drawer-backdrop')) {
+                closeDrawer();
+                return;
+            }
+
             if (e.target.closest('#records-reset')) {
                 timeMode  = 'alltime';
                 situation = 'all';
@@ -313,6 +371,11 @@ export async function init() {
             updateSelectorUI();
             renderTable();
             updateTeamRecordsURL(timeMode, statKey(), posMode);
+            closeDrawer();
+        });
+
+        container.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && openGroup) closeDrawer();
         });
 
         // Sync button active/disabled states with loaded state (important for URL-direct loads)
