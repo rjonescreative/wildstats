@@ -2185,7 +2185,7 @@ footer {
         font-size: 0.8125rem;
     }
 
-    /* Records layout: stack selectors above table, groups in a row */
+    /* Records layout: stack selectors above table */
     .records-layout {
         flex-direction: column;
         gap: 1.25rem;
@@ -2193,35 +2193,6 @@ footer {
 
     .records-table-wrap {
         width: 100%;
-    }
-
-    .records-selectors {
-        width: 100%;
-        flex-direction: row;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    .records-selector-group {
-        flex: 1;
-        min-width: 120px;
-    }
-
-    .records-selector-btns {
-        flex-direction: row;
-        flex-wrap: wrap;
-    }
-
-    .records-selector-btns .division-toggle {
-        width: auto;
-        text-align: center;
-    }
-
-    .records-btn-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.4rem;
-        flex-basis: 100%;
     }
 
     .league-rank-inline {
@@ -2395,8 +2366,31 @@ footer {
         margin: 0 0.25rem;
     }
 
-    /* Records: each selector collapses to "LABEL / current choice ▾"; tapping opens a slide-out menu */
+    .records-big-photo {
+        width: 36px;
+        height: 36px;
+    }
+
+    .records-big-name {
+        font-size: 0.85rem;
+    }
+
+    .records-big-stat {
+        font-size: 1rem;
+        min-width: 2rem;
+    }
+
+    .records-big-rank {
+        font-size: 0.85rem;
+        min-width: 1.25rem;
+    }
+}
+
+/* Team records selectors below desktop: each collapses to "LABEL / current choice ▾",
+   and tapping it opens a slide-out menu from the left */
+@media (max-width: 1024px) {
     .records-selectors {
+        width: 100%;
         display: grid;
         grid-template-columns: repeat(4, auto);
         justify-content: space-between;
@@ -2513,25 +2507,6 @@ footer {
 
     body.records-drawer-locked {
         overflow: hidden;
-    }
-
-    .records-big-photo {
-        width: 36px;
-        height: 36px;
-    }
-
-    .records-big-name {
-        font-size: 0.85rem;
-    }
-
-    .records-big-stat {
-        font-size: 1rem;
-        min-width: 2rem;
-    }
-
-    .records-big-rank {
-        font-size: 0.85rem;
-        min-width: 1.25rem;
     }
 }
 
