@@ -4570,8 +4570,9 @@ footer {
 }
 
 .numbers-grid {
+    /* At most three columns; cards stay at least 380px wide, dropping to two then one column */
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(max(380px, calc((100% - 2rem) / 3)), 1fr));
     gap: 1rem;
 }
 
@@ -4604,7 +4605,7 @@ footer {
 .number-jersey-num text {
     font-family: 'Saira Condensed', 'Roboto', sans-serif;
     font-weight: 800;
-    font-size: 52px;
+    font-size: 45px;
     fill: var(--jersey-wheat);
     stroke: var(--jersey-red);
     stroke-width: 1.6px;

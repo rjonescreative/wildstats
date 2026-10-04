@@ -23,7 +23,7 @@ function renderJersey(number) {
         <div class="number-jersey" role="img" aria-label="Number ${number}">
             <img src="/images/jersey-back.png" alt="" class="number-jersey-img">
             <svg class="number-jersey-num" viewBox="0 0 100 100" aria-hidden="true">
-                <text x="50" y="67" text-anchor="middle">${number}</text>
+                <text x="50" y="60" text-anchor="middle">${number}</text>
             </svg>
         </div>`;
 }
