@@ -629,6 +629,27 @@ function addEmptyNetCareers(careerTotals, enByPlayer) {
     }
 }
 
+// Sweater numbers endpoint — every number worn by a Wild player, from R2
+app.get('/api/numbers/sweater', async (req, res) => {
+    try {
+        const command = new GetObjectCommand({
+            Bucket: process.env.R2_BUCKET_NAME,
+            Key: 'numbers/sweater-numbers.json',
+        });
+        const response = await r2.send(command);
+        const { lastUpdated, players, numbers } = JSON.parse(await response.Body.transformToString());
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.json({ lastUpdated, players, numbers });
+    } catch (err) {
+        if (err.name === 'NoSuchKey' || err.$metadata?.httpStatusCode === 404) {
+            res.status(404).json({ error: 'Sweater number data not available yet.' });
+        } else {
+            console.error('R2 error:', err.message);
+            res.status(500).json({ error: 'Failed to fetch sweater number data.' });
+        }
+    }
+});
+
 // Career totals endpoint — fetches all-team career stats for current Wild roster
 // Returns: { playerId: { gamesPlayed, goals, assists, points } }
 app.get('/api/milestones/career-totals', async (req, res) => {

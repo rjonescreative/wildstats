@@ -140,6 +140,11 @@ export async function getCareerTotals(forceRefresh = false) {
     return fetchWithCache('/api/milestones/career-totals', 'careerTotals', forceRefresh);
 }
 
+// Get every sweater number worn by a Wild player (who wore it, games worn)
+export async function getSweaterNumbers(forceRefresh = false) {
+    return fetchWithCache('/api/numbers/sweater', 'sweaterNumbers', forceRefresh);
+}
+
 // Get NHL playoff bracket
 export async function getPlayoffBracket(season = getPlayoffYear(), forceRefresh = false) {
     return fetchWithCache(`/api/playoff-bracket/${season}`, `playoffBracket_${season}`, forceRefresh);

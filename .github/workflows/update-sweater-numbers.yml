@@ -1,0 +1,45 @@
+name: Update Sweater Numbers
+
+on:
+  schedule:
+    # Runs at 6:45 AM UTC daily (after milestones, once overnight games have finished)
+    - cron: '45 6 * * *'
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Run full seed (every Wild game from scratch)'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run sweater numbers update
+        run: |
+          if [ "${{ inputs.seed }}" = "true" ]; then
+            echo "Running FULL SEED (every season)..."
+            node scripts/update-sweater-numbers.js --seed
+          else
+            echo "Running INCREMENTAL update (new games this season)..."
+            node scripts/update-sweater-numbers.js
+          fi
+        env:
+          CF_ACCOUNT_ID: ${{ secrets.CF_ACCOUNT_ID }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET_NAME: ${{ secrets.R2_BUCKET_NAME }}

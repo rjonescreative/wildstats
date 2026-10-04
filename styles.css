@@ -4,6 +4,10 @@
     --wild-gold: #EAAA00;
     --wild-wheat: #C5B783;
 
+    /* Sampled from the home jersey graphic (images/jersey-back.png) */
+    --jersey-wheat: #F8F1DF;
+    --jersey-red: #BA161C;
+
     /* Modern neutral palette */
     --bg-primary: #0a0a0a;
     --bg-secondary: #141414;
@@ -4550,5 +4554,173 @@ footer {
 
     .glance-value {
         font-size: 1.1rem;
+    }
+}
+
+/* ─── Sweater numbers ─────────────────────────────────────────────────────── */
+
+.numbers-header {
+    margin-bottom: 1.25rem;
+}
+
+.numbers-intro {
+    margin-top: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.numbers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 1rem;
+}
+
+.number-card {
+    display: flex;
+    gap: 1rem;
+    align-items: flex-start;
+    padding: 1rem;
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    scroll-margin-top: 1rem;
+}
+
+.number-jersey {
+    position: relative;
+    flex-shrink: 0;
+    width: 100px;
+    height: 100px;
+}
+
+.number-jersey-img,
+.number-jersey-num {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+}
+
+.number-jersey-num text {
+    font-family: 'Saira Condensed', 'Roboto', sans-serif;
+    font-weight: 800;
+    font-size: 52px;
+    fill: var(--jersey-wheat);
+    stroke: var(--jersey-red);
+    stroke-width: 1.6px;
+    stroke-linejoin: round;
+    paint-order: stroke;
+}
+
+.number-wearers {
+    flex: 1;
+    min-width: 0;
+}
+
+.number-wearers-count {
+    margin-bottom: 0.35rem;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+}
+
+.number-wearer-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+.number-wearer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    min-height: 40px;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
+.number-wearer:last-child {
+    border-bottom: none;
+}
+
+.number-wearer[hidden] {
+    display: none;
+}
+
+.number-wearer-info,
+.number-wearer-games {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.number-wearer-games {
+    align-items: flex-end;
+    flex-shrink: 0;
+}
+
+.number-wearer-name {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.number-wearer--current .number-wearer-name {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.number-wearer--current {
+    cursor: pointer;
+}
+
+.number-wearer-seasons,
+.number-wearer-split {
+    color: var(--text-tertiary);
+    font-size: 0.72rem;
+    white-space: nowrap;
+}
+
+.number-wearer-gp {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.9rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.number-wearer-gp-label {
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 500;
+}
+
+.number-show-all {
+    margin-top: 0.5rem;
+    min-height: 32px;
+    padding: 0;
+    background: none;
+    border: none;
+    font-size: 0.8rem;
+    cursor: pointer;
+}
+
+@media (max-width: 440px) {
+    .numbers-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .number-card {
+        gap: 0.75rem;
+        padding: 0.75rem;
+    }
+
+    .number-jersey {
+        width: 84px;
+        height: 84px;
     }
 }
