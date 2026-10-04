@@ -4,6 +4,9 @@ import { getSweaterNumbers, getWildStats } from '../api.js';
 const VISIBLE_WEARERS = 5;   // wearers shown before "Show all"
 const MAX_NUMBER_WIDTH = 58; // widest a number may be on the jersey (SVG units of the 100×100 graphic)
 
+// NHL jersey numbers run 1–99
+const ALL_NUMBERS = Array.from({ length: 99 }, (_, i) => i + 1);
+
 // Numbers the Wild have retired, keyed by number → honoree
 const RETIRED_NUMBERS = new Map([
     [9, 'Mikko Koivu'],
@@ -165,6 +168,10 @@ export async function init() {
             </div>
             <div class="numbers-grid">
                 ${list.map(n => renderNumberCard(n, currentSet)).join('')}
+            </div>
+            <div class="numbers-unworn">
+                <h2 class="numbers-section-title">Jersey numbers never worn</h2>
+                <p class="numbers-intro">${ALL_NUMBERS.filter(n => !list.some(item => item.number === n)).join(', ')}</p>
             </div>`;
 
         container.querySelectorAll('[data-toggle-number]').forEach(btn => {

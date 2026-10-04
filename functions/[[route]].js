@@ -186,9 +186,11 @@ async function renderNumbersContent(env) {
             });
 
         const wearerCount = new Set(Object.values(numbers).flatMap(byPlayer => Object.keys(byPlayer))).size;
+        const neverWorn = Array.from({ length: 99 }, (_, i) => i + 1).filter(n => !(String(n) in numbers));
         return `<div class="numbers-prerender"><h2>Jersey Numbers</h2>`
             + `<p>${sections.length} numbers worn by ${wearerCount} players since 2000-01. Games played include the regular season and playoffs.</p>`
-            + sections.join('') + `</div>`;
+            + sections.join('')
+            + `<h2>Jersey numbers never worn</h2><p>${neverWorn.join(', ')}</p></div>`;
     } catch {
         return null; // The page still loads the data in the browser
     }

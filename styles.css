@@ -4563,6 +4563,10 @@ footer {
     margin-bottom: 1.25rem;
 }
 
+.numbers-unworn {
+    margin-top: 2.5rem;
+}
+
 /* Server-rendered list for search engines; the page script replaces it with the full layout */
 .numbers-prerender h2 {
     font-size: 1rem;
