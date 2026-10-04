@@ -4,6 +4,11 @@ import { getSweaterNumbers, getWildStats } from '../api.js';
 const VISIBLE_WEARERS = 5;   // wearers shown before "Show all"
 const MAX_NUMBER_WIDTH = 58; // widest a number may be on the jersey (SVG units of the 100×100 graphic)
 
+// Numbers the Wild have retired, keyed by number → honoree
+const RETIRED_NUMBERS = new Map([
+    [9, 'Mikko Koivu'],
+]);
+
 function formatSeason(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
@@ -52,11 +57,16 @@ function renderNumberCard({ number, wearers }, currentSet) {
         return i < VISIBLE_WEARERS ? row : row.replace('<li ', '<li hidden data-extra ');
     }).join('');
 
+    const retiredFor = RETIRED_NUMBERS.get(number);
+    const retiredBadge = retiredFor
+        ? `<span class="number-retired" title="Retired in honor of ${retiredFor}">Retired</span>`
+        : '';
+
     return `
-        <article class="number-card" id="number-${number}">
+        <article class="number-card${retiredFor ? ' number-card--retired' : ''}" id="number-${number}">
             ${renderJersey(number)}
             <div class="number-wearers">
-                <div class="number-wearers-count">${wearers.length} ${wearers.length === 1 ? 'player' : 'players'}</div>
+                <div class="number-wearers-count">${wearers.length} ${wearers.length === 1 ? 'player' : 'players'}${retiredBadge}</div>
                 <ol class="number-wearer-list">${rows}</ol>
                 ${hiddenCount > 0 ? `<button class="number-show-all text-link" data-toggle-number="${number}" aria-expanded="false">Show all ${wearers.length}</button>` : ''}
             </div>
