@@ -148,7 +148,9 @@ function hadIceTime(p) {
 
 /**
  * Adds one box score to the running totals.
- *   numbers[number][playerId] = { regular, playoffs, firstSeason, lastSeason }
+ *   numbers[number][playerId] = { regular, playoffs, firstSeason, lastSeason,
+ *                                 seasons: { [season]: { regular, playoffs } } }
+ * The per-season counts let the page split a player's time into separate stints.
  */
 async function countGame(boxscore, gameId, season, isPlayoffs, numbers, seenPlayers) {
     const side = boxscore.homeTeam?.abbrev === TEAM ? 'homeTeam' : 'awayTeam';
@@ -163,8 +165,14 @@ async function countGame(boxscore, gameId, season, isPlayoffs, numbers, seenPlay
         if (!logIds?.has(gameId) && !hadIceTime(p)) continue;
         const num = String(p.sweaterNumber);
         const entry = ((numbers[num] ??= {})[p.playerId] ??= { regular: 0, playoffs: 0, firstSeason: season, lastSeason: season });
-        if (isPlayoffs) entry.playoffs++;
-        else entry.regular++;
+        const seasonEntry = ((entry.seasons ??= {})[season] ??= { regular: 0, playoffs: 0 });
+        if (isPlayoffs) {
+            entry.playoffs++;
+            seasonEntry.playoffs++;
+        } else {
+            entry.regular++;
+            seasonEntry.regular++;
+        }
         if (season < entry.firstSeason) entry.firstSeason = season;
         if (season > entry.lastSeason) entry.lastSeason = season;
         seenPlayers.set(p.playerId, { season, position: p.position });

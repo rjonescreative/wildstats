@@ -4563,8 +4563,19 @@ footer {
     margin-bottom: 1.25rem;
 }
 
+/* Matches the section headings on Milestones and Team Records */
+.numbers-section-title {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-subtle);
+}
+
 .numbers-intro {
-    margin-top: 0.35rem;
     color: var(--text-secondary);
     font-size: 0.875rem;
 }
@@ -4650,10 +4661,6 @@ footer {
 }
 
 .number-wearer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 0.75rem;
     min-height: 40px;
     padding: 0.35rem 0;
     border-bottom: 1px solid var(--border-subtle);
@@ -4667,15 +4674,18 @@ footer {
     display: none;
 }
 
-.number-wearer-info,
-.number-wearer-games {
+/* Name + total GP, then one "seasons · games" line per stint */
+.number-wearer-main,
+.number-wearer-stint {
     display: flex;
-    flex-direction: column;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 0.75rem;
     min-width: 0;
 }
 
-.number-wearer-games {
-    align-items: flex-end;
+.number-wearer-gp,
+.number-wearer-split {
     flex-shrink: 0;
 }
 

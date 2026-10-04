@@ -92,8 +92,8 @@ const PAGE_META = {
         description: `Minnesota Wild player milestones for {season}. See which Wild players are approaching franchise records and which milestones have already been achieved this season.`
     },
     '/stats/numbers': {
-        title: 'Minnesota Wild Sweater Numbers – Every Number & Who Wore It | Wild Hockey Hub',
-        description: 'Every sweater number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.'
+        title: 'Minnesota Wild Jersey Numbers – Every Number & Who Wore It | Wild Hockey Hub',
+        description: 'Every jersey number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.'
     },
     '/stats/season': {
         title: `Minnesota Wild Current Season Stats {season} | Wild Hockey Hub`,

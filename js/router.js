@@ -276,7 +276,7 @@ function getPageTitle(viewName, subView = null) {
             return `Minnesota Wild Player Milestones ${SEASON_LABEL} – Upcoming & Achieved | Wild Hockey Hub`;
         }
         if (subView === 'numbers') {
-            return 'Minnesota Wild Sweater Numbers – Every Number & Who Wore It | Wild Hockey Hub';
+            return 'Minnesota Wild Jersey Numbers – Every Number & Who Wore It | Wild Hockey Hub';
         }
         if (subView === 'season') {
             return `Minnesota Wild ${SEASON_LABEL} Season Stats – Points Progression, Splits & More | Wild Hockey Hub`;
@@ -315,7 +315,7 @@ function getMetaDescription(viewName, subView = null) {
     }
 
     if (viewName === 'stats' && subView === 'numbers') {
-        return 'Every sweater number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.';
+        return 'Every jersey number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.';
     }
     if (viewName === 'stats' && subView === 'milestones') {
         return `Minnesota Wild player milestones for ${SEASON_LABEL}. Track which Wild players are approaching goals, assists, points, games played, and wins records — and which milestones have already been hit this season.`;

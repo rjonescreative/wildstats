@@ -1,4 +1,4 @@
-// Numbers view — every sweater number worn by a Wild player, who wore it, and for how many games
+// Numbers view — every jersey number worn by a Wild player, who wore it, and for how many games
 import { getSweaterNumbers, getWildStats } from '../api.js';
 
 const VISIBLE_WEARERS = 5;   // wearers shown before "Show all"
@@ -17,6 +17,39 @@ function seasonSpan(first, last) {
     return first === last ? formatSeason(first) : `${formatSeason(first)} – ${formatSeason(last)}`;
 }
 
+// Next season ID after `season`, skipping the 2004-05 lockout (no games were played)
+function nextSeason(season) {
+    let start = Number(season.slice(0, 4)) + 1;
+    if (start === 2004) start = 2005;
+    return `${start}${start + 1}`;
+}
+
+// Group a player's seasons with a number into stints of consecutive seasons.
+// Falls back to a single first–last stint when per-season counts are missing or incomplete
+// (e.g. data written before they existed, then topped up with only newer games).
+function buildStints(s) {
+    const perSeason = Object.values(s.seasons ?? {});
+    const complete = perSeason.length > 0 &&
+        perSeason.reduce((n, x) => n + x.regular, 0) === s.regular &&
+        perSeason.reduce((n, x) => n + x.playoffs, 0) === s.playoffs;
+    if (!complete) {
+        return [{ firstSeason: s.firstSeason, lastSeason: s.lastSeason, regular: s.regular, playoffs: s.playoffs }];
+    }
+    const stints = [];
+    for (const season of Object.keys(s.seasons).sort()) {
+        const { regular, playoffs } = s.seasons[season];
+        const current = stints[stints.length - 1];
+        if (current && nextSeason(current.lastSeason) === season) {
+            current.lastSeason = season;
+            current.regular += regular;
+            current.playoffs += playoffs;
+        } else {
+            stints.push({ firstSeason: season, lastSeason: season, regular, playoffs });
+        }
+    }
+    return stints;
+}
+
 // Jersey graphic with the number centered on the back (wheat fill, red outline)
 function renderJersey(number) {
     return `
@@ -28,25 +61,32 @@ function renderJersey(number) {
         </div>`;
 }
 
+// One line per stint: season span on the left, games in that stint on the right.
+// With a single stint the total GP above already covers it, so only a playoff split is shown.
+function renderStint(stint, multiple) {
+    let split = '';
+    if (stint.playoffs > 0) split = `${stint.regular} + ${stint.playoffs} playoffs`;
+    else if (multiple) split = `${stint.regular} GP`;
+    return `
+                <div class="number-wearer-stint">
+                    <span class="number-wearer-seasons">${seasonSpan(stint.firstSeason, stint.lastSeason)}</span>
+                    ${split ? `<span class="number-wearer-split">${split}</span>` : ''}
+                </div>`;
+}
+
 function renderWearer(w, currentSet) {
     const isCurrent = currentSet.has(Number(w.playerId));
-    const playoffNote = w.playoffs > 0
-        ? `<span class="number-wearer-split">${w.regular} + ${w.playoffs} playoffs</span>`
-        : '';
     const attrs = isCurrent
         ? `class="number-wearer number-wearer--current player-hoverable" data-player-id="${w.playerId}" tabindex="0" role="button" aria-label="View ${w.name} stats"`
         : 'class="number-wearer"';
 
     return `
         <li ${attrs}>
-            <div class="number-wearer-info">
+            <div class="number-wearer-main">
                 <span class="number-wearer-name">${w.name}</span>
-                <span class="number-wearer-seasons">${seasonSpan(w.firstSeason, w.lastSeason)}</span>
-            </div>
-            <div class="number-wearer-games">
                 <span class="number-wearer-gp">${w.games}<span class="number-wearer-gp-label"> GP</span></span>
-                ${playoffNote}
             </div>
+            ${w.stints.map(stint => renderStint(stint, w.stints.length > 1)).join('')}
         </li>`;
 }
 
@@ -87,6 +127,7 @@ function buildNumberList(data) {
                     games: s.regular + s.playoffs,
                     firstSeason: s.firstSeason,
                     lastSeason: s.lastSeason,
+                    stints: buildStints(s),
                 }))
                 .sort((a, b) => b.games - a.games || b.lastSeason.localeCompare(a.lastSeason)),
         }))
@@ -106,7 +147,7 @@ async function fitJerseyNumbers(container) {
 
 export async function init() {
     const container = document.getElementById('stats-numbers-view');
-    container.innerHTML = '<div class="loading">Loading sweater numbers...</div>';
+    container.innerHTML = '<div class="loading">Loading jersey numbers...</div>';
 
     try {
         const [data, wildStats] = await Promise.all([getSweaterNumbers(), getWildStats()]);
@@ -119,7 +160,7 @@ export async function init() {
 
         container.innerHTML = `
             <div class="numbers-header">
-                <h2>Sweater Numbers</h2>
+                <h2 class="numbers-section-title">Jersey Numbers</h2>
                 <p class="numbers-intro">${list.length} numbers worn by ${totalWearers} players since 2000-01. Games played include the regular season and playoffs.</p>
             </div>
             <div class="numbers-grid">
@@ -139,6 +180,6 @@ export async function init() {
         fitJerseyNumbers(container);
     } catch (err) {
         console.error('Error loading sweater numbers:', err);
-        container.innerHTML = '<div class="loading">Error loading sweater numbers.</div>';
+        container.innerHTML = '<div class="loading">Error loading jersey numbers.</div>';
     }
 }
