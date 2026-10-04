@@ -28,26 +28,29 @@ const RECORDS_SLUG_TO_STAT = {
 };
 const RECORDS_SLUG_TO_POS  = Object.fromEntries(Object.entries(RECORDS_POS_TO_SLUG).map(([k, v]) => [v, k]));
 
-// Parse /stats/team-records/{time}/{stat}/{pos} → { timeMode, statMode, posMode } or null
+// Parse /stats/team-records/[playoffs|combined/]{time}/{stat}/{pos} → { gameType, timeMode, statMode, posMode } or null
+// Regular season has no type segment, so existing links keep working.
 export function parseTeamRecordsPath(path) {
-    const m = path.match(/^\/stats\/team-records\/([^/]+)\/([^/]+)\/([^/]+)$/);
+    const m = path.match(/^\/stats\/team-records\/(?:(playoffs|combined)\/)?([^/]+)\/([^/]+)\/([^/]+)$/);
     if (!m) return null;
-    const timeMode = RECORDS_SLUG_TO_TIME[m[1]];
-    const statMode = RECORDS_SLUG_TO_STAT[m[2]];
-    const posMode  = RECORDS_SLUG_TO_POS[m[3]];
+    const gameType = m[1] ?? 'regular';
+    const timeMode = RECORDS_SLUG_TO_TIME[m[2]];
+    const statMode = RECORDS_SLUG_TO_STAT[m[3]];
+    const posMode  = RECORDS_SLUG_TO_POS[m[4]];
     if (!timeMode || !statMode || !posMode) return null;
-    return { timeMode, statMode, posMode };
+    return { gameType, timeMode, statMode, posMode };
 }
 
 // Build /stats/team-records/{time}/{stat}/{pos} from state values
-export function buildTeamRecordsPath(timeMode, statMode, posMode) {
-    return `/stats/team-records/${RECORDS_TIME_TO_SLUG[timeMode]}/${RECORDS_STAT_TO_SLUG[statMode]}/${RECORDS_POS_TO_SLUG[posMode]}`;
+export function buildTeamRecordsPath(timeMode, statMode, posMode, gameType = 'regular') {
+    const type = gameType === 'regular' ? '' : `${gameType}/`;
+    return `/stats/team-records/${type}${RECORDS_TIME_TO_SLUG[timeMode]}/${RECORDS_STAT_TO_SLUG[statMode]}/${RECORDS_POS_TO_SLUG[posMode]}`;
 }
 
 // Push a new records URL, update title + meta tags, track page view
-export function updateTeamRecordsURL(timeMode, statMode, posMode) {
-    const path  = buildTeamRecordsPath(timeMode, statMode, posMode);
-    const title = _teamRecordsTitle(timeMode, statMode, posMode);
+export function updateTeamRecordsURL(timeMode, statMode, posMode, gameType = 'regular') {
+    const path  = buildTeamRecordsPath(timeMode, statMode, posMode, gameType);
+    const title = _teamRecordsTitle(timeMode, statMode, posMode, gameType);
     history.pushState({ path, viewName: 'stats', subView: 'team-records' }, '', path);
     document.title = title;
     updateMetaTags(path, 'stats', 'team-records');
@@ -216,17 +219,28 @@ const _RECORDS_POS_NOUN = {
     all: 'skaters', forwards: 'forwards', defense: 'defensemen', goalies: 'goalies',
 };
 
-function _teamRecordsTitle(timeMode, statMode, posMode) {
+function _teamRecordsTitle(timeMode, statMode, posMode, gameType = 'regular') {
     const time  = timeMode === 'alltime' ? 'Career' : 'Single-Season';
+    const type  = { playoffs: 'Playoff ', combined: 'Regular Season & Playoff ' }[gameType] ?? '';
     const pos   = _RECORDS_POS_PREFIX[posMode] ?? '';
     const stat  = _RECORDS_STAT_LABEL[statMode] ?? statMode;
     const sfx   = timeMode === 'alltime' ? 'Leaders' : 'Records';
-    return `Minnesota Wild ${time} ${pos}${stat} ${sfx} | Wild Hockey Hub`;
+    return `Minnesota Wild ${time} ${type}${pos}${stat} ${sfx} | Wild Hockey Hub`;
 }
 
-function _teamRecordsDescription(timeMode, statMode, posMode) {
+function _teamRecordsDescription(timeMode, statMode, posMode, gameType = 'regular') {
     const stat    = (_RECORDS_STAT_LABEL[statMode] ?? statMode).toLowerCase();
     const pos     = _RECORDS_POS_NOUN[posMode] ?? 'players';
+    if (gameType === 'combined') {
+        return timeMode === 'alltime'
+            ? `Minnesota Wild all-time ${stat} leaders for ${pos}, regular season and playoffs combined. Complete franchise history ranked from 2000-01.`
+            : `Top single-season ${stat} totals by Minnesota Wild ${pos}, counting regular season and playoffs together. The best full seasons in franchise history, ranked.`;
+    }
+    if (gameType === 'playoffs') {
+        return timeMode === 'alltime'
+            ? `Minnesota Wild all-time playoff ${stat} leaders for ${pos}. Every Stanley Cup Playoffs run in franchise history, ranked.`
+            : `Top single-postseason playoff ${stat} performances by Minnesota Wild ${pos}. The best individual playoff runs in franchise history, ranked.`;
+    }
     if (timeMode === 'alltime') {
         return `Minnesota Wild all-time career ${stat} leaders for ${pos}. Complete franchise history ranked from 2000-01 through the current season.`;
     }
@@ -269,7 +283,7 @@ function getPageTitle(viewName, subView = null) {
         if (subView === 'team-records') {
             const rp = parseTeamRecordsPath(window.location.pathname);
             return rp
-                ? _teamRecordsTitle(rp.timeMode, rp.statMode, rp.posMode)
+                ? _teamRecordsTitle(rp.timeMode, rp.statMode, rp.posMode, rp.gameType)
                 : 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub';
         }
         if (subView === 'milestones') {
@@ -335,7 +349,7 @@ function getMetaDescription(viewName, subView = null) {
     if (viewName === 'stats' && subView === 'team-records') {
         const rp = parseTeamRecordsPath(window.location.pathname);
         return rp
-            ? _teamRecordsDescription(rp.timeMode, rp.statMode, rp.posMode)
+            ? _teamRecordsDescription(rp.timeMode, rp.statMode, rp.posMode, rp.gameType)
             : 'Minnesota Wild all-time franchise records and single-season statistical leaders. Career and season bests for goals, assists, points, wins, penalty minutes, games played, and more.';
     }
 

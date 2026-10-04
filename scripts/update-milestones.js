@@ -95,8 +95,9 @@ async function fetchWithRetry(url, retries = 8) {
     throw lastErr ?? new Error(`Failed after ${retries} retries: ${url}`);
 }
 
-async function fetchClubStats(season) {
-    return fetchWithRetry(`${NHL_API}/club-stats/${TEAM}/${season}/2`);
+// gameType 2 = regular season, 3 = playoffs
+async function fetchClubStats(season, gameType = 2) {
+    return fetchWithRetry(`${NHL_API}/club-stats/${TEAM}/${season}/${gameType}`);
 }
 
 // Situational scoring (even strength, power play, short-handed, empty net) for every Wild player-season,
@@ -105,8 +106,8 @@ async function fetchClubStats(season) {
 const STATS_API = 'https://api.nhle.com/stats/rest/en';
 const WILD_FRANCHISE_ID = 37;
 
-async function fetchStatsReport(report) {
-    const cayenne = `gameTypeId=2 and franchiseId=${WILD_FRANCHISE_ID}`;
+async function fetchStatsReport(report, gameType = 2) {
+    const cayenne = `gameTypeId=${gameType} and franchiseId=${WILD_FRANCHISE_ID}`;
     const url = `${STATS_API}/skater/${report}?isAggregate=false&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
     const { data = [] } = await fetchWithRetry(url);
     return data;
@@ -120,8 +121,8 @@ function orInferred(value, total) {
     return total === 0 ? 0 : null;
 }
 
-async function fetchSituationalStats() {
-    const [summary, realtime] = await Promise.all([fetchStatsReport('summary'), fetchStatsReport('realtime')]);
+async function fetchSituationalStats(gameType = 2) {
+    const [summary, realtime] = await Promise.all([fetchStatsReport('summary', gameType), fetchStatsReport('realtime', gameType)]);
     const realtimeByKey = new Map(realtime.map(r => [`${r.seasonId}|${r.playerId}`, r]));
 
     const bySeason = {};
@@ -605,18 +606,7 @@ const GOALIE_LANDING_STAT_MAP = {
  * @param {object}   statMap  - same SKATER_LANDING_STAT_MAP used for season records
  */
 async function correctSplitSeasonCareerTotals(players, seasonData, statMap) {
-    const playerIds = new Set(players.map(p => p.playerId));
-    const landings = new Map();
-
-    for (const playerId of playerIds) {
-        try {
-            const landing = await fetchWithRetry(`${NHL_API}/player/${playerId}/landing`);
-            landings.set(playerId, landing.seasonTotals ?? []);
-        } catch {
-            landings.set(playerId, []);
-        }
-        await sleep(150);
-    }
+    const landings = await fetchLandingSeasonTotals(players.map(p => p.playerId));
 
     let corrected = 0;
     for (const player of players) {
@@ -664,7 +654,28 @@ async function correctSplitSeasonCareerTotals(players, seasonData, statMap) {
  * player landing pages for all top-record candidates and substitutes Wild-only stats
  * wherever a split season is detected (multiple NHL entries for the same season).
  */
-async function correctSplitSeasonRecords(records, statMap) {
+// Landing-page season totals, cached per run so the regular-season and combined lists share lookups
+const landingCache = new Map();
+
+async function fetchLandingSeasonTotals(playerIds) {
+    for (const id of new Set(playerIds)) {
+        if (landingCache.has(id)) continue;
+        try {
+            const landing = await fetchWithRetry(`${NHL_API}/player/${id}/landing`);
+            landingCache.set(id, landing.seasonTotals ?? []);
+        } catch {
+            landingCache.set(id, []);
+        }
+        await sleep(150);
+    }
+    return landingCache;
+}
+
+/**
+ * @param {Function} [addOn] - (playerId, season, cat) → extra amount to add on top of the
+ *   corrected Wild-only regular-season value (used to add playoffs for combined records)
+ */
+async function correctSplitSeasonRecords(records, statMap, addOn = null) {
     // Collect unique player IDs across all record categories
     const playerIds = new Set();
     for (const [cat, entries] of Object.entries(records)) {
@@ -672,17 +683,7 @@ async function correctSplitSeasonRecords(records, statMap) {
         for (const e of entries) playerIds.add(e.playerId);
     }
 
-    // Fetch landing pages for all unique players
-    const landings = new Map(); // playerId → seasonTotals[]
-    for (const id of playerIds) {
-        try {
-            const landing = await fetchWithRetry(`${NHL_API}/player/${id}/landing`);
-            landings.set(id, landing.seasonTotals ?? []);
-        } catch {
-            landings.set(id, []);
-        }
-        await sleep(150);
-    }
+    const landings = await fetchLandingSeasonTotals([...playerIds]); // playerId → seasonTotals[]
 
     // Correct entries where the player had a split season
     let corrected = 0;
@@ -707,7 +708,7 @@ async function correctSplitSeasonRecords(records, statMap) {
             const wildEntry = nhlEntries.find(s => s.teamCommonName?.default === 'Wild');
             if (!wildEntry) continue;
 
-            const correctedValue = extractor(wildEntry);
+            const correctedValue = extractor(wildEntry) + (addOn ? addOn(entry.playerId, entry.season, cat) : 0);
             if (correctedValue !== entry.value) {
                 entry.value = correctedValue;
                 corrected++;
@@ -721,6 +722,128 @@ async function correctSplitSeasonRecords(records, statMap) {
     if (corrected > 0) {
         console.log(`   ✓ Corrected ${corrected} split-season stat(s) to Wild-only totals`);
     }
+}
+
+/**
+ * Playoff records: the same career and single-season lists as the regular season, built
+ * from playoff stats only. No split-season correction (a player's playoff games in a season
+ * are all with one team), no shootouts (playoff overtime is played to a finish), and no
+ * goalie-goal lookup.
+ */
+function buildPlayoffRecords(playoffSeasonData) {
+    const { skaters, goalies } = aggregateCareerTotals(playoffSeasonData);
+    const FORWARDS = new Set(['L', 'R', 'C']);
+    const DEFENSE  = new Set(['D']);
+    const forwards = skaters.filter(p => FORWARDS.has(p.positionCode));
+    const defense  = skaters.filter(p => DEFENSE.has(p.positionCode));
+    const SEASON_LIMIT = 25;
+
+    return {
+        skaters: {
+            careerLeaders: {
+                all:      buildLeaders(skaters,  SKATER_CAREER_CATS, LEADERS_LIMIT),
+                forwards: buildLeaders(forwards, SKATER_CAREER_CATS, 25),
+                defense:  buildLeaders(defense,  SKATER_CAREER_CATS, 25),
+            },
+            singleSeasonRecords: {
+                all:      buildSingleSeasonRecords(playoffSeasonData, SKATER_SEASON_CATS, 'skaters', RECORDS_LIMIT),
+                forwards: buildSingleSeasonRecords(playoffSeasonData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT, FORWARDS),
+                defense:  buildSingleSeasonRecords(playoffSeasonData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT, DEFENSE),
+            },
+        },
+        goalies: {
+            careerLeaders:       buildLeaders(goalies, GOALIE_CAREER_CATS, LEADERS_LIMIT),
+            singleSeasonRecords: buildSingleSeasonRecords(playoffSeasonData, GOALIE_SEASON_CATS, 'goalies', RECORDS_LIMIT),
+        },
+    };
+}
+
+/**
+ * Merge regular-season and playoff player-seasons into one combined season set.
+ * Numeric stats are summed; a missing (null) situational value stays null (excluded).
+ */
+function combineSeasonData(seasonData, playoffSeasonData) {
+    const add = (a, b) => (a === null || b === null) ? null : (a ?? 0) + (b ?? 0);
+    const merge = (regular = [], playoffs = [], cats) => {
+        const byId = new Map(regular.map(p => [p.playerId, { ...p }]));
+        for (const p of playoffs) {
+            const target = byId.get(p.playerId);
+            if (!target) { byId.set(p.playerId, { ...p }); continue; }
+            for (const cat of cats) target[cat] = add(target[cat], p[cat]);
+        }
+        return [...byId.values()];
+    };
+
+    const combined = {};
+    for (const season of new Set([...Object.keys(seasonData), ...Object.keys(playoffSeasonData)])) {
+        const reg = seasonData[season] ?? {};
+        const po = playoffSeasonData[season] ?? {};
+        combined[season] = {
+            skaters: merge(reg.skaters, po.skaters, SKATER_CAREER_CATS),
+            goalies: merge(reg.goalies, po.goalies, GOALIE_CAREER_CATS),
+        };
+    }
+    return combined;
+}
+
+/**
+ * Combined records (regular season + playoffs). Regular-season stats for traded players are
+ * corrected to Wild-only first, then playoffs are added on top. Shootouts and goalie goals are
+ * regular-season only, so those lists are reused as-is.
+ */
+async function buildCombinedRecords(seasonData, playoffSeasonData, regularPayload) {
+    const combinedData = combineSeasonData(seasonData, playoffSeasonData);
+    const { skaters, goalies } = aggregateCareerTotals(combinedData);
+    const FORWARDS = new Set(['L', 'R', 'C']);
+    const DEFENSE  = new Set(['D']);
+
+    // Career: subtract the raw regular-season value and add the Wild-only one (same as regular season)
+    const CAREER_CANDIDATE_LIMIT = 75;
+    const candidateIds = new Set();
+    for (const cat of SKATER_CAREER_CATS.filter(c => !SITUATION_CATS.includes(c))) {
+        [...skaters].sort((a, b) => (b[cat] ?? 0) - (a[cat] ?? 0))
+            .slice(0, CAREER_CANDIDATE_LIMIT)
+            .forEach(p => candidateIds.add(p.playerId));
+    }
+    await correctSplitSeasonCareerTotals(skaters.filter(p => candidateIds.has(p.playerId)), seasonData, SKATER_LANDING_STAT_MAP);
+
+    const forwards = skaters.filter(p => FORWARDS.has(p.positionCode));
+    const defense  = skaters.filter(p => DEFENSE.has(p.positionCode));
+
+    // Single season: correct the regular-season part to Wild-only, then add that season's playoffs
+    const playoffValue = playerType => (playerId, season, cat) =>
+        playoffSeasonData[season]?.[playerType]?.find(p => p.playerId === playerId)?.[cat] ?? 0;
+    const SEASON_LIMIT = 25;
+    const sliceRecords = (pool, limit) => Object.fromEntries(Object.entries(pool).map(([cat, e]) => [cat, e.slice(0, limit)]));
+
+    const allSeason = buildSingleSeasonRecords(combinedData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 4);
+    const fwdSeason = buildSingleSeasonRecords(combinedData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 2, FORWARDS);
+    const defSeason = buildSingleSeasonRecords(combinedData, SKATER_SEASON_CATS, 'skaters', SEASON_LIMIT * 2, DEFENSE);
+    for (const pool of [allSeason, fwdSeason, defSeason]) {
+        await correctSplitSeasonRecords(pool, SKATER_LANDING_STAT_MAP, playoffValue('skaters'));
+    }
+    const goalieSeason = buildSingleSeasonRecords(combinedData, GOALIE_SEASON_CATS, 'goalies', RECORDS_LIMIT * 2);
+    await correctSplitSeasonRecords(goalieSeason, GOALIE_LANDING_STAT_MAP, playoffValue('goalies'));
+
+    const regular = regularPayload.skaters;
+    return {
+        skaters: {
+            careerLeaders: {
+                all:      { ...buildLeaders(skaters,  SKATER_CAREER_CATS, LEADERS_LIMIT), shootoutGoals: regular.careerLeaders.all.shootoutGoals },
+                forwards: { ...buildLeaders(forwards, SKATER_CAREER_CATS, 25), shootoutGoals: regular.careerLeaders.forwards.shootoutGoals },
+                defense:  { ...buildLeaders(defense,  SKATER_CAREER_CATS, 25), shootoutGoals: regular.careerLeaders.defense.shootoutGoals },
+            },
+            singleSeasonRecords: {
+                all:      { ...sliceRecords(allSeason, RECORDS_LIMIT), shootoutGoals: regular.singleSeasonRecords.all.shootoutGoals },
+                forwards: { ...sliceRecords(fwdSeason, SEASON_LIMIT), shootoutGoals: regular.singleSeasonRecords.forwards.shootoutGoals },
+                defense:  { ...sliceRecords(defSeason, SEASON_LIMIT), shootoutGoals: regular.singleSeasonRecords.defense.shootoutGoals },
+            },
+        },
+        goalies: {
+            careerLeaders:       { ...buildLeaders(goalies, GOALIE_CAREER_CATS, LEADERS_LIMIT), goals: regularPayload.goalies.careerLeaders.goals },
+            singleSeasonRecords: { ...sliceRecords(goalieSeason, RECORDS_LIMIT), goals: regularPayload.goalies.singleSeasonRecords.goals },
+        },
+    };
 }
 
 async function buildPayload(seasonData, shootoutData) {
@@ -837,12 +960,14 @@ async function main() {
     let existing = null;
     let seasonData = {};
     let shootoutData = {};
+    let playoffSeasonData = {};
 
     if (!isSeed) {
         console.log('📦 Loading existing data from R2...');
         existing = await readFromR2();
         seasonData = existing?.seasonData ?? {};
         shootoutData = existing?.shootoutData ?? {};
+        playoffSeasonData = existing?.playoffSeasonData ?? {};
         if (isSeedShootoutMissing) {
             const alreadyHave = Object.keys(shootoutData);
             console.log(`   Already have shootout data for ${alreadyHave.length} season(s): ${alreadyHave.join(', ')}`);
@@ -856,6 +981,9 @@ async function main() {
     if (isRebuild) {
         console.log(`📊 Rebuilding from existing data (${Object.keys(seasonData).length} seasons, ${Object.keys(shootoutData).length} shootout seasons)...`);
         const payload = await buildPayload(seasonData, shootoutData);
+        payload.playoffSeasonData = playoffSeasonData;
+        payload.playoffs = buildPlayoffRecords(playoffSeasonData);
+        payload.combined = await buildCombinedRecords(seasonData, playoffSeasonData, payload);
         console.log('\n💾 Writing to R2...');
         await writeToR2(payload);
         console.log('✅ Done.\n');
@@ -888,11 +1016,37 @@ async function main() {
         console.log(`\n   ${fetched} fetched, ${failed} failed`);
     }
 
+    // Playoff stats: every season on a seed (or the first run that has none stored), otherwise
+    // just the current season. Seasons the Wild missed the playoffs return no players.
+    const needAllPlayoffs = isSeed || Object.keys(playoffSeasonData).length === 0;
+    const playoffSeasons = needAllPlayoffs ? getAllSeasons() : [getCurrentSeason()];
+    console.log(`\n🏆 Fetching playoff stats (${playoffSeasons.length} season(s))...`);
+    let playoffRuns = 0;
+    for (const season of playoffSeasons) {
+        try {
+            const data = await fetchClubStats(season, 3);
+            const skaters = data.skaters ?? [];
+            const goalies = data.goalies ?? [];
+            if (skaters.length || goalies.length) {
+                playoffSeasonData[season] = { skaters, goalies };
+                playoffRuns++;
+            } else {
+                delete playoffSeasonData[season];
+            }
+        } catch {
+            // No playoffs that season (or not yet) — nothing to store
+        }
+        if (playoffSeasons.length > 1) await sleep(200);
+    }
+    console.log(`   ✓ ${playoffRuns} season(s) with playoff games`);
+
     // Situational stats: two requests cover every season, so refresh them all each run
     console.log('\n⚡ Fetching even-strength, power-play, short-handed, and empty-net stats (all seasons)...');
     const situationalBySeason = await fetchSituationalStats();
     const { merged, missing } = mergeSituationalStats(seasonData, situationalBySeason);
     console.log(`   ✓ ${merged} player-seasons with situational stats (${missing} missing value(s) excluded)`);
+    const playoffSituational = mergeSituationalStats(playoffSeasonData, await fetchSituationalStats(3));
+    console.log(`   ✓ ${playoffSituational.merged} playoff player-seasons with situational stats (${playoffSituational.missing} missing value(s) excluded)`);
 
     // Shootout data: seed all seasons, only missing seasons, or update current season only
     let shootoutSeasons, existingShootout;
@@ -914,6 +1068,10 @@ async function main() {
 
     console.log('\n📊 Aggregating franchise records...');
     const payload = await buildPayload(seasonData, shootoutData);
+    payload.playoffSeasonData = playoffSeasonData;
+    payload.playoffs = buildPlayoffRecords(playoffSeasonData);
+    console.log('\n🔗 Building combined (regular season + playoffs) records...');
+    payload.combined = await buildCombinedRecords(seasonData, playoffSeasonData, payload);
 
     const totalSkaters = Object.values(payload.skaters.careerLeaders)[0]?.length ?? 0;
     const totalGoalies = Object.values(payload.goalies.careerLeaders)[0]?.length ?? 0;

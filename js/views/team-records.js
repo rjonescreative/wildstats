@@ -18,6 +18,7 @@ function formatSeason(s) {
 // ─── State ────────────────────────────────────────────────────────────────────
 
 let timeMode  = 'alltime';  // 'alltime' | 'season'
+let gameType  = 'regular';  // 'regular' (regular season) | 'playoffs' | 'combined' (regular season + playoffs)
 let situation = 'all';      // 'all' | 'ev' (even strength) | 'pp' (power play) | 'sh' (short-handed) | 'en' (empty net)
 let statMode  = 'goals';    // 'goals' | 'assists' | 'points' | 'shootout' | 'wins' | 'penaltyMinutes' | 'gamesPlayed'
 let posMode   = 'all';      // 'all' | 'forwards' | 'defense' | 'goalies'
@@ -47,8 +48,17 @@ function splitStatKey(key) {
         : { situation: 'all', statMode: key };
 }
 
+// Records data for each type; playoffs and combined have the same shape as the regular season
+function recordsSource() {
+    if (gameType === 'playoffs') return milestones.playoffs;
+    if (gameType === 'combined') return milestones.combined;
+    return milestones;
+}
+
 function getEntries() {
-    const { skaters, goalies } = milestones;
+    const source = recordsSource();
+    if (!source) return { entries: [], showSeason: false };
+    const { skaters, goalies } = source;
     const src = timeMode === 'alltime';
 
     // Wins always uses goalies pool regardless of posMode
@@ -86,10 +96,12 @@ function getEntries() {
 
 function tableLabel() {
     const time = timeMode === 'alltime' ? 'All-Time' : 'Single Season';
+    const type = gameType === 'playoffs' ? 'Playoff ' : '';
+    const typeSuffix = gameType === 'combined' ? ' (Regular Season + Playoffs)' : '';
     const stat = { goals: 'Goals', assists: 'Assists', points: 'Points', shootout: 'Shootout Goals', wins: 'Wins', penaltyMinutes: 'Penalty Minutes', gamesPlayed: 'Games Played' }[statMode];
     const sit  = situation === 'all' ? '' : `${SITUATION_LABELS[situation]} `;
     const pos  = { all: '', forwards: ' — Forwards', defense: ' — Defense', goalies: '' }[posMode];
-    return `${time} ${sit}${stat}${pos}`;
+    return `${time} ${type}${sit}${stat}${pos}${typeSuffix}`;
 }
 
 // ─── Rendering ────────────────────────────────────────────────────────────────
@@ -155,6 +167,8 @@ function renderTable() {
 // ─── Selector state enforcement ───────────────────────────────────────────────
 
 function applyConstraints() {
+    // Playoffs have no shootouts (overtime is played to a finish)
+    if (gameType === 'playoffs' && statMode === 'shootout') statMode = 'goals';
     // Specific situation → only goals/assists/points, skaters only
     if (situation !== 'all') {
         if (!SITUATION_STATS.has(statMode)) statMode = 'goals';
@@ -177,6 +191,11 @@ function updateSelectorUI() {
         btn.classList.toggle('active', t === timeMode);
     });
 
+    // Type buttons (regular season / playoffs / combined)
+    document.querySelectorAll('[data-type]').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.type === gameType);
+    });
+
     // Situation buttons — always selectable; applyConstraints resets an impossible stat/position
     document.querySelectorAll('[data-situation]').forEach(btn => {
         btn.classList.toggle('active', btn.dataset.situation === situation);
@@ -187,7 +206,7 @@ function updateSelectorUI() {
     if (extraRow) extraRow.hidden = situation !== 'all';
     document.querySelectorAll('[data-stat]').forEach(btn => {
         const s = btn.dataset.stat;
-        btn.disabled = (s === 'shootout' && posMode === 'goalies');
+        btn.disabled = s === 'shootout' && (posMode === 'goalies' || gameType === 'playoffs');
         btn.classList.toggle('active', s === statMode);
     });
 
@@ -247,11 +266,13 @@ export async function init() {
     const urlParams = parseTeamRecordsPath(window.location.pathname);
     if (urlParams) {
         timeMode = urlParams.timeMode;
+        gameType = urlParams.gameType;
         ({ situation, statMode } = splitStatKey(urlParams.statMode));
         posMode  = urlParams.posMode;
     } else {
         // Reset to defaults when loading the base /stats/team-records URL
         timeMode  = 'alltime';
+        gameType  = 'regular';
         situation = 'all';
         statMode  = 'goals';
         posMode   = 'all';
@@ -279,6 +300,16 @@ export async function init() {
                             <div class="records-drawer-title">Time</div>
                             <button class="division-toggle active" data-time="alltime">All-Time</button>
                             <button class="division-toggle" data-time="season">Season</button>
+                        </div>
+                    </div>
+                    <div class="records-selector-group" data-group="type">
+                        <span class="records-selector-label" id="records-label-type">Type</span>
+                        <button class="records-mobile-trigger" data-open-group="type" aria-haspopup="true" aria-expanded="false" aria-describedby="records-label-type"></button>
+                        <div class="records-selector-btns" role="group" aria-label="Type">
+                            <div class="records-drawer-title">Type</div>
+                            <button class="division-toggle active" data-type="regular">Regular Season</button>
+                            <button class="division-toggle" data-type="playoffs">Playoffs</button>
+                            <button class="division-toggle" data-type="combined">Combined</button>
                         </div>
                     </div>
                     <div class="records-selector-group" data-group="situation">
@@ -349,20 +380,22 @@ export async function init() {
 
             if (e.target.closest('#records-reset')) {
                 timeMode  = 'alltime';
+                gameType  = 'regular';
                 situation = 'all';
                 statMode  = 'goals';
                 posMode   = 'all';
                 applyConstraints();
                 updateSelectorUI();
                 renderTable();
-                updateTeamRecordsURL(timeMode, statKey(), posMode);
+                updateTeamRecordsURL(timeMode, statKey(), posMode, gameType);
                 return;
             }
 
-            const btn = e.target.closest('[data-time],[data-situation],[data-stat],[data-pos]');
+            const btn = e.target.closest('[data-time],[data-type],[data-situation],[data-stat],[data-pos]');
             if (!btn || btn.disabled) return;
 
             if (btn.dataset.time) timeMode = btn.dataset.time;
+            if (btn.dataset.type) gameType = btn.dataset.type;
             if (btn.dataset.situation) situation = btn.dataset.situation;
             if (btn.dataset.stat) statMode = btn.dataset.stat;
             if (btn.dataset.pos)  posMode  = btn.dataset.pos;
@@ -370,7 +403,7 @@ export async function init() {
             applyConstraints();
             updateSelectorUI();
             renderTable();
-            updateTeamRecordsURL(timeMode, statKey(), posMode);
+            updateTeamRecordsURL(timeMode, statKey(), posMode, gameType);
             closeDrawer();
         });
 
