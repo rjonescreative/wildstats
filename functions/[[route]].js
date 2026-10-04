@@ -147,6 +147,63 @@ function resolveMeta(path) {
     return PAGE_META['/'];
 }
 
+// ─── Jersey numbers: crawlable content + breadcrumbs ──────────────────────────
+// The numbers page is drawn in the browser; pre-render a plain list (number → who wore it,
+// seasons, games) into the page so search engines get the content in the initial HTML.
+// The page script replaces it with the full layout once it loads.
+
+function escapeHtml(text) {
+    return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function formatSeasonLabel(s) {
+    return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
+}
+
+async function renderNumbersContent(env) {
+    try {
+        const object = await env.H2H_DATA.get('numbers/sweater-numbers.json');
+        if (!object) return null;
+        const { players = {}, numbers = {} } = JSON.parse(await object.text());
+
+        const sections = Object.entries(numbers)
+            .map(([number, byPlayer]) => ({
+                number: Number(number),
+                wearers: Object.entries(byPlayer)
+                    .map(([playerId, s]) => ({ name: players[playerId]?.name || 'Unknown player', ...s, games: s.regular + s.playoffs }))
+                    .sort((a, b) => b.games - a.games),
+            }))
+            .sort((a, b) => a.number - b.number)
+            .map(({ number, wearers }) => {
+                const items = wearers.map(w => {
+                    const span = w.firstSeason === w.lastSeason
+                        ? formatSeasonLabel(w.firstSeason)
+                        : `${formatSeasonLabel(w.firstSeason)} – ${formatSeasonLabel(w.lastSeason)}`;
+                    const playoffs = w.playoffs > 0 ? ` (${w.regular} regular season, ${w.playoffs} playoffs)` : '';
+                    return `<li>${escapeHtml(w.name)}, ${span}: ${w.games} games${playoffs}</li>`;
+                }).join('');
+                return `<section id="number-${number}"><h3>Minnesota Wild #${number}</h3><ul>${items}</ul></section>`;
+            });
+
+        const wearerCount = new Set(Object.values(numbers).flatMap(byPlayer => Object.keys(byPlayer))).size;
+        return `<div class="numbers-prerender"><h2>Jersey Numbers</h2>`
+            + `<p>${sections.length} numbers worn by ${wearerCount} players since 2000-01. Games played include the regular season and playoffs.</p>`
+            + sections.join('') + `</div>`;
+    } catch {
+        return null; // The page still loads the data in the browser
+    }
+}
+
+const NUMBERS_BREADCRUMBS = JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wildhockey.win/' },
+        { '@type': 'ListItem', position: 2, name: 'Stats', item: 'https://wildhockey.win/stats' },
+        { '@type': 'ListItem', position: 3, name: 'Jersey Numbers', item: 'https://wildhockey.win/stats/numbers' },
+    ],
+});
+
 export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
@@ -163,8 +220,25 @@ export async function onRequest(context) {
 
     const meta = withSeason(resolveMeta(path));
     const canonicalUrl = `https://wildhockey.win${path}`;
+    const numbersContent = path === '/stats/numbers' ? await renderNumbersContent(env) : null;
 
-    return new HTMLRewriter()
+    let rewriter = new HTMLRewriter();
+    if (path === '/stats/numbers') {
+        rewriter = rewriter.on('head', {
+            element(el) {
+                el.append(`<script type="application/ld+json">${NUMBERS_BREADCRUMBS}</script>`, { html: true });
+            }
+        });
+        if (numbersContent) {
+            rewriter = rewriter.on('#stats-numbers-view', {
+                element(el) {
+                    el.setInnerContent(numbersContent, { html: true });
+                }
+            });
+        }
+    }
+
+    return rewriter
         .on('title', {
             element(el) {
                 el.setInnerContent(meta.title);

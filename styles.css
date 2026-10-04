@@ -4563,6 +4563,29 @@ footer {
     margin-bottom: 1.25rem;
 }
 
+/* Server-rendered list for search engines; the page script replaces it with the full layout */
+.numbers-prerender h2 {
+    font-size: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--text-secondary);
+}
+
+.numbers-prerender h3 {
+    margin-top: 1rem;
+    font-size: 0.9rem;
+}
+
+.numbers-prerender p,
+.numbers-prerender li {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+.numbers-prerender ul {
+    padding-left: 1.25rem;
+}
+
 /* Matches the section headings on Milestones and Team Records */
 .numbers-section-title {
     font-size: 1rem;

@@ -31,6 +31,12 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://wildhockey.win/stats/numbers</loc>
+    <lastmod>2026-10-03</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://wildhockey.win/stats/team-records</loc>
     <lastmod>2026-03-27</lastmod>
     <changefreq>weekly</changefreq>
