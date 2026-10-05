@@ -3,6 +3,7 @@
 // so search engines see correct metadata without needing to execute JS.
 import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear } from '../js/seasonConfig.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
+import { isKnownRoute, isPagePath } from '../js/knownRoutes.js';
 
 
 const NHL_TEAMS = [
@@ -109,19 +110,6 @@ const PAGE_META = {
         description: `Minnesota Wild head-to-head record against all 31 NHL opponents in {season}. Win-loss records, goals for, goals against, and results broken down by opponent.`
     },
 };
-
-// Pre-build a Set of all known static routes for fast lookup
-const STATIC_ROUTES = new Set(Object.keys(PAGE_META));
-
-// Check if a path is a known SPA route (static or dynamic head-to-head)
-function isSpaRoute(path) {
-    if (STATIC_ROUTES.has(path)) return true;
-    if (/^\/stats\/head-to-head\/[^/]+$/.test(path)) return true;
-    if (/^\/schedule\/past(\/\d{4}-\d{2})?$/.test(path)) return true;
-    if (path === '/standings/playoffs') return true;
-    if (parseTeamRecordsPath(path)) return true;
-    return false;
-}
 
 // Fill in the {season} placeholder. Must run per request: Workers freeze the clock
 // at the Unix epoch during module initialization, so the date isn't valid at load time.
@@ -256,18 +244,54 @@ function breadcrumbsFor(path, meta) {
     });
 }
 
+// Unknown page: the app shell with a real 404 status, kept out of search results.
+// The browser router shows the not-found view.
+function notFound(shell) {
+    const response = new HTMLRewriter()
+        .on('title', {
+            element(el) {
+                el.setInnerContent('Page Not Found | Wild Hockey Hub');
+            }
+        })
+        .on('meta[name="robots"]', {
+            element(el) {
+                el.setAttribute('content', 'noindex');
+            }
+        })
+        .on('link[rel="canonical"]', {
+            element(el) {
+                el.remove();
+            }
+        })
+        .transform(shell);
+    return new Response(response.body, { status: 404, headers: response.headers });
+}
+
 export async function onRequest(context) {
     const { request, env } = context;
     const url = new URL(request.url);
     const path = url.pathname;
 
-    // Only intercept known SPA routes — pass everything else (static assets, API routes) straight through
-    if (!isSpaRoute(path)) {
-        return env.ASSETS.fetch(request);
+    // Static files and API routes pass straight through
+    if (!isPagePath(path) || path.startsWith('/api/')) {
+        const asset = await env.ASSETS.fetch(request);
+        // A missing file gets the SPA fallback (index.html) from _redirects; answer 404 instead
+        const isFallback = (asset.headers.get('content-type') || '').startsWith('text/html') && !path.endsWith('.html');
+        return isFallback && !path.startsWith('/api/') ? new Response('Not found', { status: 404 }) : asset;
     }
 
     // Fetch index.html from static assets
     const assetRequest = new Request(new URL('/', url).href, request);
+
+    if (!isKnownRoute(path)) {
+        // A known page with a trailing slash → its canonical URL
+        const trimmed = path.replace(/\/+$/, '');
+        if (trimmed !== path && isKnownRoute(trimmed)) {
+            return Response.redirect(new URL(trimmed + url.search, url).href, 301);
+        }
+        return notFound(await env.ASSETS.fetch(assetRequest));
+    }
+
     const response = await env.ASSETS.fetch(assetRequest);
 
     const meta = withSeason(resolveMeta(path));

@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
+import { isKnownRoute, isPagePath } from './js/knownRoutes.js';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
 setDefaultResultOrder('ipv4first');
@@ -972,6 +973,18 @@ app.get('*', (req, res) => {
     // Don't serve index.html for API routes
     if (req.path.startsWith('/api/')) {
         return res.status(404).json({ error: 'API endpoint not found' });
+    }
+    if (!isPagePath(req.path)) {
+        return res.status(404).send('Not found');
+    }
+    if (!isKnownRoute(req.path)) {
+        // A known page with a trailing slash → its canonical URL
+        const trimmed = req.path.replace(/\/+$/, '');
+        if (trimmed !== req.path && isKnownRoute(trimmed)) {
+            return res.redirect(301, trimmed + req.url.slice(req.path.length));
+        }
+        // Unknown page: the app shell with a 404 status (the browser router shows the not-found view)
+        return res.status(404).sendFile(join(__dirname, 'index.html'));
     }
     res.sendFile(join(__dirname, 'index.html'));
 });

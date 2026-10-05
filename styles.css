@@ -1051,6 +1051,25 @@ main {
     font-size: 0.875rem;
 }
 
+.not-found {
+    text-align: center;
+    padding: 4rem 1rem;
+}
+
+.not-found h1 {
+    font-size: 1.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.not-found p {
+    color: var(--text-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.not-found a {
+    color: var(--wild-gold);
+}
+
 .standings-section {
     margin-bottom: 1rem;
     overflow: visible;

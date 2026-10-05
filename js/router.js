@@ -4,6 +4,7 @@ import { trackPageView, trackNavigation, trackStandingsView } from './analytics.
 import { teamBySlug } from './teams.js';
 import { getSeasonLabel, getPlayoffYear, getPreviousSeason, getPastSeasons, seasonFromLabel } from './seasonConfig.js';
 import { parseTeamRecordsPath, buildTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from './teamRecordsMeta.js';
+import { isKnownRoute } from './knownRoutes.js';
 
 // Re-exported so views can keep importing records URL helpers from the router
 export { parseTeamRecordsPath, buildTeamRecordsPath };
@@ -54,6 +55,7 @@ export function setViewModules(modules) {
 
 // Get view name from path
 function getViewFromPath(path) {
+    if (!isKnownRoute(path)) return 'not-found';
     if (routes[path]) return routes[path];
     if (path.startsWith('/stats/')) return 'stats';
     if (path.startsWith('/schedule/')) return 'schedule';
@@ -238,7 +240,8 @@ function getPageTitle(viewName, subView = null) {
 
     const titles = {
         dashboard: `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`,
-        schedule: `Minnesota Wild ${SEASON_LABEL} Schedule – Upcoming Games & Results | Wild Hockey Hub`
+        schedule: `Minnesota Wild ${SEASON_LABEL} Schedule – Upcoming Games & Results | Wild Hockey Hub`,
+        'not-found': 'Wild Hockey Hub | Page Not Found'
     };
     return titles[viewName] || `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`;
 }
@@ -313,6 +316,10 @@ function updateMetaTags(path, viewName, standingsView = null) {
     // Update meta description
     const metaDesc = document.querySelector('meta[name="description"]');
     if (metaDesc) metaDesc.setAttribute('content', description);
+
+    // Keep unknown pages out of search results
+    const robots = document.querySelector('meta[name="robots"]');
+    if (robots) robots.setAttribute('content', viewName === 'not-found' ? 'noindex' : 'index, follow');
 
     // Update canonical URL
     const canonical = document.querySelector('link[rel="canonical"]');
