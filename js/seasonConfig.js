@@ -43,3 +43,21 @@ export function getSeasonLabel(season = getCurrentSeason()) {
 export function getPlayoffYear(season = getCurrentSeason()) {
     return String(season).slice(4, 8);
 }
+
+// Every completed Wild season, newest first (2000-01 onward, skipping the 2004-05 lockout)
+export function getPastSeasons(current = getCurrentSeason()) {
+    const seasons = [];
+    for (let y = Number(String(current).slice(0, 4)) - 1; y >= 2000; y--) {
+        if (y === 2004) continue;
+        seasons.push(`${y}${y + 1}`);
+    }
+    return seasons;
+}
+
+// Season ID from a display label, e.g. "2025-26" → "20252026" (null if malformed)
+export function seasonFromLabel(label) {
+    const m = String(label).match(/^(\d{4})-(\d{2})$/);
+    if (!m) return null;
+    const start = Number(m[1]);
+    return String(start + 1).slice(2) === m[2] ? `${start}${start + 1}` : null;
+}

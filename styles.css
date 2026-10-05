@@ -878,7 +878,8 @@ main {
 
 .h2h-cat-abbr { display: none; }
 
-.h2h-since-select {
+.h2h-since-select,
+.schedule-season-select {
     appearance: none;
     -webkit-appearance: none;
     background-color: var(--bg-secondary);
@@ -900,7 +901,8 @@ main {
     vertical-align: middle;
 }
 
-.h2h-since-select:hover {
+.h2h-since-select:hover,
+.schedule-season-select:hover {
     border-color: var(--wild-green);
 }
 
@@ -2949,6 +2951,27 @@ footer {
     position: relative;
 }
 
+/* Past Seasons: season dropdown, top right like the Hide Past Games toggle */
+.schedule-season-picker {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+}
+
+.schedule-season-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.schedule-season-select {
+    min-height: 40px;
+    min-width: 7.5rem;
+    font-size: 0.9rem;
+}
+
 .schedule-header {
     position: absolute;
     top: 0;
@@ -3566,8 +3589,9 @@ footer {
     }
 }
 
-/* Media Page - Controls */
-.media-controls {
+/* Media and Schedule Pages - Controls */
+.media-controls,
+.schedule-controls {
     display: flex;
     gap: 30px;
     margin: 0 0 2rem 0;
@@ -3575,21 +3599,24 @@ footer {
 }
 
 @media (max-width: 1024px) {
-    .media-controls {
+    .media-controls,
+    .schedule-controls {
         margin: 0 0 1.5rem 0;
         gap: 24px;
     }
 }
 
 @media (max-width: 768px) {
-    .media-controls {
+    .media-controls,
+    .schedule-controls {
         margin: 0 0 1.25rem 0;
         gap: 20px;
     }
 }
 
 @media (max-width: 440px) {
-    .media-controls {
+    .media-controls,
+    .schedule-controls {
         margin: 0 0 1rem 0;
         gap: 16px;
     }

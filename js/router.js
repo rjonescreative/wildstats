@@ -2,7 +2,7 @@
 import { setCurrentView, getCurrentView } from './state.js';
 import { trackPageView, trackNavigation, trackStandingsView } from './analytics.js';
 import { teamBySlug } from './teams.js';
-import { getSeasonLabel, getPlayoffYear } from './seasonConfig.js';
+import { getSeasonLabel, getPlayoffYear, getPreviousSeason, getPastSeasons, seasonFromLabel } from './seasonConfig.js';
 
 const SEASON_LABEL = getSeasonLabel();
 const PLAYOFF_YEAR = getPlayoffYear();
@@ -73,6 +73,7 @@ const routes = {
     '/standings/league': 'standings',
     '/standings/playoffs': 'standings',
     '/schedule': 'schedule',
+    '/schedule/past': 'schedule',
     '/media': 'media',
     '/media/highlights': 'media',
     '/media/recaps': 'media',
@@ -91,6 +92,7 @@ export function setViewModules(modules) {
 function getViewFromPath(path) {
     if (routes[path]) return routes[path];
     if (path.startsWith('/stats/')) return 'stats';
+    if (path.startsWith('/schedule/')) return 'schedule';
     return 'dashboard';
 }
 
@@ -110,6 +112,17 @@ function getStatsView(path) {
     if (path.startsWith('/stats/numbers')) return 'numbers';
     if (path.startsWith('/stats/season')) return 'season';
     return 'player';
+}
+
+// Get schedule sub-view from path: 'current' or 'past'
+function getScheduleView(path) {
+    return path.startsWith('/schedule/past') ? 'past' : 'current';
+}
+
+// Season label shown on /schedule/past[/YYYY-YY] (defaults to last season)
+function pastScheduleLabel(path = window.location.pathname) {
+    const m = path.match(/^\/schedule\/past\/(\d{4}-\d{2})$/);
+    return m && getPastSeasons().includes(seasonFromLabel(m[1])) ? m[1] : getSeasonLabel(getPreviousSeason());
 }
 
 // Get media sub-view from path
@@ -141,7 +154,7 @@ async function showView(viewName, subView = null) {
     // Initialize/render the view
     const viewModule = viewModules[viewName];
     if (viewModule) {
-        if ((viewName === 'standings' || viewName === 'media' || viewName === 'stats') && subView) {
+        if ((viewName === 'standings' || viewName === 'media' || viewName === 'stats' || viewName === 'schedule') && subView) {
             await viewModule.init(subView);
         } else {
             await viewModule.init();
@@ -173,7 +186,8 @@ export async function navigateTo(path) {
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || statsView || mediaView;
+    const scheduleView = viewName === 'schedule' ? getScheduleView(path) : null;
+    const subView = standingsView || statsView || mediaView || scheduleView;
 
     // Update URL
     history.pushState({ path, viewName, subView }, '', path);
@@ -298,6 +312,10 @@ function getPageTitle(viewName, subView = null) {
         return `Minnesota Wild Player Stats ${SEASON_LABEL} – Goals, Assists & Points | Wild Hockey Hub`;
     }
 
+    if (viewName === 'schedule' && subView === 'past') {
+        return `Minnesota Wild ${pastScheduleLabel()} Schedule & Results | Wild Hockey Hub`;
+    }
+
     const titles = {
         dashboard: `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`,
         schedule: `Minnesota Wild ${SEASON_LABEL} Schedule – Upcoming Games & Results | Wild Hockey Hub`
@@ -328,6 +346,9 @@ function getMetaDescription(viewName, subView = null) {
         return mediaDescriptions[subView] || mediaDescriptions.all;
     }
 
+    if (viewName === 'schedule' && subView === 'past') {
+        return `Minnesota Wild ${pastScheduleLabel()} schedule and results: every regular season and playoff game with scores and game recaps.`;
+    }
     if (viewName === 'stats' && subView === 'numbers') {
         return 'Every jersey number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.';
     }
@@ -421,7 +442,8 @@ function handlePopState(e) {
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || statsView || mediaView;
+    const scheduleView = viewName === 'schedule' ? getScheduleView(path) : null;
+    const subView = standingsView || statsView || mediaView || scheduleView;
 
     // Scroll to top of page
     window.scrollTo(0, 0);
@@ -448,7 +470,8 @@ export function init() {
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const statsView = viewName === 'stats' ? getStatsView(path) : null;
     const mediaView = viewName === 'media' ? getMediaView(path) : null;
-    const subView = standingsView || statsView || mediaView;
+    const scheduleView = viewName === 'schedule' ? getScheduleView(path) : null;
+    const subView = standingsView || statsView || mediaView || scheduleView;
 
     // Replace current state to set initial state
     history.replaceState({ path, viewName, subView }, '', path);

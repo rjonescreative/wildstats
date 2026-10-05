@@ -1,13 +1,26 @@
 // Schedule view module
 import { getSchedule, getStandings } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
-import { PLAYOFF_MODE } from '../seasonConfig.js';
+import { PLAYOFF_MODE, getPastSeasons, getSeasonLabel, seasonFromLabel } from '../seasonConfig.js';
+import { navigateTo } from '../router.js';
 
 let allGames = [];
 let playoffGames = [];
 let playoffTeams = new Set();
+let pastMode = false; // viewing a completed season (no "Hide Past Games" toggle)
 
-export async function init() {
+// Highlight the Current Season / Past Seasons sub-nav
+function updateSubNav(subView) {
+    document.querySelectorAll('.schedule-controls .view-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.view === subView);
+    });
+}
+
+export async function init(subView = 'current') {
+    updateSubNav(subView);
+    pastMode = subView === 'past';
+    if (pastMode) return initPastSeason();
+
     try {
         const [scheduleData, standingsResult] = await Promise.all([
             getSchedule(),
@@ -41,6 +54,44 @@ export async function init() {
         console.error('Error loading schedule:', error);
         document.getElementById('schedule-container').innerHTML =
             '<div class="loading">Error loading schedule.</div>';
+    }
+}
+
+// Past Seasons: dropdown of every completed season (default: last season) and that
+// season's full schedule, plus playoff games if the Wild made the playoffs
+async function initPastSeason() {
+    const container = document.getElementById('schedule-container');
+    const seasons = getPastSeasons();
+    const urlLabel = (window.location.pathname.match(/^\/schedule\/past\/(\d{4}-\d{2})$/) || [])[1];
+    const fromUrl = urlLabel && seasonFromLabel(urlLabel);
+    const season = seasons.includes(fromUrl) ? fromUrl : seasons[0];
+
+    container.innerHTML = `
+        <div class="schedule-season-picker">
+            <label for="schedule-season-select" class="schedule-season-label">Season</label>
+            <select id="schedule-season-select" class="schedule-season-select">
+                ${seasons.map(s => `<option value="${getSeasonLabel(s)}"${s === season ? ' selected' : ''}>${getSeasonLabel(s)}</option>`).join('')}
+            </select>
+        </div>
+        <div id="schedule-tables"><div class="loading">Loading schedule...</div></div>
+    `;
+    document.getElementById('schedule-season-select').addEventListener('change', e => {
+        navigateTo(`/schedule/past/${e.target.value}`);
+    });
+
+    try {
+        const scheduleData = await getSchedule(season);
+        // Ignore a slow response if the user has since picked another season
+        if (!window.location.pathname.startsWith('/schedule/past') ||
+            document.getElementById('schedule-season-select')?.value !== getSeasonLabel(season)) return;
+
+        allGames = (scheduleData.games ?? []).filter(g => g.gameType === 2);
+        playoffGames = (scheduleData.games ?? []).filter(g => g.gameType === 3);
+        playoffTeams = new Set();
+        renderTables();
+    } catch (error) {
+        console.error('Error loading past schedule:', error);
+        document.getElementById('schedule-tables').innerHTML = '<div class="loading">Error loading schedule.</div>';
     }
 }
 
@@ -85,7 +136,7 @@ function renderToggle() {
 
 function renderTables() {
     const uiState = getUIState('schedule');
-    const hidePastGames = uiState.hidePastGames || false;
+    const hidePastGames = !pastMode && (uiState.hidePastGames || false);
 
     // Filter games based on toggle
     let gamesToShow = allGames;

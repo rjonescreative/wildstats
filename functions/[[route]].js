@@ -1,7 +1,7 @@
 // Catch-all Cloudflare Pages Function for SSR <head> injection
 // Intercepts SPA route requests and injects page-specific title/meta tags
 // so search engines see correct metadata without needing to execute JS.
-import { getSeasonLabel } from '../js/seasonConfig.js';
+import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel } from '../js/seasonConfig.js';
 
 
 const NHL_TEAMS = [
@@ -116,6 +116,7 @@ const STATIC_ROUTES = new Set(Object.keys(PAGE_META));
 function isSpaRoute(path) {
     if (STATIC_ROUTES.has(path)) return true;
     if (/^\/stats\/head-to-head\/[^/]+$/.test(path)) return true;
+    if (/^\/schedule\/past(\/\d{4}-\d{2})?$/.test(path)) return true;
     return false;
 }
 
@@ -142,6 +143,16 @@ function resolveMeta(path) {
                 description: `Minnesota Wild vs ${team.name} head-to-head results for {season}. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
             };
         }
+    }
+
+    // Past seasons' schedules: /schedule/past (last season) or /schedule/past/YYYY-YY
+    const pastMatch = path.match(/^\/schedule\/past(?:\/(\d{4}-\d{2}))?$/);
+    if (pastMatch) {
+        const label = pastMatch[1] && getPastSeasons().includes(seasonFromLabel(pastMatch[1])) ? pastMatch[1] : getSeasonLabel(getPreviousSeason());
+        return {
+            title: `Minnesota Wild ${label} Schedule & Results | Wild Hockey Hub`,
+            description: `Minnesota Wild ${label} schedule and results: every regular season and playoff game with scores and game recaps.`
+        };
     }
 
     return PAGE_META['/'];
