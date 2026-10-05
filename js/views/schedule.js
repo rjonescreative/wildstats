@@ -3,6 +3,16 @@ import { getSchedule, getStandings } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { PLAYOFF_MODE, getPastSeasons, getSeasonLabel, seasonFromLabel } from '../seasonConfig.js';
 import { navigateTo } from '../router.js';
+import { NHL_TEAMS } from '../teams.js';
+
+// Current teams use the site's logo files. Former teams (Phoenix/Arizona Coyotes, Atlanta
+// Thrashers) have no local file, so use the era-correct logo from the NHL schedule data.
+const LOCAL_LOGO_TEAMS = new Set(NHL_TEAMS.map(t => t.abbrev));
+
+function opponentLogo(team) {
+    if (LOCAL_LOGO_TEAMS.has(team.abbrev)) return `/logos/${team.abbrev}_dark.svg`;
+    return team.darkLogo || team.logo || `/logos/${team.abbrev}_dark.svg`;
+}
 
 let allGames = [];
 let playoffGames = [];
@@ -343,16 +353,17 @@ function createGameRow(game, isPlayoff = false) {
     const tvNetwork = getTVBroadcast(game);
 
     // Matchup with grid structure for alignment
+    const oppLogo = opponentLogo(oppTeam);
     let matchup;
     if (isPast) {
         matchup = isMinHome
-            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score">${oppScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score">${minScore}</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`
-            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
+            ? `<span class="matchup-away-logo"><img src="${oppLogo}" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team">${oppTeam.abbrev}</span><span class="matchup-away-score">${oppScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-score">${minScore}</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-away-score">${minScore}</span><span class="matchup-at">@</span><span class="matchup-home-team">${oppTeam.abbrev}</span><span class="matchup-home-score">${oppScore}</span><span class="matchup-home-logo"><img src="${oppLogo}" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-result ${resultClass}">${result}</span>`;
     } else {
         const oppPlayoffClass = (isPlayoff || !PLAYOFF_MODE) ? '' : (playoffTeams.has(oppTeam.abbrev) ? 'opp-in-playoffs' : 'opp-out-playoffs');
         matchup = isMinHome
-            ? `<span class="matchup-away-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`
-            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="/logos/${oppTeam.abbrev}_dark.svg" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`;
+            ? `<span class="matchup-away-logo"><img src="${oppLogo}" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-away-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-at">@</span><span class="matchup-home-team">MIN</span><span class="matchup-home-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`
+            : `<span class="matchup-away-logo"><img src="/logos/MIN_dark.svg" alt="MIN" class="team-logo"></span><span class="matchup-away-team">MIN</span><span class="matchup-at">@</span><span class="matchup-home-team ${oppPlayoffClass}">${oppTeam.abbrev}</span><span class="matchup-home-logo"><img src="${oppLogo}" alt="${oppTeam.abbrev}" class="team-logo"></span><span class="matchup-tv-mobile">${tvNetwork}</span>`;
     }
 
     // Links
