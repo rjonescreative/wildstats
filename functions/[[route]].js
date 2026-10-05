@@ -1,7 +1,8 @@
 // Catch-all Cloudflare Pages Function for SSR <head> injection
 // Intercepts SPA route requests and injects page-specific title/meta tags
 // so search engines see correct metadata without needing to execute JS.
-import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel } from '../js/seasonConfig.js';
+import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear } from '../js/seasonConfig.js';
+import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 
 
 const NHL_TEAMS = [
@@ -117,6 +118,8 @@ function isSpaRoute(path) {
     if (STATIC_ROUTES.has(path)) return true;
     if (/^\/stats\/head-to-head\/[^/]+$/.test(path)) return true;
     if (/^\/schedule\/past(\/\d{4}-\d{2})?$/.test(path)) return true;
+    if (path === '/standings/playoffs') return true;
+    if (parseTeamRecordsPath(path)) return true;
     return false;
 }
 
@@ -143,6 +146,25 @@ function resolveMeta(path) {
                 description: `Minnesota Wild vs ${team.name} head-to-head results for {season}. Win-loss record, goals scored, goals against, home and away splits, and game-by-game results.`
             };
         }
+    }
+
+    // Playoff bracket — named for the year the current season ends (matches js/router.js)
+    if (path === '/standings/playoffs') {
+        const year = getPlayoffYear();
+        return {
+            title: `NHL Playoff Bracket ${year} – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub`,
+            description: `Live ${year} NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.`
+        };
+    }
+
+    // Team records views: /stats/team-records/[playoffs|combined/]{time}/{stat}/{pos}
+    const records = parseTeamRecordsPath(path);
+    if (records) {
+        const { timeMode, statMode, posMode, gameType } = records;
+        return {
+            title: teamRecordsTitle(timeMode, statMode, posMode, gameType),
+            description: teamRecordsDescription(timeMode, statMode, posMode, gameType),
+        };
     }
 
     // Past seasons' schedules: /schedule/past (last season) or /schedule/past/YYYY-YY
@@ -207,15 +229,32 @@ async function renderNumbersContent(env) {
     }
 }
 
-const NUMBERS_BREADCRUMBS = JSON.stringify({
-    '@context': 'https://schema.org',
-    '@type': 'BreadcrumbList',
-    itemListElement: [
-        { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://wildhockey.win/' },
-        { '@type': 'ListItem', position: 2, name: 'Stats', item: 'https://wildhockey.win/stats' },
-        { '@type': 'ListItem', position: 3, name: 'Jersey Numbers', item: 'https://wildhockey.win/stats/numbers' },
-    ],
-});
+// BreadcrumbList structured data for pages deeper than one level (null for other pages)
+function breadcrumbsFor(path, meta) {
+    const trail = [['Home', '/']];
+    // Page name for the last crumb: the title without the site prefix/suffix
+    const pageName = meta.title.replace(/^Minnesota Wild /, '').replace(/ \| Wild Hockey Hub$/, '');
+
+    if (path === '/stats/numbers') {
+        trail.push(['Stats', '/stats'], ['Jersey Numbers', path]);
+    } else if (path === '/stats/team-records' || parseTeamRecordsPath(path)) {
+        trail.push(['Stats', '/stats'], ['Team Records', '/stats/team-records']);
+        if (path !== '/stats/team-records') trail.push([pageName, path]);
+    } else if (path.startsWith('/schedule/past')) {
+        trail.push(['Schedule', '/schedule'], ['Past Seasons', '/schedule/past']);
+        if (path !== '/schedule/past') trail.push([pageName.replace(/ & Results$/, ''), path]);
+    } else {
+        return null;
+    }
+
+    return JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: trail.map(([name, url], i) => ({
+            '@type': 'ListItem', position: i + 1, name, item: `https://wildhockey.win${url}`,
+        })),
+    });
+}
 
 export async function onRequest(context) {
     const { request, env } = context;
@@ -232,16 +271,21 @@ export async function onRequest(context) {
     const response = await env.ASSETS.fetch(assetRequest);
 
     const meta = withSeason(resolveMeta(path));
-    const canonicalUrl = `https://wildhockey.win${path}`;
+    // /schedule/past shows last season, so point it at that season's own URL (avoids duplicate pages)
+    const canonicalPath = path === '/schedule/past' ? `/schedule/past/${getSeasonLabel(getPreviousSeason())}` : path;
+    const canonicalUrl = `https://wildhockey.win${canonicalPath}`;
     const numbersContent = path === '/stats/numbers' ? await renderNumbersContent(env) : null;
 
     let rewriter = new HTMLRewriter();
-    if (path === '/stats/numbers') {
+    const breadcrumbs = breadcrumbsFor(path, meta);
+    if (breadcrumbs) {
         rewriter = rewriter.on('head', {
             element(el) {
-                el.append(`<script type="application/ld+json">${NUMBERS_BREADCRUMBS}</script>`, { html: true });
+                el.append(`<script type="application/ld+json">${breadcrumbs}</script>`, { html: true });
             }
         });
+    }
+    if (path === '/stats/numbers') {
         if (numbersContent) {
             rewriter = rewriter.on('#stats-numbers-view', {
                 element(el) {

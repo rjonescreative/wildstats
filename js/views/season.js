@@ -1,6 +1,6 @@
 // Current Season view — team-level stats for the current season
 import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
-import { getSeasonLabel } from '../seasonConfig.js';
+import { getSeasonLabel, PLAYOFF_MODE } from '../seasonConfig.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
 export const ALL_TEAMS = {
@@ -1163,7 +1163,8 @@ async function loadAndRenderStats(scheduleGames) {
         buildSituationalRecords(games),
         buildBackToBack(games),
         buildDivisionConferenceRecords(games),
-        buildPlayoffTeamRecords(games, standings),
+        // Playoff-race section — only shown in playoff mode
+        PLAYOFF_MODE ? buildPlayoffTeamRecords(games, standings) : '',
         buildOTShootout(games, wildStats, soScorers, seasonBreakdown),
     ].join('');
 }

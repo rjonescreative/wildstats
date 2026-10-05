@@ -1,5 +1,7 @@
 # Claude Instructions for WildStats
 
+> **New session?** Read `HANDOFF.md` for architecture, data pipelines, routes, testing tips, and known gotchas.
+
 ## CRITICAL - Read First
 
 1. **Never commit or push without explicit permission.** Each commit/push requires separate approval. Permission for one commit does not extend to subsequent commits.
