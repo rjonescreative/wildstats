@@ -374,6 +374,11 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
         }
     }
 
+    // Recap link — on the Last card, same spot as the Next card's H2H link (NHL.com, new window)
+    const recapLink = label === 'Last' && game.gameCenterLink
+        ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener noreferrer" class="game-card-h2h-link">View Game Recap ↗</a>`
+        : '';
+
     const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
 
     return `
@@ -393,6 +398,7 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
             ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
             ${liveInfo}
             ${h2hLink}
+            ${recapLink}
         </div>
     `;
 }
