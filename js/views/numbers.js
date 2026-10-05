@@ -100,6 +100,7 @@ function renderNumberCard({ number, wearers }, currentSet) {
         return i < VISIBLE_WEARERS ? row : row.replace('<li ', '<li hidden data-extra ');
     }).join('');
 
+    const totalGames = wearers.reduce((sum, w) => sum + w.games, 0);
     const retiredFor = RETIRED_NUMBERS.get(number);
     const retiredBadge = retiredFor
         ? `<span class="number-retired" title="Retired in honor of ${retiredFor}">Retired</span>`
@@ -109,7 +110,7 @@ function renderNumberCard({ number, wearers }, currentSet) {
         <article class="number-card${retiredFor ? ' number-card--retired' : ''}" id="number-${number}">
             ${renderJersey(number)}
             <div class="number-wearers">
-                <div class="number-wearers-count">${wearers.length} ${wearers.length === 1 ? 'player' : 'players'}${retiredBadge}</div>
+                <div class="number-wearers-count">${wearers.length} ${wearers.length === 1 ? 'player' : 'players'} · ${totalGames.toLocaleString()} ${totalGames === 1 ? 'game' : 'games'}${retiredBadge}</div>
                 <ol class="number-wearer-list">${rows}</ol>
                 ${hiddenCount > 0 ? `<button class="number-show-all text-link" data-toggle-number="${number}" aria-expanded="false">Show all ${wearers.length}</button>` : ''}
             </div>
