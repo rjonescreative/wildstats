@@ -2051,14 +2051,15 @@ td {
    away team | label, date, time or score, details | home team */
 .game-card--matchup {
     gap: 0.75rem;
-    justify-content: center;
 }
 
 .game-full {
     display: contents;
 }
 
+/* Auto margins center the scoreboard in the space above the bottom link */
 .matchup-layout {
+    margin-block: auto;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
