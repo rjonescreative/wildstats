@@ -1,11 +1,9 @@
 // Numbers view — every jersey number worn by a Wild player, who wore it, and for how many games
 import { getSweaterNumbers, getWildStats } from '../api.js';
+import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../jerseyStats.js';
 
 const VISIBLE_WEARERS = 5;   // wearers shown before "Show all"
 const MAX_NUMBER_WIDTH = 58; // widest a number may be on the jersey (SVG units of the 100×100 graphic)
-
-// NHL jersey numbers run 1–99
-const ALL_NUMBERS = Array.from({ length: 99 }, (_, i) => i + 1);
 
 // Numbers the Wild have retired, keyed by number → honoree
 const RETIRED_NUMBERS = new Map([
@@ -138,6 +136,61 @@ function buildNumberList(data) {
         .sort((a, b) => a.number - b.number);
 }
 
+// ─── Jersey Stats ────────────────────────────────────────────────────────────
+
+const numberLink = number => `<a href="#number-${number}" class="jersey-stat-number text-link" data-jump-number="${number}">#${number}</a>`;
+
+// One ranked list card. `value` formats a row's stat; rows past `visible` sit behind "Show all"
+function renderStatCard(title, rows, { note = '', value, rank = true, visible = Infinity }) {
+    const items = rows.map((r, i) => `
+                <li class="jersey-stat-row${rank ? '' : ' jersey-stat-row--unranked'}"${i >= visible ? ' hidden data-extra' : ''}>
+                    ${rank ? `<span class="jersey-stat-rank">${r.rank}</span>` : ''}
+                    ${numberLink(r.number)}
+                    <span class="jersey-stat-name">${r.name ?? ''}</span>
+                    <span class="jersey-stat-value">${value(r)}</span>
+                </li>`).join('');
+    const showAll = rows.length > visible
+        ? `<button class="number-show-all text-link" data-toggle-stat aria-expanded="false">Show all ${rows.length}</button>`
+        : '';
+    return `
+        <article class="jersey-stat-card">
+            <h3 class="jersey-stat-title">${title}</h3>
+            ${note ? `<p class="jersey-stat-note">${note}</p>` : ''}
+            <ol class="jersey-stat-list">${items}</ol>
+            ${showAll}
+        </article>`;
+}
+
+const stat = (amount, unit) => `${amount}<span class="jersey-stat-unit"> ${unit}</span>`;
+
+function renderJerseyStats(list) {
+    const stats = buildJerseyStats(list);
+    return `
+        <section class="jersey-stats">
+            <h2 class="numbers-section-title">Jersey Stats</h2>
+            <div class="jersey-stats-grid">
+                <article class="jersey-stat-card">
+                    <h3 class="jersey-stat-title">Never Worn</h3>
+                    <p class="jersey-stat-note">${stats.neverWorn.length} numbers no Wild player has worn</p>
+                    <ul class="jersey-never-worn">${stats.neverWorn.map(n => `<li>${n}</li>`).join('')}</ul>
+                </article>
+                ${renderStatCard('Most Worn – Players', stats.mostPlayers, { value: r => stat(r.value, 'players') })}
+                ${renderStatCard('Most Worn – Games', stats.mostGames, { value: r => stat(r.value.toLocaleString(), 'GP') })}
+                ${renderStatCard('Most Games by One Player', stats.mostBySinglePlayer, { value: r => stat(r.value.toLocaleString(), 'GP') })}
+                ${renderStatCard('Revolving Door', stats.revolvingDoor.map(r => ({ ...r, name: `${r.players} players` })), {
+                    note: REVOLVING_DOOR_NOTE,
+                    value: r => stat(r.value.toFixed(1), 'GP each'),
+                })}
+                ${renderStatCard('One and Done', stats.oneAndDone, {
+                    note: `${stats.oneAndDone.length} players wore a number for a single game`,
+                    value: r => `<span class="jersey-stat-unit">${formatSeason(r.season)}</span>`,
+                    rank: false,
+                    visible: VISIBLE_WEARERS,
+                })}
+            </div>
+        </section>`;
+}
+
 // Squeeze any number wider than the jersey back once the jersey font has loaded
 async function fitJerseyNumbers(container) {
     await document.fonts.ready;
@@ -170,10 +223,25 @@ export async function init() {
             <div class="numbers-grid">
                 ${list.map(n => renderNumberCard(n, currentSet)).join('')}
             </div>
-            <div class="numbers-unworn">
-                <h2 class="numbers-section-title">Jersey numbers never worn</h2>
-                <p class="numbers-intro">${ALL_NUMBERS.filter(n => !list.some(item => item.number === n)).join(', ')}</p>
-            </div>`;
+            ${renderJerseyStats(list)}`;
+
+        container.querySelectorAll('[data-toggle-stat]').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const card = btn.closest('.jersey-stat-card');
+                const expanded = btn.getAttribute('aria-expanded') === 'true';
+                card.querySelectorAll('[data-extra]').forEach(li => { li.hidden = expanded; });
+                btn.setAttribute('aria-expanded', String(!expanded));
+                btn.textContent = expanded ? `Show all ${card.querySelectorAll('.jersey-stat-row').length}` : 'Show fewer';
+            });
+        });
+
+        // Jersey Stats numbers scroll to that number's card (without changing the URL)
+        container.querySelectorAll('[data-jump-number]').forEach(link => {
+            link.addEventListener('click', e => {
+                e.preventDefault();
+                document.getElementById(`number-${link.dataset.jumpNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        });
 
         container.querySelectorAll('[data-toggle-number]').forEach(btn => {
             btn.addEventListener('click', () => {

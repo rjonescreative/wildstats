@@ -4,6 +4,7 @@
 import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear } from '../js/seasonConfig.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
+import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../js/jerseyStats.js';
 
 
 const NHL_TEAMS = [
@@ -181,21 +182,39 @@ function formatSeasonLabel(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
 
+// Jersey Stats as plain lists (the page script draws them as cards)
+function renderJerseyStatsContent(list) {
+    const stats = buildJerseyStats(list);
+    const ranked = (title, rows, describe, note = '') => `<h3>${title}</h3>${note ? `<p>${note}</p>` : ''}<ul>`
+        + rows.map(r => `<li>${r.rank}. #${r.number}${r.name ? ` ${escapeHtml(r.name)}` : ''}: ${describe(r)}</li>`).join('')
+        + `</ul>`;
+    return `<h2>Jersey Stats</h2>`
+        + `<h3>Jersey numbers never worn</h3><p>${stats.neverWorn.join(', ')}</p>`
+        + ranked('Most worn – players', stats.mostPlayers, r => `${r.value} players`)
+        + ranked('Most worn – games', stats.mostGames, r => `${r.value} games`)
+        + ranked('Most games by one player', stats.mostBySinglePlayer, r => `${r.value} games`)
+        + ranked('Revolving door', stats.revolvingDoor, r => `${r.players} players, ${r.value.toFixed(1)} games each`, REVOLVING_DOOR_NOTE)
+        + `<h3>One and done</h3><p>${stats.oneAndDone.length} players wore a number for a single game.</p><ul>`
+        + stats.oneAndDone.map(r => `<li>#${r.number} ${escapeHtml(r.name)}, ${formatSeasonLabel(r.season)}</li>`).join('')
+        + `</ul>`;
+}
+
 async function renderNumbersContent(env) {
     try {
         const object = await env.H2H_DATA.get('numbers/sweater-numbers.json');
         if (!object) return null;
         const { players = {}, numbers = {} } = JSON.parse(await object.text());
 
-        const sections = Object.entries(numbers)
+        const list = Object.entries(numbers)
             .map(([number, byPlayer]) => ({
                 number: Number(number),
                 wearers: Object.entries(byPlayer)
                     .map(([playerId, s]) => ({ name: players[playerId]?.name || 'Unknown player', ...s, games: s.regular + s.playoffs }))
                     .sort((a, b) => b.games - a.games),
             }))
-            .sort((a, b) => a.number - b.number)
-            .map(({ number, wearers }) => {
+            .sort((a, b) => a.number - b.number);
+
+        const sections = list.map(({ number, wearers }) => {
                 const items = wearers.map(w => {
                     const span = w.firstSeason === w.lastSeason
                         ? formatSeasonLabel(w.firstSeason)
@@ -207,11 +226,11 @@ async function renderNumbersContent(env) {
             });
 
         const wearerCount = new Set(Object.values(numbers).flatMap(byPlayer => Object.keys(byPlayer))).size;
-        const neverWorn = Array.from({ length: 99 }, (_, i) => i + 1).filter(n => !(String(n) in numbers));
         return `<div class="numbers-prerender"><h2>Jersey Numbers</h2>`
             + `<p>${sections.length} numbers worn by ${wearerCount} players since 2000-01. Games played include the regular season and playoffs.</p>`
             + sections.join('')
-            + `<h2>Jersey numbers never worn</h2><p>${neverWorn.join(', ')}</p></div>`;
+            + renderJerseyStatsContent(list)
+            + `</div>`;
     } catch {
         return null; // The page still loads the data in the browser
     }
