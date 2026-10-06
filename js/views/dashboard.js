@@ -131,7 +131,7 @@ async function renderGames() {
     const gamesHtml = `
         <div class="games-grid">
             ${lastGame ? renderGameCard('Last', lastGame, true, false, lastGame.gameType === 3 ? getSeriesRecord(lastGame, scheduleData.games) : null) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
-            ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : 'Next', currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
+            ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : (isToday(currentOrNextGame.gameDate) ? 'Today' : 'Next'), currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
             ${renderUpcomingGames(upcomingGames)}
         </div>
         <div class="section-footer">
@@ -216,6 +216,12 @@ function periodLabel(period) {
     return ['1ST', '2ND', '3RD'][period.number - 1] || `${period.number}TH`;
 }
 
+// Whether a schedule date (YYYY-MM-DD) is today on the viewer's clock
+function isToday(gameDate) {
+    const now = new Date();
+    return gameDate === `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+}
+
 // Season record from the standings, e.g. "(2-0-0)"
 function teamRecord(abbrev) {
     const team = standingsData?.standings?.find(t => t.teamAbbrev.default === abbrev);
@@ -274,9 +280,9 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
 
     const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
 
-    // H2H link — only on the Next card (not live)
+    // H2H link — only on the Next/Today card (not live)
     let h2hLink = '';
-    if (label === 'Next' && !isLive) {
+    if ((label === 'Next' || label === 'Today') && !isLive) {
         const oppEntry = NHL_TEAMS.find(t => t.abbrev === oppTeam.abbrev);
         if (oppEntry) {
             h2hLink = `<a href="/stats/head-to-head/${oppEntry.slug}" data-link class="game-card-h2h-link">View Head-to-Head Stats →</a>`;
