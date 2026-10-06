@@ -180,67 +180,7 @@ function startLiveGamePolling(game) {
 function updateLiveGameCard(game) {
     const liveCard = document.querySelector('.games-grid > .game-card:nth-child(2)');
     if (!liveCard || !liveGameData) return;
-
-    const isMinHome = game.homeTeam.abbrev === 'MIN';
-
-    // Update scores
-    const awayScore = liveGameData.awayTeam?.score ?? 0;
-    const homeScore = liveGameData.homeTeam?.score ?? 0;
-
-    const teamAbbrevs = liveCard.querySelectorAll('.team-abbrev');
-    if (teamAbbrevs.length >= 2) {
-        teamAbbrevs[0].textContent = `${isMinHome ? game.awayTeam.abbrev : 'MIN'} ${isMinHome ? awayScore : (isMinHome ? homeScore : awayScore)}`;
-        teamAbbrevs[1].textContent = `${isMinHome ? 'MIN' : game.homeTeam.abbrev} ${isMinHome ? homeScore : (isMinHome ? awayScore : homeScore)}`;
-
-        // Fix: correctly assign scores based on position
-        teamAbbrevs[0].textContent = `${isMinHome ? game.awayTeam.abbrev : 'MIN'} ${awayScore}`;
-        teamAbbrevs[1].textContent = `${isMinHome ? 'MIN' : game.homeTeam.abbrev} ${homeScore}`;
-    }
-
-    // Update period and time
-    let liveInfo = liveCard.querySelector('.live-game-info');
-    if (!liveInfo) {
-        liveInfo = document.createElement('div');
-        liveInfo.className = 'live-game-info';
-        liveCard.appendChild(liveInfo);
-    }
-
-    const period = liveGameData.period;
-    const clock = liveGameData.clock;
-    const isGameOver = liveGameData.gameState === 'FINAL' || liveGameData.gameState === 'OFF';
-
-    let periodStr = '';
-    let timeRemaining = '';
-
-    if (isGameOver) {
-        // Game has ended - show Final with OT/SO if applicable
-        periodStr = 'Final';
-        if (period?.periodType === 'OT') {
-            timeRemaining = 'OT';
-        } else if (period?.periodType === 'SO') {
-            timeRemaining = 'SO';
-        }
-    } else {
-        // Game is still live
-        if (period) {
-            if (period.periodType === 'REG') {
-                const ordinals = ['1ST', '2ND', '3RD'];
-                periodStr = ordinals[period.number - 1] || `${period.number}TH`;
-            } else if (period.periodType === 'OT') {
-                periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
-            } else if (period.periodType === 'SO') {
-                periodStr = 'SO';
-            }
-        }
-
-        timeRemaining = clock?.timeRemaining || '';
-        if (clock?.inIntermission) {
-            timeRemaining = 'INT';
-        }
-    }
-
-    const liveLink = isGameOver ? '' : (game.gameCenterLink ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>` : '');
-    liveInfo.innerHTML = `<span class="live-status"><span class="period-badge">${periodStr}</span>${timeRemaining ? ` <span class="time-remaining">${timeRemaining}</span>` : ''}</span>${liveLink}`;
+    liveCard.outerHTML = renderGameCard('Current', game, false, true);
 }
 
 function getSeriesRecord(game, allGames) {
@@ -268,104 +208,73 @@ function getSeriesRecord(game, allGames) {
     return `Series tied ${minWins}-${minWins}`;
 }
 
+// Period label for a live game: 1ST, 2ND, 3RD, OT, OT2, SO
+function periodLabel(period) {
+    if (!period) return '';
+    if (period.periodType === 'OT') return period.number === 4 ? 'OT' : `OT${period.number - 3}`;
+    if (period.periodType === 'SO') return 'SO';
+    return ['1ST', '2ND', '3RD'][period.number - 1] || `${period.number}TH`;
+}
+
+// Season record from the standings, e.g. "(2-0-0)"
+function teamRecord(abbrev) {
+    const team = standingsData?.standings?.find(t => t.teamAbbrev.default === abbrev);
+    return team ? `(${team.wins}-${team.losses}-${team.otLosses})` : '';
+}
+
+// Scoreboard layout: away team on the left, home team on the right, game details in the middle
 function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
 
-    // Format date
     const gameDate = new Date(game.gameDate + 'T00:00:00');
-    const dateStr = gameDate.toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric'
-    });
+    const dateStr = gameDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
 
-    // Format time for future games
-    let timeStr = '';
-    if (!isPast && !isLive && game.startTimeUTC) {
-        const time = new Date(game.startTimeUTC);
-        timeStr = new Intl.DateTimeFormat('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true,
-            timeZoneName: 'short'
-        }).format(time);
-    }
-
-    // Build date/time display for the label
-    let labelDateTimePart = '';
-    if (isPast) {
-        labelDateTimePart = ` • ${dateStr}`;
-    } else if (!isLive) {
-        const today = new Date();
-        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-        // Each "• piece" stays together so a long label only wraps between pieces
-        const part = text => `<span class="game-label-part"> • ${text}</span>`;
-        if (game.gameDate === todayStr) {
-            labelDateTimePart = part('Today');
-        } else {
-            const dayStr = gameDate.toLocaleDateString('en-US', { weekday: 'short' });
-            labelDateTimePart = part(`${dayStr}, ${dateStr}`);
-        }
-        if (timeStr) {
-            labelDateTimePart += part(timeStr);
-        }
-        const tv = getTVBroadcast(game);
-        if (tv !== '--') {
-            labelDateTimePart += part(tv);
-        }
-    }
-
-    // Get scores and result for past games
-    let awayScore = '';
-    let homeScore = '';
-    let resultText = '';
     let resultClass = '';
-    let liveInfo = '';
+    let main = '';   // big middle line: start time or score
+    let detail = ''; // small line under it: TV, period + clock, or final result
 
     if (isPast) {
         const minScore = isMinHome ? game.homeTeam.score : game.awayTeam.score;
         const oppScore = isMinHome ? game.awayTeam.score : game.homeTeam.score;
-        awayScore = ` ${isMinHome ? oppScore : minScore}`;
-        homeScore = ` ${isMinHome ? minScore : oppScore}`;
-
         const didWin = minScore > oppScore;
         const periodType = game.periodDescriptor?.periodType || 'REG';
-
         resultClass = didWin ? 'game-win' : 'game-loss';
-        let resultLabel = didWin ? 'W' : 'L';
-        if (periodType === 'OT') resultLabel += ' (OT)';
-        if (periodType === 'SO') resultLabel += ' (SO)';
-        resultText = `<span class="${resultClass}">${resultLabel}</span>`;
+        main = `${game.awayTeam.score} – ${game.homeTeam.score}`;
+        detail = `<span class="${resultClass}">${didWin ? 'W' : 'L'}</span> • Final${periodType === 'REG' ? '' : `/${periodType}`}`;
     } else if (isLive && liveGameData) {
-        // Show live score (no color highlighting)
-        awayScore = ` ${liveGameData.awayTeam?.score ?? 0}`;
-        homeScore = ` ${liveGameData.homeTeam?.score ?? 0}`;
-
-        // Format period and time
-        const period = liveGameData.period;
-        const clock = liveGameData.clock;
-        let periodStr = '';
-        if (period) {
-            if (period.periodType === 'REG') {
-                const ordinals = ['1ST', '2ND', '3RD'];
-                periodStr = ordinals[period.number - 1] || `${period.number}TH`;
-            } else if (period.periodType === 'OT') {
-                periodStr = period.number === 4 ? 'OT' : `OT${period.number - 3}`;
-            } else if (period.periodType === 'SO') {
-                periodStr = 'SO';
-            }
+        main = `${liveGameData.awayTeam?.score ?? 0} – ${liveGameData.homeTeam?.score ?? 0}`;
+        const isOver = liveGameData.gameState === 'FINAL' || liveGameData.gameState === 'OFF';
+        const periodType = liveGameData.period?.periodType;
+        if (isOver) {
+            detail = `Final${periodType === 'OT' || periodType === 'SO' ? `/${periodType}` : ''}`;
+        } else {
+            const clock = liveGameData.clock;
+            const timeRemaining = clock?.inIntermission ? 'INT' : (clock?.timeRemaining || '');
+            const liveLink = game.gameCenterLink ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>` : '';
+            detail = `<span class="live-status"><span class="period-badge">${periodLabel(liveGameData.period)}</span>${timeRemaining ? ` <span class="time-remaining">${timeRemaining}</span>` : ''}</span>${liveLink}`;
         }
-
-        let timeRemaining = clock?.timeRemaining || '';
-        if (clock?.inIntermission) {
-            timeRemaining = 'INT';
-        }
-
-        const liveLink = game.gameCenterLink ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener" class="game-link live-link">Live ↗</a>` : '';
-        liveInfo = `<div class="live-game-info"><span class="live-status"><span class="period-badge">${periodStr}</span> <span class="time-remaining">${timeRemaining}</span></span>${liveLink}</div>`;
+    } else {
+        main = game.startTimeUTC
+            ? new Date(game.startTimeUTC).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+            : 'TBD';
+        const tv = getTVBroadcast(game);
+        detail = tv !== '--' ? tv : '';
     }
 
-    // H2H link — only on the Next card (not live, not past, not upcoming)
+    const teamSide = (team, side) => {
+        const isWild = team.abbrev === 'MIN';
+        return `
+                <div class="matchup-team matchup-team--${side} ${isWild ? 'wild-team' : 'opponent-team'}">
+                    <img src="/logos/${team.abbrev}_dark.svg" alt="${team.abbrev}" class="matchup-logo">
+                    <div class="team-abbrev">${team.abbrev}</div>
+                    <div class="matchup-record">${teamRecord(team.abbrev)}</div>
+                </div>`;
+    };
+
+    const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
+
+    // H2H link — only on the Next card (not live)
     let h2hLink = '';
     if (label === 'Next' && !isLive) {
         const oppEntry = NHL_TEAMS.find(t => t.abbrev === oppTeam.abbrev);
@@ -379,26 +288,49 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
         ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener noreferrer" class="game-card-h2h-link" aria-label="View Game Recap (opens NHL.com)"><span class="recap-link-prefix">View Game </span>Recap ↗</a>`
         : '';
 
-    const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
-
-    return `
-        <div class="game-card ${resultClass}${label === 'Last' ? ' game-card--last' : ''}">
-            <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}${playoffBadge}</div>
-            <div class="game-matchup">
-                <div class="team-display ${isMinHome ? 'opponent-team' : 'wild-team'}">
-                    <img src="/logos/${isMinHome ? oppTeam.abbrev : 'MIN'}_dark.svg" alt="${isMinHome ? oppTeam.abbrev : 'MIN'}" class="game-team-logo">
-                    <div class="team-abbrev">${isMinHome ? oppTeam.abbrev : 'MIN'}${awayScore}</div>
+    const full = `
+            <div class="matchup-layout">
+                ${teamSide(game.awayTeam, 'away')}
+                <div class="matchup-center">
+                    <div class="game-label">${label}${playoffBadge}</div>
+                    <div class="matchup-date">${dateStr}</div>
+                    <div class="matchup-main">${main}</div>
+                    ${detail ? `<div class="matchup-detail${isLive ? ' live-game-info' : ''}">${detail}</div>` : ''}
                 </div>
-                <div class="game-at">@</div>
-                <div class="team-display ${isMinHome ? 'wild-team' : 'opponent-team'}">
-                    <img src="/logos/${isMinHome ? 'MIN' : oppTeam.abbrev}_dark.svg" alt="${isMinHome ? 'MIN' : oppTeam.abbrev}" class="game-team-logo">
-                    <div class="team-abbrev">${isMinHome ? 'MIN' : oppTeam.abbrev}${homeScore}</div>
-                </div>
+                ${teamSide(game.homeTeam, 'home')}
             </div>
             ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
-            ${liveInfo}
             ${h2hLink}
-            ${recapLink}
+            ${recapLink}`;
+
+    if (label !== 'Last') {
+        return `<div class="game-card game-card--matchup ${resultClass}">${full}</div>`;
+    }
+
+    // The Last card also carries a one-line version, shown instead on phones
+    const result = resultClass === 'game-win' ? 'W' : 'L';
+    const periodType = game.periodDescriptor?.periodType || 'REG';
+    const resultLabel = periodType === 'REG' ? result : `${result} (${periodType})`;
+    const shortDate = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    const compactTeam = team => `
+                    <div class="team-display ${team.abbrev === 'MIN' ? 'wild-team' : 'opponent-team'}">
+                        <img src="/logos/${team.abbrev}_dark.svg" alt="${team.abbrev}" class="game-team-logo">
+                        <div class="team-abbrev">${team.abbrev} ${team.score}</div>
+                    </div>`;
+
+    return `
+        <div class="game-card game-card--matchup game-card--last ${resultClass}">
+            <div class="game-compact">
+                <div class="game-label">${label} • ${shortDate} • <span class="${resultClass}">${resultLabel}</span>${playoffBadge}</div>
+                <div class="game-matchup">
+                    ${compactTeam(game.awayTeam)}
+                    <div class="game-at">@</div>
+                    ${compactTeam(game.homeTeam)}
+                </div>
+                ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
+                ${recapLink}
+            </div>
+            <div class="game-full">${full}</div>
         </div>
     `;
 }
