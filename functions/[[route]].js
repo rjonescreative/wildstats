@@ -3,7 +3,7 @@
 // so search engines see correct metadata without needing to execute JS.
 import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear } from '../js/seasonConfig.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
-import { isKnownRoute, isPagePath } from '../js/knownRoutes.js';
+import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
 
 
 const NHL_TEAMS = [
@@ -283,12 +283,11 @@ export async function onRequest(context) {
     // Fetch index.html from static assets
     const assetRequest = new Request(new URL('/', url).href, request);
 
+    const redirect = redirectTarget(path);
+    if (redirect) {
+        return Response.redirect(new URL(redirect + url.search, url).href, 301);
+    }
     if (!isKnownRoute(path)) {
-        // A known page with a trailing slash → its canonical URL
-        const trimmed = path.replace(/\/+$/, '');
-        if (trimmed !== path && isKnownRoute(trimmed)) {
-            return Response.redirect(new URL(trimmed + url.search, url).href, 301);
-        }
         return notFound(await env.ASSETS.fetch(assetRequest));
     }
 

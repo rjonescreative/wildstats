@@ -4,7 +4,7 @@ import { trackPageView, trackNavigation, trackStandingsView } from './analytics.
 import { teamBySlug } from './teams.js';
 import { getSeasonLabel, getPlayoffYear, getPreviousSeason, getPastSeasons, seasonFromLabel } from './seasonConfig.js';
 import { parseTeamRecordsPath, buildTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from './teamRecordsMeta.js';
-import { isKnownRoute } from './knownRoutes.js';
+import { isKnownRoute, redirectTarget } from './knownRoutes.js';
 
 // Re-exported so views can keep importing records URL helpers from the router
 export { parseTeamRecordsPath, buildTeamRecordsPath };
@@ -393,8 +393,8 @@ export function init() {
     document.addEventListener('click', handleNavClick);
     window.addEventListener('popstate', handlePopState);
 
-    // Handle initial page load
-    const path = window.location.pathname;
+    // Handle initial page load (alternate URLs move to their canonical page)
+    const path = redirectTarget(window.location.pathname) ?? window.location.pathname;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const statsView = viewName === 'stats' ? getStatsView(path) : null;
