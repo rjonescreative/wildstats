@@ -779,17 +779,25 @@ function areaPath(data, xMax, yMax) {
 
 // ─── Chart builder (accepts any number of teams) ───────────────────────────
 
+// Points axis that grows with the season: the leader's total plus ~15% headroom,
+// rounded up to a gridline step that keeps 3–7 lines (every 5, 10 or 20 points)
+function pointsScale(teams) {
+    const maxPts = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.points ?? 0), 0);
+    const target = Math.max(maxPts * 1.15, maxPts + 2, 10);
+    const step = target <= 20 ? 5 : target <= 60 ? 10 : 20;
+    return { yMax: Math.ceil(target / step) * step, step };
+}
+
 export function buildChart(teams) {
     const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
 
-    const maxPts = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.points ?? 0), 40);
-    const yMax   = Math.ceil((maxPts + 10) / 20) * 20;
+    const { yMax, step: yStep } = pointsScale(teams);
 
     const plotBottom = M.top + PLOT_H;
     const plotRight  = M.left + PLOT_W;
 
     const yTicks = [];
-    for (let p = 0; p <= yMax; p += 20) yTicks.push(p);
+    for (let p = 0; p <= yMax; p += yStep) yTicks.push(p);
 
     const xTicks = [];
     for (let g = 10; g < xMax; g += 10) xTicks.push(g);
@@ -942,8 +950,7 @@ export function attachChartHoverHandlers(svg, teams, mode) {
     const ML_PCT = 65;
     const PW_PCT = VB_W - ML_PCT - M.right;
 
-    const maxPts = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.points ?? 0), 40);
-    const yMax = Math.ceil((maxPts + 10) / 20) * 20;
+    const { yMax } = pointsScale(teams);
 
     const gameToSvgX = (game) => mode === 'pct'
         ? ML_PCT + (game / xMax) * PW_PCT
