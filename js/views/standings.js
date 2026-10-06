@@ -411,8 +411,10 @@ function createWildcardTable(teams, state, hideMagicCol = false) {
         divisions[div] = sortTeams(divisions[div], state);
     });
 
-    // Get the two divisions in this conference
-    const divisionNames = Object.keys(divisions);
+    // Get the two divisions in this conference, in a fixed order (Central above Pacific)
+    const DIVISION_ORDER = ['Central', 'Pacific', 'Atlantic', 'Metropolitan'];
+    const divisionNames = Object.keys(divisions)
+        .sort((a, b) => DIVISION_ORDER.indexOf(a) - DIVISION_ORDER.indexOf(b));
 
     // Separate top 3 from each division and remaining teams
     const divisionLeaders = [];
