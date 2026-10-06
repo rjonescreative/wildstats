@@ -4408,6 +4408,54 @@ footer {
     cursor: pointer;
 }
 
+/* Team logos under the chart: hover, focus or tap one to highlight that team */
+.chart-team-legend {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.25rem 0.5rem;
+    padding: 0.5rem 0.5rem 0.25rem;
+}
+
+.chart-legend-team {
+    display: flex;
+    padding: 0.25rem;
+    background: none;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: filter 0.15s ease, opacity 0.15s ease, border-color 0.15s ease;
+}
+
+.chart-legend-team img {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+}
+
+.chart-legend-team:hover,
+.chart-legend-team:focus-visible,
+.chart-legend-team.active {
+    border-color: var(--border-medium);
+    outline: none;
+}
+
+.chart-legend-team.dimmed {
+    filter: grayscale(1);
+    opacity: 0.35;
+}
+
+@media (max-width: 440px) {
+    .chart-team-legend {
+        gap: 0.125rem 0.25rem;
+    }
+
+    .chart-legend-team img {
+        width: 24px;
+        height: 24px;
+    }
+}
+
 .chart-grid {
     stroke: rgba(255, 255, 255, 0.06);
     stroke-width: 1;

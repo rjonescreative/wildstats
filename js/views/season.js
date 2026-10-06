@@ -1032,23 +1032,72 @@ export function attachChartHoverHandlers(svg, teams, mode) {
         tooltipG.style.display = '';
     }
 
-    groups.forEach(g => {
-        g.addEventListener('mouseenter', () => {
-            hoveredTeam = teams.find(t => t.abbrev === g.dataset.team) ?? null;
-            groups.forEach(other => {
-                if (other !== g) {
-                    other.style.filter = 'grayscale(1)';
-                    other.style.opacity = '0.35';
-                } else {
-                    other.style.filter = '';
-                    other.style.opacity = '';
-                }
-            });
-            // Move hovered group to end of parent so it renders on top
-            g.parentNode.appendChild(g);
-            // Keep tooltip on top of everything
-            svg.appendChild(tooltipG);
+    // Highlight one team: grey out the rest and bring its line to the front
+    function highlight(abbrev) {
+        hoveredTeam = teams.find(t => t.abbrev === abbrev) ?? null;
+        groups.forEach(g => {
+            const isTeam = g.dataset.team === abbrev;
+            g.style.filter = isTeam ? '' : 'grayscale(1)';
+            g.style.opacity = isTeam ? '' : '0.35';
+            if (isTeam) g.parentNode.appendChild(g);
         });
+        legendButtons.forEach(b => b.classList.toggle('dimmed', b.dataset.team !== abbrev));
+        // Keep tooltip on top of everything
+        svg.appendChild(tooltipG);
+    }
+
+    function reset() {
+        groups.forEach(g => {
+            g.style.filter = '';
+            g.style.opacity = '';
+        });
+        legendButtons.forEach(b => b.classList.remove('dimmed', 'active'));
+        hoveredTeam = null;
+        tooltipG.style.display = 'none';
+    }
+
+    // Row of team logos under the chart — a second way to highlight a team,
+    // and the only way to reach one whose logo is covered by another on the chart
+    svg.parentNode.querySelector('.chart-team-legend')?.remove();
+    const legend = document.createElement('div');
+    legend.className = 'chart-team-legend';
+    const lastPoints = t => t.data[t.data.length - 1]?.points ?? 0;
+    legend.innerHTML = [...teams]
+        .sort((a, b) => lastPoints(b) - lastPoints(a))
+        .map(t => `<button type="button" class="chart-legend-team" data-team="${t.abbrev}" aria-label="Highlight ${t.config?.name || t.abbrev}">
+            <img src="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" alt="" width="28" height="28">
+        </button>`)
+        .join('');
+    svg.after(legend);
+    const legendButtons = legend.querySelectorAll('.chart-legend-team');
+
+    // From the legend, show the tooltip at the team's latest point
+    const highlightFromLegend = abbrev => {
+        highlight(abbrev);
+        const data = getTeamData(hoveredTeam);
+        if (data.length) updateTooltip(hoveredTeam, gameToSvgX(data[data.length - 1].game));
+    };
+
+    legendButtons.forEach(b => {
+        b.addEventListener('mouseenter', () => highlightFromLegend(b.dataset.team));
+        b.addEventListener('focus', () => highlightFromLegend(b.dataset.team));
+        b.addEventListener('mouseleave', reset);
+        b.addEventListener('blur', reset);
+        // Touch: tap to highlight, tap again to clear
+        b.addEventListener('click', () => {
+            if (hoveredTeam?.abbrev === b.dataset.team && b.classList.contains('active')) {
+                b.classList.remove('active');
+                reset();
+            } else {
+                legendButtons.forEach(o => o.classList.remove('active'));
+                b.classList.add('active');
+                highlightFromLegend(b.dataset.team);
+            }
+        });
+    });
+
+    groups.forEach(g => {
+        g.addEventListener('mouseenter', () => highlight(g.dataset.team));
     });
 
     svg.addEventListener('mousemove', (evt) => {
@@ -1057,14 +1106,7 @@ export function attachChartHoverHandlers(svg, teams, mode) {
         updateTooltip(hoveredTeam, svgX);
     });
 
-    svg.addEventListener('mouseleave', () => {
-        groups.forEach(g => {
-            g.style.filter = '';
-            g.style.opacity = '';
-        });
-        hoveredTeam = null;
-        tooltipG.style.display = 'none';
-    });
+    svg.addEventListener('mouseleave', reset);
 }
 
 // ─── Refresh chart after toggle change ─────────────────────────────────────
