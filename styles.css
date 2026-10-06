@@ -2656,6 +2656,65 @@ footer {
     }
 }
 
+/* Mobile: condense the Last game card to one schedule-style line —
+   [logo] AWAY 3 @ HOME 4 [logo] with the recap link beside it — so the Next card stands out */
+@media (max-width: 768px) {
+    .game-card--last {
+        flex-direction: row;
+        flex-wrap: wrap;
+        justify-content: space-between;
+        gap: 0.5rem 0.75rem;
+        padding: 0.625rem 0.75rem;
+    }
+
+    .game-card--last .game-label,
+    .game-card--last .series-record {
+        width: 100%;
+        margin: 0;
+    }
+
+    .game-card--last .game-matchup {
+        width: auto;
+        gap: 0.5rem;
+        justify-content: flex-start;
+    }
+
+    .game-card--last .team-display {
+        flex-direction: row;
+        gap: 0.375rem;
+    }
+
+    /* Home team reads "MIN 4 [logo]", mirroring the schedule rows */
+    .game-card--last .game-matchup .team-display:last-child {
+        flex-direction: row-reverse;
+    }
+
+    .game-card--last .game-team-logo {
+        width: 24px;
+        height: 24px;
+    }
+
+    .game-card--last .team-abbrev {
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+
+    .game-card--last .game-at {
+        font-size: 0.8125rem;
+        margin: 0;
+    }
+
+    .game-card--last .game-card-h2h-link {
+        margin: 0;
+        font-size: 0.8125rem;
+    }
+
+    /* Just "Recap ↗" on mobile */
+    .game-card--last .recap-link-prefix {
+        display: none;
+    }
+}
+
 /* Stats page specific mobile styles */
 @media (max-width: 1024px) {
     .player-photo-small {

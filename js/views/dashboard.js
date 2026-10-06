@@ -376,13 +376,13 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
 
     // Recap link — on the Last card, same spot as the Next card's H2H link (NHL.com, new window)
     const recapLink = label === 'Last' && game.gameCenterLink
-        ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener noreferrer" class="game-card-h2h-link">View Game Recap ↗</a>`
+        ? `<a href="https://www.nhl.com${game.gameCenterLink}" target="_blank" rel="noopener noreferrer" class="game-card-h2h-link" aria-label="View Game Recap (opens NHL.com)"><span class="recap-link-prefix">View Game </span>Recap ↗</a>`
         : '';
 
     const playoffBadge = game.gameType === 3 ? '<span class="playoff-badge">Playoffs</span>' : '';
 
     return `
-        <div class="game-card ${resultClass}">
+        <div class="game-card ${resultClass}${label === 'Last' ? ' game-card--last' : ''}">
             <div class="game-label">${label}${labelDateTimePart}${resultText ? ' • ' + resultText : ''}${playoffBadge}</div>
             <div class="game-matchup">
                 <div class="team-display ${isMinHome ? 'opponent-team' : 'wild-team'}">
