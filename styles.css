@@ -4847,6 +4847,7 @@ footer {
 /* Jersey Stats: cards of number trivia under the jersey grid */
 .jersey-stats {
     margin-top: 2.5rem;
+    scroll-margin-top: 1rem;
 }
 
 .jersey-stats-grid {

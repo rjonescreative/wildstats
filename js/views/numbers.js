@@ -166,7 +166,7 @@ const stat = (amount, unit) => `${amount}<span class="jersey-stat-unit"> ${unit}
 function renderJerseyStats(list) {
     const stats = buildJerseyStats(list);
     return `
-        <section class="jersey-stats">
+        <section class="jersey-stats" id="jersey-stats">
             <h2 class="numbers-section-title">Jersey Stats</h2>
             <div class="jersey-stats-grid">
                 <article class="jersey-stat-card">
@@ -218,7 +218,7 @@ export async function init() {
         container.innerHTML = `
             <div class="numbers-header">
                 <h2 class="numbers-section-title">Jersey Numbers</h2>
-                <p class="numbers-intro">${list.length} numbers worn by ${totalWearers} players since 2000-01. Games played include the regular season and playoffs.</p>
+                <p class="numbers-intro">${list.length} numbers worn by ${totalWearers} players since 2000-01. Games played include the regular season and playoffs. <a href="#jersey-stats" class="text-link" data-jump-stats>Jump to Jersey Stats ↓</a></p>
             </div>
             <div class="numbers-grid">
                 ${list.map(n => renderNumberCard(n, currentSet)).join('')}
@@ -233,6 +233,12 @@ export async function init() {
                 btn.setAttribute('aria-expanded', String(!expanded));
                 btn.textContent = expanded ? `Show all ${card.querySelectorAll('.jersey-stat-row').length}` : 'Show fewer';
             });
+        });
+
+        // Jump link in the intro scrolls to Jersey Stats (without changing the URL)
+        container.querySelector('[data-jump-stats]')?.addEventListener('click', e => {
+            e.preventDefault();
+            document.getElementById('jersey-stats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
 
         // Jersey Stats numbers scroll to that number's card (without changing the URL)
