@@ -2656,27 +2656,34 @@ footer {
     }
 }
 
-/* Mobile: condense the Last game card to one schedule-style line —
-   [logo] AWAY 3 @ HOME 4 [logo] with the recap link beside it — so the Next card stands out */
+/* Mobile: condense the Last game card so the Next card stands out —
+   "LAST • OCT 3 • W   Recap ↗" on top, then one schedule-style line: [logo] AWAY 3 @ HOME 4 [logo] */
 @media (max-width: 768px) {
     .game-card--last {
         flex-direction: row;
         flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 0.5rem 0.75rem;
+        justify-content: center;
+        gap: 0.5rem 1.25rem;
         padding: 0.625rem 0.75rem;
     }
 
-    .game-card--last .game-label,
-    .game-card--last .series-record {
-        width: 100%;
-        margin: 0;
+    .game-card--last .game-label {
+        order: 1;
+    }
+
+    .game-card--last .game-card-h2h-link {
+        order: 2;
     }
 
     .game-card--last .game-matchup {
-        width: auto;
+        order: 3;
         gap: 0.5rem;
-        justify-content: flex-start;
+    }
+
+    .game-card--last .series-record {
+        order: 4;
+        width: 100%;
+        margin: 0;
     }
 
     .game-card--last .team-display {
@@ -2704,14 +2711,21 @@ footer {
         margin: 0;
     }
 
+    /* Same size as the label it sits beside */
     .game-card--last .game-card-h2h-link {
         margin: 0;
-        font-size: 0.8125rem;
+        font-size: 0.7rem;
     }
 
     /* Just "Recap ↗" on mobile */
     .game-card--last .recap-link-prefix {
         display: none;
+    }
+}
+
+@media (max-width: 440px) {
+    .game-card--last .game-card-h2h-link {
+        font-size: 0.65rem;
     }
 }
 
