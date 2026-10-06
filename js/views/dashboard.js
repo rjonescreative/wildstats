@@ -318,10 +318,11 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     const periodType = game.periodDescriptor?.periodType || 'REG';
     const resultLabel = periodType === 'REG' ? result : `${result} (${periodType})`;
     const shortDate = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-    const compactTeam = team => `
+    // Scores sit in the middle: "MIN 3 @ 1 NSH"
+    const compactTeam = (team, isHome) => `
                     <div class="team-display ${team.abbrev === 'MIN' ? 'wild-team' : 'opponent-team'}">
                         <img src="/logos/${team.abbrev}_dark.svg" alt="${team.abbrev}" class="game-team-logo">
-                        <div class="team-abbrev">${team.abbrev} ${team.score}</div>
+                        <div class="team-abbrev">${isHome ? `${team.score} ${team.abbrev}` : `${team.abbrev} ${team.score}`}</div>
                     </div>`;
 
     return `
@@ -329,9 +330,9 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
             <div class="game-compact">
                 <div class="game-label">${label} • ${shortDate} • <span class="${resultClass}">${resultLabel}</span>${playoffBadge}</div>
                 <div class="game-matchup">
-                    ${compactTeam(game.awayTeam)}
+                    ${compactTeam(game.awayTeam, false)}
                     <div class="game-at">@</div>
-                    ${compactTeam(game.homeTeam)}
+                    ${compactTeam(game.homeTeam, true)}
                 </div>
                 ${seriesRecord ? `<div class="series-record">${seriesRecord}</div>` : ''}
                 ${recapLink}
