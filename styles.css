@@ -4907,6 +4907,11 @@ footer {
     font-size: 0.875rem;
 }
 
+/* Rows behind "Show all" (the grid display above would otherwise override [hidden]) */
+.jersey-stat-row[hidden] {
+    display: none;
+}
+
 /* One and Done rows have no rank column */
 .jersey-stat-row--unranked {
     grid-template-columns: 2.75rem minmax(0, 1fr) auto;
