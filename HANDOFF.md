@@ -35,7 +35,7 @@ Key files:
 ## Routes
 
 - `/` dashboard · `/schedule` (current) · `/schedule/past[/YYYY-YY]` (past seasons, defaults to last season; `/schedule/past` canonicalizes to the season URL)
-- `/standings/{wildcard|division|conference|league|playoffs}` (playoffs tab hidden unless `PLAYOFF_MODE`)
+- `/standings/{wildcard|division|conference|league|points-progression|playoffs}` (playoffs tab hidden unless `PLAYOFF_MODE`; points-progression is the all-teams chart, drawn by `renderPointsProgressionPage` in `season.js`)
 - `/stats` (players) · `/stats/season` · `/stats/head-to-head[/team-slug]` (defaults to next opponent) · `/stats/milestones` · `/stats/numbers` (jersey numbers)
 - `/stats/team-records/[playoffs|combined/]{all-time|season}/{stat}/{pos}` — stat slugs include `goals`, `power-play-goals`, `short-handed-points`, `empty-net-assists`, `even-strength-goals`, `games-played`, `wins`, `shootout`, `penalty-minutes`. Regular season has no type segment. Old `pp-goals` style slugs still resolve.
 

@@ -4389,6 +4389,13 @@ footer {
     border-bottom: 1px solid var(--border-subtle);
 }
 
+.points-chart-intro {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0 0 1rem;
+}
+
 .points-chart-wrap {
     background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);

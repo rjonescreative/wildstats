@@ -1109,10 +1109,12 @@ export function attachChartHoverHandlers(svg, teams, mode) {
     svg.addEventListener('mouseleave', reset);
 }
 
-// ─── Refresh chart after toggle change ─────────────────────────────────────
+// ─── Points progression chart (Standings › Points Progression Chart) ─────────
+
+let chartRoot = null; // element the chart page is mounted in
 
 async function refreshChart() {
-    const chartWrap = document.querySelector('#stats-season-view .points-chart-wrap');
+    const chartWrap = chartRoot?.querySelector('.points-chart-wrap');
     if (!chartWrap) return;
     chartWrap.innerHTML = '<div class="chart-loading">Loading…</div>';
 
@@ -1134,11 +1136,8 @@ async function refreshChart() {
     }
 }
 
-// ─── Page HTML builder ─────────────────────────────────────────────────────
-
-function buildPage(initialChartHtml) {
-    const divisionNames = Object.keys(DIVISIONS);
-    const divToggles = divisionNames.map(div => {
+function buildChartSection(initialChartHtml) {
+    const divToggles = Object.keys(DIVISIONS).map(div => {
         const isActive = activeToggles.has(div);
         return `<button class="division-toggle${isActive ? ' active' : ''}" data-division="${div}">${div}</button>`;
     }).join('');
@@ -1146,6 +1145,7 @@ function buildPage(initialChartHtml) {
     return `
         <div class="season-section">
             <h2 class="season-section-title">Points Progression</h2>
+            <p class="points-chart-intro">How every NHL team has piled up points, game by game, through the ${getSeasonLabel()} regular season. Pick divisions to compare, or switch to points percentage to even out teams with games in hand.</p>
             <div class="points-chart-wrap">${initialChartHtml}</div>
             <div class="chart-controls">
                 <div class="chart-mode-toggles">
@@ -1154,12 +1154,11 @@ function buildPage(initialChartHtml) {
                 </div>
                 <div class="division-toggles">${divToggles}</div>
             </div>
-        </div>
-        <div id="season-extra-stats"><div class="season-stats-loading">Loading statistics…</div></div>`;
+        </div>`;
 }
 
 function attachToggleHandlers() {
-    document.querySelectorAll('#stats-season-view .division-toggle[data-division]').forEach(btn => {
+    chartRoot.querySelectorAll('.division-toggle[data-division]').forEach(btn => {
         btn.addEventListener('click', async () => {
             const div = btn.dataset.division;
             if (activeToggles.has(div)) {
@@ -1173,17 +1172,50 @@ function attachToggleHandlers() {
         });
     });
 
-    document.querySelectorAll('#stats-season-view .chart-mode-toggle').forEach(btn => {
+    chartRoot.querySelectorAll('.chart-mode-toggle').forEach(btn => {
         btn.addEventListener('click', async () => {
             const mode = btn.dataset.mode;
             if (chartMode === mode) return;
             chartMode = mode;
-            document.querySelectorAll('#stats-season-view .chart-mode-toggle').forEach(b => {
+            chartRoot.querySelectorAll('.chart-mode-toggle').forEach(b => {
                 b.classList.toggle('active', b.dataset.mode === mode);
             });
             await refreshChart();
         });
     });
+}
+
+// Draw the full chart page (Central division to start, with mode and division toggles) into container
+export async function renderPointsProgressionPage(container) {
+    activeToggles = new Set(['Central']);
+    chartMode = 'points';
+    chartRoot = container;
+    container.innerHTML = '<div class="loading">Loading chart…</div>';
+
+    try {
+        const teams = await Promise.all(
+            DIVISIONS.Central.map(async abbrev => ({
+                abbrev,
+                config: ALL_TEAMS[abbrev],
+                data: await loadTeamData(abbrev),
+            }))
+        );
+        if (chartRoot !== container) return; // navigated away while loading
+
+        container.innerHTML = buildChartSection(buildChart(teams));
+        attachToggleHandlers();
+        const svg = container.querySelector('svg');
+        if (svg) attachChartHoverHandlers(svg, teams, chartMode);
+
+        // All 32 team schedules are already in the aggregated response — pre-populate
+        // the dataCache for every team so division toggles are instant with no extra requests.
+        Object.values(DIVISIONS).flat()
+            .filter(a => !DIVISIONS.Central.includes(a))
+            .forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
+    } catch (err) {
+        console.error('Error loading points progression chart:', err);
+        container.innerHTML = '<div class="error-message">Failed to load chart data.</div>';
+    }
 }
 
 // ─── Load & render season stats sections ───────────────────────────────────
@@ -1221,34 +1253,12 @@ async function loadAndRenderStats(scheduleGames) {
 // ─── View init ─────────────────────────────────────────────────────────────
 
 export async function init() {
-    activeToggles = new Set(['Central']);
-    chartMode = 'points';
-
     const container = document.getElementById('stats-season-view');
-    container.innerHTML = '<div class="loading">Loading season data…</div>';
+    container.innerHTML = '<div id="season-extra-stats"><div class="season-stats-loading">Loading statistics…</div></div>';
 
     try {
-        const centralAbbrevs = DIVISIONS.Central;
-        const teams = await Promise.all(
-            centralAbbrevs.map(async abbrev => {
-                const data = await loadTeamData(abbrev);
-                return { abbrev, config: ALL_TEAMS[abbrev], data };
-            })
-        );
-
-        container.innerHTML = buildPage(buildChart(teams));
-        attachToggleHandlers();
-        const initSvg = container.querySelector('svg');
-        if (initSvg) attachChartHoverHandlers(initSvg, teams, chartMode);
-
-        // All 32 team schedules are already in the aggregated response — pre-populate
-        // the dataCache for every team so division toggles are instant with no extra requests.
-        const otherAbbrevs = Object.values(DIVISIONS).flat().filter(a => !DIVISIONS.Central.includes(a));
-        otherAbbrevs.forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
-
-        // Load stats sections using MIN schedule (already cached from chart)
         const minSchedule = await getTeamSchedule('MIN');
-        loadAndRenderStats(minSchedule.games ?? []);
+        await loadAndRenderStats(minSchedule.games ?? []);
     } catch (err) {
         console.error('Error loading season view:', err);
         container.innerHTML = '<div class="error-message">Failed to load season data.</div>';

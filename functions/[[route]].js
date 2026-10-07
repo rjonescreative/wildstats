@@ -74,6 +74,10 @@ const PAGE_META = {
         title: `NHL League Standings {season} | Minnesota Wild | Wild Hockey Hub`,
         description: `Full NHL league standings for {season}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`
     },
+    '/standings/points-progression': {
+        title: `NHL Points Progression Chart {season} – Team Points by Game | Wild Hockey Hub`,
+        description: `NHL points progression chart for {season}. Compare the Minnesota Wild's points and points percentage game by game against every team in the Central and the rest of the NHL.`
+    },
     '/media': {
         title: `Minnesota Wild Videos & Highlights {season} | Wild Hockey Hub`,
         description: `Minnesota Wild videos for {season}. Watch highlights, game recaps, interviews, and more from the Wild.`
@@ -99,8 +103,8 @@ const PAGE_META = {
         description: 'Every jersey number worn in Minnesota Wild history, who wore it, and for how many games — regular season and playoffs since 2000-01.'
     },
     '/stats/season': {
-        title: `Minnesota Wild Current Season Stats {season} | Wild Hockey Hub`,
-        description: `Minnesota Wild current season stats for {season}. Track team points progression, standings trends, and season-long statistics.`
+        title: `Minnesota Wild {season} Season Stats – Splits, Records & More | Wild Hockey Hub`,
+        description: `Minnesota Wild {season} season stats: home and away splits, period-by-period scoring, situational records, and back-to-back performance.`
     },
     '/stats/team-records': {
         title: 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub',
@@ -244,6 +248,8 @@ function breadcrumbsFor(path, meta) {
 
     if (path === '/stats/numbers') {
         trail.push(['Stats', '/stats'], ['Jersey Numbers', path]);
+    } else if (path === '/standings/points-progression') {
+        trail.push(['Standings', '/standings'], ['Points Progression Chart', path]);
     } else if (path === '/stats/team-records' || parseTeamRecordsPath(path)) {
         trail.push(['Stats', '/stats'], ['Team Records', '/stats/team-records']);
         if (path !== '/stats/team-records') trail.push([pageName, path]);

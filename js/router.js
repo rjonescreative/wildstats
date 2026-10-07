@@ -36,6 +36,7 @@ const routes = {
     '/standings/division': 'standings',
     '/standings/conference': 'standings',
     '/standings/league': 'standings',
+    '/standings/points-progression': 'standings',
     '/standings/playoffs': 'standings',
     '/schedule': 'schedule',
     '/schedule/past': 'schedule',
@@ -191,6 +192,7 @@ function getPageTitle(viewName, subView = null) {
             division: `NHL Division Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             conference: `NHL Conference Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             league: `NHL League Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
+            'points-progression': `NHL Points Progression Chart ${SEASON_LABEL} – Team Points by Game | Wild Hockey Hub`,
             playoffs: `NHL Playoff Bracket ${PLAYOFF_YEAR} – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub`
         };
         return standingsTitles[subView] || standingsTitles.wildcard;
@@ -229,7 +231,7 @@ function getPageTitle(viewName, subView = null) {
             return 'Minnesota Wild Jersey Numbers – Every Number & Who Wore It | Wild Hockey Hub';
         }
         if (subView === 'season') {
-            return `Minnesota Wild ${SEASON_LABEL} Season Stats – Points Progression, Splits & More | Wild Hockey Hub`;
+            return `Minnesota Wild ${SEASON_LABEL} Season Stats – Splits, Records & More | Wild Hockey Hub`;
         }
         return `Minnesota Wild Player Stats ${SEASON_LABEL} – Goals, Assists & Points | Wild Hockey Hub`;
     }
@@ -254,6 +256,7 @@ function getMetaDescription(viewName, subView = null) {
             division: `NHL division standings for ${SEASON_LABEL}. View all four division standings including where the Minnesota Wild rank in the Central Division.`,
             conference: `NHL conference standings for ${SEASON_LABEL}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`,
             league: `Full NHL league standings for ${SEASON_LABEL}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`,
+            'points-progression': `NHL points progression chart for ${SEASON_LABEL}. Compare the Minnesota Wild's points and points percentage game by game against every team in the Central and the rest of the NHL.`,
             playoffs: `Live ${PLAYOFF_YEAR} NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.`
         };
         return standingsDescriptions[subView] || standingsDescriptions.wildcard;
@@ -279,7 +282,7 @@ function getMetaDescription(viewName, subView = null) {
         return `Minnesota Wild player milestones for ${SEASON_LABEL}. Track which Wild players are approaching goals, assists, points, games played, and wins records — and which milestones have already been hit this season.`;
     }
     if (viewName === 'stats' && subView === 'season') {
-        return `Minnesota Wild ${SEASON_LABEL} season stats. Track points progression against every NHL team, home and away splits, period-by-period scoring, situational records, and back-to-back performance.`;
+        return `Minnesota Wild ${SEASON_LABEL} season stats: home and away splits, period-by-period scoring, situational records, and back-to-back performance.`;
     }
     if (viewName === 'stats' && subView === 'head-to-head') {
         const slug = typeof window !== 'undefined'

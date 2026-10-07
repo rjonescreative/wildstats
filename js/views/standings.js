@@ -2,6 +2,7 @@
 import { getStandings, getLeagueLeaders, getPlayoffBracket } from '../api.js';
 import { getUIState, setUIState } from '../state.js';
 import { getSeasonGames, PLAYOFF_MODE } from '../seasonConfig.js';
+import { renderPointsProgressionPage } from './season.js';
 
 let standingsData = null;
 let bracketData = null;
@@ -22,6 +23,16 @@ export async function init(view = 'wildcard') {
     // Playoffs tab only appears in playoff mode (the page itself stays reachable)
     const playoffsBtn = document.querySelector('.view-btn[data-view="playoffs"]');
     if (playoffsBtn) playoffsBtn.hidden = !PLAYOFF_MODE;
+
+    // The points progression chart isn't a standings table — it draws itself
+    if (view === 'points-progression') {
+        const state = getUIState('standings');
+        state.currentView = view;
+        setUIState('standings', state);
+        setupViewButtons();
+        await renderPointsProgressionPage(document.getElementById('standings-container'));
+        return;
+    }
 
     try {
         // Fetch standings and league leaders (cached if available)
@@ -57,6 +68,8 @@ export function render() {
     const container = document.getElementById('standings-container');
 
     switch(state.currentView) {
+        case 'points-progression':
+            return; // drawn by renderPointsProgressionPage, not from standings data
         case 'playoffs':
             container.innerHTML = PLAYOFF_MODE ? renderPlayoffBracket() : renderPlayoffBracketPaused();
             break;

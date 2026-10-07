@@ -247,7 +247,7 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
         const periodType = game.periodDescriptor?.periodType || 'REG';
         resultClass = didWin ? 'game-win' : 'game-loss';
         main = `${game.awayTeam.score} – ${game.homeTeam.score}`;
-        detail = `<span class="${resultClass}">${didWin ? 'W' : 'L'}</span> • Final${periodType === 'REG' ? '' : `/${periodType}`}`;
+        detail = `Final${periodType === 'REG' ? '' : `/${periodType}`}`;
     } else if (isLive && liveGameData) {
         main = `${liveGameData.awayTeam?.score ?? 0} – ${liveGameData.homeTeam?.score ?? 0}`;
         const isOver = liveGameData.gameState === 'FINAL' || liveGameData.gameState === 'OFF';
@@ -314,9 +314,6 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     }
 
     // The Last card also carries a one-line version, shown instead on phones
-    const result = resultClass === 'game-win' ? 'W' : 'L';
-    const periodType = game.periodDescriptor?.periodType || 'REG';
-    const resultLabel = periodType === 'REG' ? result : `${result} (${periodType})`;
     const shortDate = gameDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     // Scores sit in the middle: "MIN 3 @ 1 NSH"
     const compactTeam = (team, isHome) => `
@@ -328,7 +325,7 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
     return `
         <div class="game-card game-card--matchup game-card--last ${resultClass}">
             <div class="game-compact">
-                <div class="game-label">${label} • ${shortDate} • <span class="${resultClass}">${resultLabel}</span>${playoffBadge}</div>
+                <div class="game-label">${label} • ${shortDate} • ${detail}${playoffBadge}</div>
                 <div class="game-matchup">
                     ${compactTeam(game.awayTeam, false)}
                     <div class="game-at">@</div>
