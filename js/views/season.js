@@ -52,6 +52,7 @@ export const DIVISIONS = {
 // ─── Module state ──────────────────────────────────────────────────────────
 let activeToggles = new Set(['Central']);
 let chartMode = 'points'; // 'points' | 'pct'
+let alwaysShowWild = true; // Wild toggle: keep MIN on the chart even when the Central is off
 export const dataCache = {}; // abbrev → points progression array
 
 // ─── Chart layout ──────────────────────────────────────────────────────────
@@ -1112,14 +1113,16 @@ export function attachChartHoverHandlers(svg, teams, mode) {
 // ─── Points progression chart (Standings › Points Progression Chart) ─────────
 
 let chartRoot = null; // element the chart page is mounted in
+let refreshId = 0;     // latest redraw; an older one finishing late is dropped
 
 async function refreshChart() {
     const chartWrap = chartRoot?.querySelector('.points-chart-wrap');
     if (!chartWrap) return;
     chartWrap.innerHTML = '<div class="chart-loading">Loading…</div>';
+    const id = ++refreshId;
 
     try {
-        const abbrevs = [...new Set(['MIN', ...[...activeToggles].flatMap(div => DIVISIONS[div])])];
+        const abbrevs = [...new Set([...(alwaysShowWild ? ['MIN'] : []), ...[...activeToggles].flatMap(div => DIVISIONS[div])])];
         const teams = await Promise.all(
             abbrevs.map(async abbrev => ({
                 abbrev,
@@ -1127,6 +1130,7 @@ async function refreshChart() {
                 data: await loadTeamData(abbrev),
             }))
         );
+        if (id !== refreshId) return;
         chartWrap.innerHTML = chartMode === 'pct' ? buildPctChart(teams) : buildChart(teams);
         const svg = chartWrap.querySelector('svg');
         if (svg) attachChartHoverHandlers(svg, teams, chartMode);
@@ -1137,7 +1141,8 @@ async function refreshChart() {
 }
 
 function buildChartSection(initialChartHtml) {
-    const divToggles = Object.keys(DIVISIONS).map(div => {
+    const wildToggle = `<button class="division-toggle wild-toggle${alwaysShowWild ? ' active' : ''}" data-wild aria-pressed="${alwaysShowWild}" aria-label="Always show the Minnesota Wild"><img src="/logos/MIN_dark.svg" alt="" class="wild-toggle-logo"></button>`;
+    const divToggles = wildToggle + Object.keys(DIVISIONS).map(div => {
         const isActive = activeToggles.has(div);
         return `<button class="division-toggle${isActive ? ' active' : ''}" data-division="${div}">${div}</button>`;
     }).join('');
@@ -1172,6 +1177,13 @@ function attachToggleHandlers() {
         });
     });
 
+    chartRoot.querySelector('.wild-toggle')?.addEventListener('click', async e => {
+        alwaysShowWild = !alwaysShowWild;
+        e.currentTarget.classList.toggle('active', alwaysShowWild);
+        e.currentTarget.setAttribute('aria-pressed', alwaysShowWild);
+        await refreshChart();
+    });
+
     chartRoot.querySelectorAll('.chart-mode-toggle').forEach(btn => {
         btn.addEventListener('click', async () => {
             const mode = btn.dataset.mode;
@@ -1189,6 +1201,7 @@ function attachToggleHandlers() {
 export async function renderPointsProgressionPage(container) {
     activeToggles = new Set(['Central']);
     chartMode = 'points';
+    alwaysShowWild = true;
     chartRoot = container;
     container.innerHTML = '<div class="loading">Loading chart…</div>';
 

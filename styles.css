@@ -4564,6 +4564,23 @@ footer {
     color: var(--text-primary);
 }
 
+.wild-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.2rem 0.85rem;
+}
+
+.wild-toggle-logo {
+    height: 18px;
+    width: auto;
+    display: block;
+}
+
+.wild-toggle:not(.active) .wild-toggle-logo {
+    opacity: 0.45;
+}
+
 .division-toggle:disabled {
     opacity: 0.28;
     cursor: not-allowed;
