@@ -405,17 +405,19 @@ async function main() {
         const { abbrev, name } = team;
         const newGames = allH2HGames[abbrev] ?? [];
 
-        if (!newGames.length) {
-            console.log(`   ${abbrev.padEnd(4)} — no games found, skipping`);
-            continue;
-        }
-
         // Load existing data from R2.
         // Seed mode starts fresh; incremental and refresh-schedules preserve existing right-rail.
         let existingGames = [];
         if (!isSeed) {
             const existing = await readFromR2(abbrev);
             existingGames = existing?.games ?? [];
+        }
+
+        // No games this run (e.g. not yet played this season): still rebuild the totals from the
+        // stored games, so This Season / Last Season roll over with the season
+        if (!newGames.length && !existingGames.length) {
+            console.log(`   ${abbrev.padEnd(4)} — no games found, skipping`);
+            continue;
         }
 
         // Determine which games need right-rail data fetched:
@@ -427,7 +429,9 @@ async function main() {
             return !existing || existing.minStats === null;
         });
 
-        if (gamesToEnrich.length) {
+        if (!newGames.length) {
+            console.log(`   ${abbrev.padEnd(4)} — ${name} (no games this season, totals rebuilt)`);
+        } else if (gamesToEnrich.length) {
             process.stdout.write(`   ${abbrev.padEnd(4)} — fetching right-rail for ${gamesToEnrich.length} game(s)...`);
             // Low concurrency + generous delay to avoid NHL API rate limiting
             await batchProcess(gamesToEnrich, enrichWithRightRail, 3, 800);

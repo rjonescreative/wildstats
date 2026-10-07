@@ -23,9 +23,13 @@ function getCurrentSeasonStartYear() {
 
 function aggregateGamesSince(games, sinceStartYear) {
     // Only regular season games (gameType 2); backward compat: missing gameType = regular season
-    const filtered = games.filter(g =>
+    return aggregateGames(games.filter(g =>
         (g.gameType ?? 2) === 2 && parseInt(g.season.slice(0, 4), 10) >= sinceStartYear
-    );
+    ));
+}
+
+// Totals for a list of games, or null when there are none
+function aggregateGames(filtered) {
     if (!filtered.length) return null;
 
     const side = (statsKey) => {
@@ -275,14 +279,14 @@ function buildH2HMatchup(team, data) {
 
     const sinceAgg = aggregateGamesSince(regGames, defaultSince);
 
-    const thisSeason = (data.thisSeason?.gamesPlayed > 0)
-        ? buildH2HTable('THIS SEASON', data.thisSeason, team, {
-            games: regGames.filter(g => g.season === curSeasonStr),
-          }) : '';
-    const lastSeason = (data.lastSeason?.gamesPlayed > 0)
-        ? buildH2HTable('LAST SEASON', data.lastSeason, team, {
-            games: regGames.filter(g => g.season === prevSeasonStr),
-          }) : '';
+    // This/last season come from the game list rather than the stored totals, which are only
+    // as current as the file (a team not yet played this season still has last season's totals)
+    const curGames  = regGames.filter(g => g.season === curSeasonStr);
+    const prevGames = regGames.filter(g => g.season === prevSeasonStr);
+    const thisSeason = curGames.length
+        ? buildH2HTable('THIS SEASON', aggregateGames(curGames), team, { games: curGames }) : '';
+    const lastSeason = prevGames.length
+        ? buildH2HTable('LAST SEASON', aggregateGames(prevGames), team, { games: prevGames }) : '';
     const sinceSection = sinceAgg
         ? buildH2HTable('SINCE', sinceAgg, team, {
             titleHtml: buildSinceTitleHtml(defaultSince),
