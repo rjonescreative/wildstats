@@ -50,7 +50,13 @@ When adding a page: add the route in `router.js`, a title/description in `getPag
 | Update Sweater Numbers | `scripts/update-sweater-numbers.js` | `numbers/sweater-numbers.json` | 06:45 daily |
 | Warm team schedules cache | (curl only) | `schedules/all-teams-{season}.json` | every 55 min |
 
-Other R2 keys: `wild/season-breakdown-{season}-v5.json` (written on demand by the season-breakdown endpoint).
+Other R2 keys: `wild/season-breakdown-{season}-v5.json` (written on demand by the season-breakdown endpoint), `wild/special-teams-{season}-v1.json` (play-by-play PP/PK splits per game, written on demand by `/api/wild/special-teams`).
+
+### Special teams (`/api/wild/special-teams`)
+
+- Totals, ranks and per-game PP/PK come from the NHL stats API (`team/powerplay`, `team/penaltykill`, `team/summary`) on every request.
+- Period and score-state splits are derived from play-by-play in `js/specialTeams.js` (shared by server.js and the Function). A game's splits are only returned when they match the official opportunity and goal counts exactly; the page notes how many games the splits cover. The derivation matched all 14 games of 2026-27 so far (as of Oct 28, 2026) and 78 of 82 games in 2025-26.
+- Rules: same-time penalties offset, a double minor counts as two opportunities, penalties after the final faceoff don't count, and a PP goal is credited to the latest opportunity.
 
 Run manually: `gh workflow run update-milestones.yml` (add `-f seed=true` for a full rebuild where supported). Check with `gh run list --workflow=... --limit 3`. GitHub sometimes delays scheduled runs by hours or fails to assign a runner (job "cancelled" with no steps = GitHub outage, not our code — check githubstatus.com).
 

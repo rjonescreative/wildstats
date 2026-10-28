@@ -4786,6 +4786,90 @@ footer {
     margin-top: 0.1rem;
 }
 
+/* ─── Special teams ───────────────────────────────────────────────────────── */
+
+.special-teams .st-table {
+    min-width: 0;
+}
+
+.st-table th:not(:first-child),
+.st-table td:not(:first-child) {
+    text-align: right;
+}
+
+.st-chart-wrap {
+    position: relative;
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 10px;
+    padding: 0.75rem 0.5rem 0.25rem;
+}
+
+.st-chart {
+    position: relative;
+    touch-action: pan-y;
+}
+
+.st-chart-svg {
+    width: 100%;
+    height: auto;
+}
+
+.st-guide {
+    stroke: rgba(255, 255, 255, 0.25);
+    stroke-width: 1;
+}
+
+.st-avg-label {
+    font-size: 10px;
+    fill: var(--text-tertiary);
+}
+
+.st-chart-tooltip {
+    position: absolute;
+    margin: 0.75rem 0.5rem 0;
+    top: 0;
+    left: 0;
+    pointer-events: none;
+    background: rgba(30, 30, 35, 0.95);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 6px;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    color: var(--text-secondary);
+    white-space: nowrap;
+}
+
+.st-tip-head {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.st-tip-value {
+    color: var(--text-primary);
+}
+
+.special-teams .chart-controls {
+    justify-content: flex-start;
+}
+
+@media (max-width: 640px) {
+    /* Four cards: two rows of two instead of three and one */
+    .special-teams .season-glance-card {
+        flex-basis: calc(50% - 0.625rem);
+    }
+}
+
+@media (max-width: 400px) {
+    .season-table.st-table th,
+    .season-table.st-table td {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+        letter-spacing: 0.02em;
+    }
+}
+
 /* ─── Division table rows ─────────────────────────────────────────────────── */
 
 .div-section-row td {

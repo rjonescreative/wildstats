@@ -135,6 +135,11 @@ export async function getWildSeasonBreakdown(forceRefresh = false) {
     return fetchWithCache('/api/wild/season-breakdown', 'wildSeasonBreakdown', forceRefresh);
 }
 
+// Get Wild power play / penalty kill — season totals, per-game numbers, period / score-state splits
+export async function getWildSpecialTeams(forceRefresh = false) {
+    return fetchWithCache('/api/wild/special-teams', 'wildSpecialTeams', forceRefresh);
+}
+
 // Get all-team career totals for current Wild roster (playerId → { gamesPlayed, goals, assists, points })
 export async function getCareerTotals(forceRefresh = false) {
     return fetchWithCache('/api/milestones/career-totals', 'careerTotals', forceRefresh);

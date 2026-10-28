@@ -1,5 +1,5 @@
 // Current Season view — team-level stats for the current season
-import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown } from '../api.js';
+import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams } from '../api.js';
 import { getSeasonLabel, PLAYOFF_MODE } from '../seasonConfig.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
@@ -238,6 +238,286 @@ function buildAtAGlance(games) {
         </div>
       </div>
     </div>`;
+}
+
+// ─── Section: Special Teams ────────────────────────────────────────────────
+
+const fmtPP = v => v === null || v === undefined ? '—' : `${(v * 100).toFixed(1)}%`;
+
+function ordinal(n) {
+    const s = n % 100 >= 11 && n % 100 <= 13 ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[n % 10] ?? 'th');
+    return `${n}${s}`;
+}
+
+// Opportunities and goals by period and by the Wild's score state, from games with splits
+function tallySpecialTeams(games) {
+    const buckets = {};
+    const add = (key, side, goals) => {
+        const b = buckets[key] ??= { ppGoals: 0, ppOpps: 0, ppGoalsAgainst: 0, timesShorthanded: 0 };
+        if (side === 'pp') { b.ppOpps++; b.ppGoals += goals; }
+        else { b.timesShorthanded++; b.ppGoalsAgainst += goals; }
+    };
+    games.forEach(g => {
+        ['pp', 'pk'].forEach(side => {
+            g.splits[side].forEach(([period, state, goals]) => {
+                add(`p${period}`, side, goals);
+                add(state, side, goals);
+            });
+        });
+    });
+    return buckets;
+}
+
+function buildSpecialTeams(st) {
+    const title = '<h2 class="season-section-title">Special Teams</h2>';
+    if (!st?.totals || st.totals.gamesPlayed === 0) {
+        return `<div class="season-section">${title}<p class="season-no-data">Special teams data unavailable.</p></div>`;
+    }
+    const t = st.totals;
+    const rankStr = r => r ? ` &middot; ${ordinal(r)} in NHL` : '';
+    const pkKills = t.timesShorthanded - t.ppGoalsAgainst;
+
+    const cards = `
+      <div class="season-glance-grid">
+        <div class="season-glance-card">
+          <div class="glance-label">Power Play</div>
+          <div class="glance-value">${fmtPP(t.ppPct)}</div>
+          <div class="glance-sub">${t.ppGoals} for ${t.ppOpps}${rankStr(t.ppRank)}</div>
+        </div>
+        <div class="season-glance-card">
+          <div class="glance-label">Penalty Kill</div>
+          <div class="glance-value">${fmtPP(t.pkPct)}</div>
+          <div class="glance-sub">${pkKills} of ${t.timesShorthanded} killed${rankStr(t.pkRank)}</div>
+        </div>
+        <div class="season-glance-card">
+          <div class="glance-label">PP Goals Against</div>
+          <div class="glance-value">${t.ppGoalsAgainst}</div>
+          <div class="glance-sub">${(t.ppGoalsAgainst / t.gamesPlayed).toFixed(2)} per game</div>
+        </div>
+        <div class="season-glance-card">
+          <div class="glance-label">Shorthanded Goals</div>
+          <div class="glance-value">${t.shGoalsFor}</div>
+          <div class="glance-sub">scored by the Wild</div>
+        </div>
+      </div>`;
+
+    // Splits table (only games whose play-by-play matched the official counts)
+    const splitGames = st.games.filter(g => g.splits);
+    let splitsHtml = '';
+    if (splitGames.length > 0) {
+        const b = tallySpecialTeams(splitGames);
+        const row = (label, key, cls = '') => {
+            const r = b[key];
+            if (!r) return `<tr><td class="${cls}">${label}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+            const kills = r.timesShorthanded - r.ppGoalsAgainst;
+            return `<tr>
+              <td class="${cls}">${label}</td>
+              <td>${r.ppOpps ? `${r.ppGoals}/${r.ppOpps}` : '—'}</td>
+              <td class="stat-highlight">${r.ppOpps ? fmtPP(r.ppGoals / r.ppOpps) : '—'}</td>
+              <td>${r.timesShorthanded ? `${kills}/${r.timesShorthanded}` : '—'}</td>
+              <td class="stat-highlight">${r.timesShorthanded ? fmtPP(kills / r.timesShorthanded) : '—'}</td>
+            </tr>`;
+        };
+        const coverage = splitGames.length < st.games.length
+            ? ` Splits cover ${splitGames.length} of ${st.games.length} games; games whose play-by-play doesn't line up with the official totals are left out.`
+            : '';
+        splitsHtml = `
+      <h3 class="season-subsection-title">By Period and Score</h3>
+      <p class="season-section-note st-splits-note">PP shows goals / opportunities; PK shows kills / times shorthanded. Score is the Wild's score when the penalty was called.${coverage}</p>
+      <div class="season-table-wrap">
+        <table class="season-table situation-table st-table">
+          <thead>
+            <tr><th>Situation</th><th>PP</th><th>PP%</th><th>PK</th><th>PK%</th></tr>
+          </thead>
+          <tbody>
+            <tr class="div-section-row"><td colspan="5">By Period</td></tr>
+            ${row('1st', 'p1', 'period-label')}
+            ${row('2nd', 'p2', 'period-label')}
+            ${row('3rd', 'p3', 'period-label')}
+            ${b.p4 ? row('OT', 'p4', 'period-label') : ''}
+            <tr class="div-section-row"><td colspan="5">By Score</td></tr>
+            ${row('Leading', 'L', 'sit-label sit-label-leading')}
+            ${row('Tied', 'T', 'sit-label sit-label-tied')}
+            ${row('Trailing', 'B', 'sit-label sit-label-trailing')}
+          </tbody>
+        </table>
+      </div>`;
+    }
+
+    const chartHtml = st.games.length >= 2 ? `
+      <h3 class="season-subsection-title">Season Progression</h3>
+      <div class="st-chart-wrap">
+        <div class="st-chart"></div>
+        <div class="st-chart-tooltip" hidden></div>
+      </div>
+      <div class="chart-controls">
+        <div class="chart-mode-toggles">
+          <button class="division-toggle st-mode-toggle${stChartMode === 'pp' ? ' active' : ''}" data-mode="pp">Power Play</button>
+          <button class="division-toggle st-mode-toggle${stChartMode === 'pk' ? ' active' : ''}" data-mode="pk">Penalty Kill</button>
+        </div>
+      </div>` : '';
+
+    return `
+    <div class="season-section special-teams">
+      ${title}
+      ${cards}
+      ${splitsHtml}
+      ${chartHtml}
+    </div>`;
+}
+
+// ─── Special teams chart: season-to-date PP% / PK% after each game ──────────
+
+let stChartMode = 'pp'; // 'pp' | 'pk'
+
+function specialTeamsProgression(games, mode) {
+    let goals = 0, opps = 0;
+    return games.map((g, i) => {
+        if (mode === 'pp') { goals += g.ppGoals; opps += g.ppOpps; }
+        else { goals += g.ppGoalsAgainst; opps += g.timesShorthanded; }
+        const pct = opps > 0 ? (mode === 'pp' ? goals / opps : 1 - goals / opps) : null;
+        return { game: i + 1, g, pct };
+    }).filter(d => d.pct !== null);
+}
+
+function buildSpecialTeamsChart(points, mode, leagueAvg, width) {
+    const W = Math.round(width);
+    const H = W < 500 ? 200 : 240;
+    const m = { top: 14, right: 16, bottom: 34, left: 46 };
+    const pw = W - m.left - m.right;
+    const ph = H - m.top - m.bottom;
+
+    const xMax = Math.max(points[points.length - 1].game, 10);
+    const values = points.map(d => d.pct).concat(leagueAvg ?? []);
+    const lo = Math.max(0, Math.floor((Math.min(...values) - 0.02) * 20) / 20);
+    const hi = Math.min(1, Math.ceil((Math.max(...values) + 0.02) * 20) / 20);
+    const yStep = hi - lo > 0.4 ? 0.1 : 0.05;
+
+    const x = game => m.left + (game / xMax) * pw;
+    const y = pct => m.top + ph - ((pct - lo) / (hi - lo)) * ph;
+
+    const yTicks = [];
+    for (let v = lo; v <= hi + 1e-9; v += yStep) yTicks.push(v);
+    const xStep = xMax <= 20 ? 5 : xMax <= 40 ? 10 : 20;
+    const xTicks = [];
+    for (let g = xStep; g <= xMax; g += xStep) xTicks.push(g);
+
+    const grid = [
+        ...yTicks.map(v => `<line x1="${m.left}" y1="${y(v).toFixed(1)}" x2="${m.left + pw}" y2="${y(v).toFixed(1)}" class="chart-grid"/>
+    <text x="${m.left - 8}" y="${y(v).toFixed(1)}" dy="0.35em" text-anchor="end" class="chart-label">${Math.round(v * 100)}%</text>`),
+        ...xTicks.map(g => `<text x="${x(g).toFixed(1)}" y="${m.top + ph + 16}" text-anchor="middle" class="chart-label">${g}</text>`),
+    ].join('\n    ');
+
+    const line = points.map((d, i) => `${i === 0 ? 'M' : 'L'}${x(d.game).toFixed(1)},${y(d.pct).toFixed(1)}`).join(' ');
+    const area = `${line} L${x(points[points.length - 1].game).toFixed(1)},${m.top + ph} L${x(points[0].game).toFixed(1)},${m.top + ph} Z`;
+    const last = points[points.length - 1];
+
+    const avgLine = leagueAvg == null ? '' : `
+    <line x1="${m.left}" y1="${y(leagueAvg).toFixed(1)}" x2="${m.left + pw}" y2="${y(leagueAvg).toFixed(1)}" class="chart-midline"/>
+    <text x="${m.left + 6}" y="${(y(leagueAvg) - 5).toFixed(1)}" class="chart-label st-avg-label">NHL avg ${fmtPP(leagueAvg)}</text>`;
+
+    return `<svg class="points-chart st-chart-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${mode === 'pp' ? 'Power play' : 'Penalty kill'} percentage after each game">
+  <defs>
+    <linearGradient id="st-area" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1C8C47" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#1C8C47" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+  ${grid}
+  <line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}" class="chart-axis"/>
+  <line x1="${m.left}" y1="${m.top + ph}" x2="${m.left + pw}" y2="${m.top + ph}" class="chart-axis"/>
+  ${avgLine}
+  <path d="${area}" fill="url(#st-area)" stroke="none"/>
+  <path class="st-line" d="${line}" fill="none" stroke="#1C8C47" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+  <circle cx="${x(last.game).toFixed(1)}" cy="${y(last.pct).toFixed(1)}" r="3.5" fill="#1C8C47" stroke="#111" stroke-width="1.5"/>
+  <line class="st-guide" x1="0" y1="${m.top}" x2="0" y2="${m.top + ph}" visibility="hidden"/>
+  <circle class="st-dot" r="4" fill="#1C8C47" stroke="#fff" stroke-width="1.5" visibility="hidden"/>
+  <text x="${m.left + pw / 2}" y="${H - 4}" text-anchor="middle" class="chart-axis-title">Games Played</text>
+</svg>`;
+}
+
+function attachSpecialTeamsChart(root, st) {
+    const wrap = root.querySelector('.st-chart-wrap');
+    if (!wrap) return;
+    const chartEl = wrap.querySelector('.st-chart');
+    const tooltip = wrap.querySelector('.st-chart-tooltip');
+    let renderedWidth = 0;
+
+    const render = () => {
+        const width = chartEl.clientWidth;
+        if (!width) return;
+        renderedWidth = width;
+        const mode = stChartMode;
+        const points = specialTeamsProgression(st.games, mode);
+        if (points.length === 0) { chartEl.innerHTML = '<p class="season-no-data">No data yet.</p>'; return; }
+        const leagueAvg = mode === 'pp' ? st.totals.leaguePpPct : st.totals.leaguePkPct;
+        chartEl.innerHTML = buildSpecialTeamsChart(points, mode, leagueAvg, width);
+        tooltip.hidden = true;
+
+        const svg = chartEl.querySelector('svg');
+        const guide = svg.querySelector('.st-guide');
+        const dot = svg.querySelector('.st-dot');
+        // Point positions, read back from the drawn line (one per entry in points)
+        const linePts = svg.querySelector('.st-line').getAttribute('d').match(/[\d.]+,[\d.]+/g)
+            .map(s => s.split(',').map(Number));
+
+        const show = evt => {
+            const box = svg.getBoundingClientRect();
+            const px = evt.clientX - box.left;
+            let best = 0;
+            linePts.forEach(([lx], i) => { if (Math.abs(lx - px) < Math.abs(linePts[best][0] - px)) best = i; });
+            const [lx, ly] = linePts[best];
+            const d = points[best];
+            guide.setAttribute('x1', lx); guide.setAttribute('x2', lx);
+            dot.setAttribute('cx', lx); dot.setAttribute('cy', ly);
+            guide.setAttribute('visibility', 'visible');
+            dot.setAttribute('visibility', 'visible');
+
+            const [g, o] = mode === 'pp'
+                ? [d.g.ppGoals, d.g.ppOpps]
+                : [d.g.timesShorthanded - d.g.ppGoalsAgainst, d.g.timesShorthanded];
+            const date = new Date(d.g.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            tooltip.innerHTML = `
+              <div class="st-tip-head">Game ${d.game} &middot; ${d.g.isHome ? 'vs' : '@'} ${d.g.opponent} &middot; ${date}</div>
+              <div>${mode === 'pp' ? 'PP' : 'PK'} this game: ${o ? `${g}/${o}` : 'none'}</div>
+              <div class="st-tip-value">Season: ${fmtPP(d.pct)}</div>`;
+            tooltip.hidden = false;
+            const tw = tooltip.offsetWidth;
+            const left = Math.min(Math.max(lx - tw / 2, 0), box.width - tw);
+            tooltip.style.left = `${left}px`;
+            tooltip.style.top = `${Math.max(ly - tooltip.offsetHeight - 12, 0)}px`;
+        };
+        const hide = () => {
+            tooltip.hidden = true;
+            guide.setAttribute('visibility', 'hidden');
+            dot.setAttribute('visibility', 'hidden');
+        };
+        svg.addEventListener('pointermove', show);
+        svg.addEventListener('pointerdown', show);
+        svg.addEventListener('pointerleave', hide);
+    };
+
+    render();
+
+    root.querySelectorAll('.st-mode-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (stChartMode === btn.dataset.mode) return;
+            stChartMode = btn.dataset.mode;
+            root.querySelectorAll('.st-mode-toggle').forEach(b => b.classList.toggle('active', b === btn));
+            render();
+        });
+    });
+
+    // Redraw at the new width so labels stay readable (stops once the view is gone)
+    let resizeTimer = null;
+    const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (!wrap.isConnected) { window.removeEventListener('resize', onResize); return; }
+            if (chartEl.clientWidth !== renderedWidth) render();
+        }, 150);
+    };
+    window.addEventListener('resize', onResize);
 }
 
 // ─── Section: Period-by-Period Scoring ─────────────────────────────────────
@@ -1237,10 +1517,11 @@ async function loadAndRenderStats(scheduleGames) {
     const statsEl = document.getElementById('season-extra-stats');
     if (!statsEl) return;
 
-    const [standingsResult, breakdownResult, wildStatsResult] = await Promise.allSettled([
+    const [standingsResult, breakdownResult, wildStatsResult, specialTeamsResult] = await Promise.allSettled([
         getStandings(),
         getWildSeasonBreakdown(),
         getWildStats(),
+        getWildSpecialTeams(),
     ]);
 
     const standings       = standingsResult.value?.standings ?? [];
@@ -1253,6 +1534,7 @@ async function loadAndRenderStats(scheduleGames) {
 
     statsEl.innerHTML = [
         buildAtAGlance(games),
+        buildSpecialTeams(specialTeamsResult.value),
         buildPeriodScoring(games),
         buildSituationalRecords(games),
         buildBackToBack(games),
@@ -1261,6 +1543,8 @@ async function loadAndRenderStats(scheduleGames) {
         PLAYOFF_MODE ? buildPlayoffTeamRecords(games, standings) : '',
         buildOTShootout(games, wildStats, soScorers, seasonBreakdown),
     ].join('');
+
+    if (specialTeamsResult.value) attachSpecialTeamsChart(statsEl, specialTeamsResult.value);
 }
 
 // ─── View init ─────────────────────────────────────────────────────────────

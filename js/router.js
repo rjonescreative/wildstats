@@ -282,7 +282,7 @@ function getMetaDescription(viewName, subView = null) {
         return `Minnesota Wild player milestones for ${SEASON_LABEL}. Track which Wild players are approaching goals, assists, points, games played, and wins records — and which milestones have already been hit this season.`;
     }
     if (viewName === 'stats' && subView === 'season') {
-        return `Minnesota Wild ${SEASON_LABEL} season stats: home and away splits, period-by-period scoring, situational records, and back-to-back performance.`;
+        return `Minnesota Wild ${SEASON_LABEL} season stats: home and away splits, power play and penalty kill, period-by-period scoring, situational records, and back-to-back performance.`;
     }
     if (viewName === 'stats' && subView === 'head-to-head') {
         const slug = typeof window !== 'undefined'

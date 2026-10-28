@@ -104,7 +104,7 @@ const PAGE_META = {
     },
     '/stats/season': {
         title: `Minnesota Wild {season} Season Stats – Splits, Records & More | Wild Hockey Hub`,
-        description: `Minnesota Wild {season} season stats: home and away splits, period-by-period scoring, situational records, and back-to-back performance.`
+        description: `Minnesota Wild {season} season stats: home and away splits, power play and penalty kill, period-by-period scoring, situational records, and back-to-back performance.`
     },
     '/stats/team-records': {
         title: 'Minnesota Wild All-Time Team Records & Statistical Leaders | Wild Hockey Hub',
