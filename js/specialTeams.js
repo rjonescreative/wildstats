@@ -82,6 +82,30 @@ export function extractSpecialTeams(pbp) {
     return out;
 }
 
+// Rows of a stats API report, or null when the response isn't a usable report
+export function statsRows(res) {
+    return Array.isArray(res?.data) ? res.data : null;
+}
+
+const LEAGUE_FIELDS = ['ppRank', 'pkRank', 'leagueTeams', 'leaguePpPct', 'leaguePkPct'];
+
+// Payload for this request, falling back to the last good one (stored in R2) when the stats API
+// fails or returns fewer games than before. If only the league summary failed, ranks and
+// averages come from the last good payload. Returns { payload, stale }, or null with nothing to serve.
+export function resolveSpecialTeams({ powerPlay, penaltyKill, league, splits, lastGood }) {
+    const fallback = lastGood?.totals ? { payload: { ...lastGood, stale: true }, stale: true } : null;
+    if (!powerPlay || !penaltyKill) return fallback;
+
+    const payload = buildSpecialTeamsPayload({ powerPlay, penaltyKill, league: league ?? [], splits });
+    if (payload.games.length === 0 || payload.games.length < (lastGood?.games?.length ?? 0)) {
+        return fallback ?? { payload, stale: false };
+    }
+    if (!league?.length && lastGood?.totals) {
+        LEAGUE_FIELDS.forEach(k => { payload.totals[k] = lastGood.totals[k]; });
+    }
+    return { payload, stale: false };
+}
+
 const sumGoals = list => list.reduce((n, o) => n + o[2], 0);
 
 // Response payload from the stats API reports plus cached play-by-play splits (gameId → splits)

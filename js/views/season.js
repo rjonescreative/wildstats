@@ -290,7 +290,12 @@ function buildSpecialTeams(st) {
           <div class="glance-sub">${pkKills} of ${t.timesShorthanded} killed${rankStr(t.pkRank)}</div>
         </div>
         <div class="season-glance-card">
-          <div class="glance-label">PP Goals Against</div>
+          <div class="glance-label">PP Goals For</div>
+          <div class="glance-value">${t.ppGoals}</div>
+          <div class="glance-sub">${(t.ppGoals / t.gamesPlayed).toFixed(2)} per game</div>
+        </div>
+        <div class="season-glance-card">
+          <div class="glance-label">Goals Allowed on PK</div>
           <div class="glance-value">${t.ppGoalsAgainst}</div>
           <div class="glance-sub">${(t.ppGoalsAgainst / t.gamesPlayed).toFixed(2)} per game</div>
         </div>

@@ -5,7 +5,7 @@ import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
-import { specialTeamsStatsUrls, extractSpecialTeams, buildSpecialTeamsPayload } from './js/specialTeams.js';
+import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
@@ -949,7 +949,8 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
     }
 });
 
-// Wild power play / penalty kill — official stats + R2-cached play-by-play splits
+// Wild power play / penalty kill — official stats + R2-cached play-by-play splits.
+// Falls back to the last good response (stored in R2) when the stats API fails.
 app.get('/api/wild/special-teams', async (req, res) => {
     const R2_KEY = `wild/special-teams-${getCurrentSeason()}-v1.json`;
     const MAX_NEW_GAMES = 40;
@@ -973,17 +974,19 @@ app.get('/api/wild/special-teams', async (req, res) => {
                 }
                 return null;
             });
-        const [ppRes, pkRes, leagueRes, cached] = await Promise.all([
-            fetchJson(urls.powerPlay),
-            fetchJson(urls.penaltyKill),
-            fetchJson(urls.league).catch(() => ({ data: [] })),
+        const report = url => fetchJson(url).then(statsRows).catch(() => null);
+        const [powerPlay, penaltyKill, league, cached] = await Promise.all([
+            report(urls.powerPlay),
+            report(urls.penaltyKill),
+            report(urls.league),
             readCache,
         ]);
+        if (!powerPlay || !penaltyKill) console.warn('Special teams: stats API unavailable');
 
         const splits = { ...(cached?.splits ?? {}) };
 
         // Derive splits for games not yet cached
-        const newIds = (ppRes.data ?? []).map(g => g.gameId).filter(id => !splits[id]).slice(0, MAX_NEW_GAMES);
+        const newIds = (powerPlay ?? []).map(g => g.gameId).filter(id => !splits[id]).slice(0, MAX_NEW_GAMES);
         if (newIds.length > 0) {
             console.log(`Special teams: fetching ${newIds.length} new game(s)`);
             const BATCH_SIZE = 12;
@@ -998,22 +1001,24 @@ app.get('/api/wild/special-teams', async (req, res) => {
                     }
                 });
             }
+        }
 
+        const result = resolveSpecialTeams({ powerPlay, penaltyKill, league, splits, lastGood: cached?.lastGood });
+        if (!result) throw new Error('Stats API unavailable and nothing cached');
+        const { payload, stale } = result;
+
+        // Store new splits and the latest good response (only when something changed)
+        if (!stale && (newIds.length > 0 || JSON.stringify(payload) !== JSON.stringify(cached?.lastGood))) {
             r2.send(new PutObjectCommand({
                 Bucket: process.env.R2_BUCKET_NAME,
                 Key: R2_KEY,
-                Body: JSON.stringify({ splits, updatedAt: new Date().toISOString() }),
+                Body: JSON.stringify({ splits, lastGood: payload, updatedAt: new Date().toISOString() }),
                 ContentType: 'application/json',
             })).catch(e => console.warn('R2 write warning:', e.message));
         }
 
-        res.set('Cache-Control', 'public, max-age=1800');
-        res.json(buildSpecialTeamsPayload({
-            powerPlay: ppRes.data,
-            penaltyKill: pkRes.data,
-            league: leagueRes.data,
-            splits,
-        }));
+        res.set('Cache-Control', `public, max-age=${stale ? 300 : 1800}`);
+        res.json(payload);
     } catch (error) {
         console.error('Error fetching special teams:', error);
         res.status(500).json({ error: 'Failed to fetch special teams stats' });
