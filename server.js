@@ -952,7 +952,7 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
 // Wild power play / penalty kill — official stats + R2-cached play-by-play splits.
 // Falls back to the last good response (stored in R2) when the stats API fails.
 app.get('/api/wild/special-teams', async (req, res) => {
-    const R2_KEY = `wild/special-teams-${getCurrentSeason()}-v1.json`;
+    const R2_KEY = `wild/special-teams-${getCurrentSeason()}-v2.json`;
     const MAX_NEW_GAMES = 40;
 
     const fetchJson = url => {

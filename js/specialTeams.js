@@ -28,9 +28,10 @@ function strength(situationCode, isMinHome) {
     return isMinHome ? { min: home, opp: away } : { min: away, opp: home };
 }
 
-// Opportunities from one play-by-play: { pp: [[period, state, goals], ...], pk: [...] }
-// period is 1–3, or 4 for overtime. state is the Wild's score state when the penalty was called:
-// 'L' leading, 'T' tied, 'B' behind. goals are power-play goals scored during that opportunity.
+// Opportunities from one play-by-play: { pp: [[period, state, goalPeriods], ...], pk: [...] }
+// period is when the penalty was called: 1–3, or 4 for overtime. state is the Wild's score state
+// then: 'L' leading, 'T' tied, 'B' behind. goalPeriods lists the period of each power-play goal
+// scored during that opportunity (a power play can carry into the next period).
 export function extractSpecialTeams(pbp) {
     const isMinHome = pbp.homeTeam?.abbrev === 'MIN';
     const minId = isMinHome ? pbp.homeTeam?.id : pbp.awayTeam?.id;
@@ -46,8 +47,8 @@ export function extractSpecialTeams(pbp) {
     const flushGroup = () => {
         if (!group) return;
         const offset = Math.min(group.min, group.opp);
-        for (let k = offset; k < group.opp; k++) out.pp.push([group.period, group.state, 0]);
-        for (let k = offset; k < group.min; k++) out.pk.push([group.period, group.state, 0]);
+        for (let k = offset; k < group.opp; k++) out.pp.push([group.period, group.state, []]);
+        for (let k = offset; k < group.min; k++) out.pk.push([group.period, group.state, []]);
         group = null;
     };
 
@@ -73,7 +74,7 @@ export function extractSpecialTeams(pbp) {
             const { min, opp } = strength(p.situationCode, isMinHome);
             // Credit a power-play goal to the most recent opportunity for that side
             const list = minScored ? (min > opp ? out.pp : null) : (opp > min ? out.pk : null);
-            if (list?.length) list[list.length - 1][2]++;
+            if (list?.length) list[list.length - 1][2].push(period);
             if (minScored) minScore++;
             else oppScore++;
         }
@@ -106,7 +107,7 @@ export function resolveSpecialTeams({ powerPlay, penaltyKill, league, splits, la
     return { payload, stale: false };
 }
 
-const sumGoals = list => list.reduce((n, o) => n + o[2], 0);
+const sumGoals = list => list.reduce((n, o) => n + o[2].length, 0);
 
 // Response payload from the stats API reports plus cached play-by-play splits (gameId → splits)
 export function buildSpecialTeamsPayload({ powerPlay, penaltyKill, league, splits = {} }) {

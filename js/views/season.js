@@ -249,19 +249,20 @@ function ordinal(n) {
     return `${n}${s}`;
 }
 
-// Opportunities and goals by period and by the Wild's score state, from games with splits
+// Opportunities and goals by period and by the Wild's score state, from games with splits.
+// Opportunities count in the period the penalty was called, goals in the period they were scored
+// (a power play can carry over); score state is always the one when the penalty was called.
 function tallySpecialTeams(games) {
     const buckets = {};
-    const add = (key, side, goals) => {
-        const b = buckets[key] ??= { ppGoals: 0, ppOpps: 0, ppGoalsAgainst: 0, timesShorthanded: 0 };
-        if (side === 'pp') { b.ppOpps++; b.ppGoals += goals; }
-        else { b.timesShorthanded++; b.ppGoalsAgainst += goals; }
-    };
+    const bucket = key => buckets[key] ??= { ppGoals: 0, ppOpps: 0, ppGoalsAgainst: 0, timesShorthanded: 0 };
     games.forEach(g => {
         ['pp', 'pk'].forEach(side => {
-            g.splits[side].forEach(([period, state, goals]) => {
-                add(`p${period}`, side, goals);
-                add(state, side, goals);
+            const [oppKey, goalKey] = side === 'pp' ? ['ppOpps', 'ppGoals'] : ['timesShorthanded', 'ppGoalsAgainst'];
+            g.splits[side].forEach(([period, state, goalPeriods]) => {
+                bucket(`p${period}`)[oppKey]++;
+                bucket(state)[oppKey]++;
+                bucket(state)[goalKey] += goalPeriods.length;
+                goalPeriods.forEach(gp => { bucket(`p${gp}`)[goalKey]++; });
             });
         });
     });
@@ -319,12 +320,16 @@ function buildSpecialTeams(st) {
         const row = (label, key, cls = '') => {
             const r = b[key];
             if (!r) return `<tr><td class="${cls}">${label}</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
-            const kills = r.timesShorthanded - r.ppGoalsAgainst;
+            // A carried-over goal can land in a period with few (or no) penalties called,
+            // so kills can't go below zero and a goal still shows with no opportunities
+            const kills = Math.max(r.timesShorthanded - r.ppGoalsAgainst, 0);
+            const pkCell = r.timesShorthanded ? `${kills}/${r.timesShorthanded}`
+                : r.ppGoalsAgainst ? `${r.ppGoalsAgainst} GA` : '—';
             return `<tr>
               <td class="${cls}">${label}</td>
-              <td>${r.ppOpps ? `${r.ppGoals}/${r.ppOpps}` : '—'}</td>
+              <td>${r.ppOpps || r.ppGoals ? `${r.ppGoals}/${r.ppOpps}` : '—'}</td>
               <td class="stat-highlight">${r.ppOpps ? fmtPP(r.ppGoals / r.ppOpps) : '—'}</td>
-              <td>${r.timesShorthanded ? `${kills}/${r.timesShorthanded}` : '—'}</td>
+              <td>${pkCell}</td>
               <td class="stat-highlight">${r.timesShorthanded ? fmtPP(kills / r.timesShorthanded) : '—'}</td>
             </tr>`;
         };
@@ -333,7 +338,7 @@ function buildSpecialTeams(st) {
             : '';
         splitsHtml = `
       <h3 class="season-subsection-title">By Period and Score</h3>
-      <p class="season-section-note st-splits-note">PP shows goals / opportunities; PK shows kills / times shorthanded. Score is the Wild's score when the penalty was called.${coverage}</p>
+      <p class="season-section-note st-splits-note">PP shows goals / opportunities; PK shows kills / times shorthanded. Goals count in the period they were scored and opportunities in the period the penalty was called, so a power play that carries over can add a goal to the next period. Score is the Wild's score when the penalty was called.${coverage}</p>
       <div class="season-table-wrap">
         <table class="season-table situation-table st-table">
           <thead>

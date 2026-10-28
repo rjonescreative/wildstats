@@ -12,7 +12,7 @@ const MAX_NEW_GAMES = 40;
 export async function onRequest(context) {
     const { env } = context;
     const SEASON = getCurrentSeason();
-    const R2_KEY = `wild/special-teams-${SEASON}-v1.json`;
+    const R2_KEY = `wild/special-teams-${SEASON}-v2.json`;
 
     const jsonHeaders = {
         'Content-Type': 'application/json',

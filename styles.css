@@ -4854,6 +4854,13 @@ footer {
     justify-content: flex-start;
 }
 
+@media (max-width: 1024px) {
+    /* Six cards: two rows of three on tablets */
+    .special-teams .season-glance-card {
+        flex-basis: calc(33.333% - 0.625rem);
+    }
+}
+
 @media (max-width: 640px) {
     /* Six cards: three rows of two */
     .special-teams .season-glance-card {
