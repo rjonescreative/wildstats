@@ -296,7 +296,7 @@ function buildSpecialTeams(st) {
           <div class="glance-sub">${(t.ppGoals / t.gamesPlayed).toFixed(2)} per game</div>
         </div>
         <div class="season-glance-card">
-          <div class="glance-label">Goals Allowed on PK</div>
+          <div class="glance-label">PK Goals Against</div>
           <div class="glance-value">${t.ppGoalsAgainst}</div>
           <div class="glance-sub">${(t.ppGoalsAgainst / t.gamesPlayed).toFixed(2)} per game</div>
         </div>
