@@ -103,6 +103,7 @@ export function buildSpecialTeamsPayload({ powerPlay, penaltyKill, league, split
                 ppGoalsAgainst: pk.ppGoalsAgainst,
                 timesShorthanded: pk.timesShorthanded,
                 shGoalsFor: pk.shGoalsFor,
+                shGoalsAgainst: g.shGoalsAgainst,
                 splits: null,
             };
             const s = splits[g.gameId];
@@ -133,6 +134,7 @@ export function buildSpecialTeamsPayload({ powerPlay, penaltyKill, league, split
             ppGoals, ppOpps, ppPct,
             ppGoalsAgainst, timesShorthanded, pkPct,
             shGoalsFor: sum('shGoalsFor'),
+            shGoalsAgainst: sum('shGoalsAgainst'),
             ppRank: wildRow ? rank('powerPlayPct', wildRow.powerPlayPct) : null,
             pkRank: wildRow ? rank('penaltyKillPct', wildRow.penaltyKillPct) : null,
             leagueTeams: teams.length,

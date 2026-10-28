@@ -4855,8 +4855,8 @@ footer {
 }
 
 @media (max-width: 640px) {
-    /* Four cards: two rows of two instead of three and one */
-    .special-teams .season-glance-card {
+    /* Five cards: PP and PK side by side, then the three goal counts */
+    .special-teams .season-glance-card:nth-child(-n + 2) {
         flex-basis: calc(50% - 0.625rem);
     }
 }

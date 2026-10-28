@@ -295,9 +295,14 @@ function buildSpecialTeams(st) {
           <div class="glance-sub">${(t.ppGoalsAgainst / t.gamesPlayed).toFixed(2)} per game</div>
         </div>
         <div class="season-glance-card">
-          <div class="glance-label">Shorthanded Goals</div>
+          <div class="glance-label">SH Goals For</div>
           <div class="glance-value">${t.shGoalsFor}</div>
-          <div class="glance-sub">scored by the Wild</div>
+          <div class="glance-sub">scored while shorthanded</div>
+        </div>
+        <div class="season-glance-card">
+          <div class="glance-label">SH Goals Against</div>
+          <div class="glance-value">${t.shGoalsAgainst}</div>
+          <div class="glance-sub">allowed on the power play</div>
         </div>
       </div>`;
 
