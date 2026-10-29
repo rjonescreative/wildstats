@@ -318,11 +318,13 @@ app.get('/api/game/:id/live', async (req, res) => {
             clock: data.clock,
             awayTeam: {
                 abbrev: data.awayTeam?.abbrev,
-                score: data.awayTeam?.score
+                score: data.awayTeam?.score,
+                sog: data.awayTeam?.sog
             },
             homeTeam: {
                 abbrev: data.homeTeam?.abbrev,
-                score: data.homeTeam?.score
+                score: data.homeTeam?.score,
+                sog: data.homeTeam?.sog
             }
         });
     } catch (error) {

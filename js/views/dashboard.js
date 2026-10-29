@@ -98,6 +98,8 @@ async function renderGames() {
         g.gameState === 'FINAL' || g.gameState === 'OFF'
     );
     const lastGame = completedGames[completedGames.length - 1];
+    // Shots on goal for the Last card come from the game's play-by-play
+    const lastGameDataPromise = lastGame ? getLiveGame(lastGame.id).catch(() => null) : Promise.resolve(null);
 
     // Find current/next games
     // Include PRE state (pre-game warmups) — puck drop is typically 8+ min after listed start time
@@ -128,9 +130,11 @@ async function renderGames() {
         currentLiveGameId = null;
     }
 
+    const lastGameData = await lastGameDataPromise;
+
     const gamesHtml = `
         <div class="games-grid">
-            ${lastGame ? renderGameCard('Last', lastGame, true, false, lastGame.gameType === 3 ? getSeriesRecord(lastGame, scheduleData.games) : null) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
+            ${lastGame ? renderGameCard('Last', lastGame, true, false, lastGame.gameType === 3 ? getSeriesRecord(lastGame, scheduleData.games) : null, lastGameData) : '<div class="game-card"><div class="loading">No games played yet</div></div>'}
             ${currentOrNextGame ? renderGameCard((currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT' || currentOrNextGame.gameState === 'PRE') ? 'Current' : (isToday(currentOrNextGame.gameDate) ? 'Today' : 'Next'), currentOrNextGame, false, currentOrNextGame.gameState === 'LIVE' || currentOrNextGame.gameState === 'CRIT') : '<div class="game-card"><div class="loading">No upcoming games</div></div>'}
             ${renderUpcomingGames(upcomingGames)}
         </div>
@@ -229,7 +233,8 @@ function teamRecord(abbrev) {
 }
 
 // Scoreboard layout: away team on the left, home team on the right, game details in the middle
-function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
+// gameData (Last card only): play-by-play summary, for each team's shots on goal
+function renderGameCard(label, game, isPast, isLive, seriesRecord = null, gameData = null) {
     const isMinHome = game.homeTeam.abbrev === 'MIN';
     const oppTeam = isMinHome ? game.awayTeam : game.homeTeam;
 
@@ -270,11 +275,14 @@ function renderGameCard(label, game, isPast, isLive, seriesRecord = null) {
 
     const teamSide = (team, side) => {
         const isWild = team.abbrev === 'MIN';
+        // The Last card shows shots on goal for that game; the others show the season record
+        const sog = gameData?.[`${side}Team`]?.sog;
+        const subline = label === 'Last' ? (sog != null ? `${sog} SOG` : '') : teamRecord(team.abbrev);
         return `
                 <div class="matchup-team matchup-team--${side} ${isWild ? 'wild-team' : 'opponent-team'}">
                     <img src="/logos/${team.abbrev}_dark.svg" alt="${team.abbrev}" class="matchup-logo">
                     <div class="team-abbrev">${team.abbrev}</div>
-                    <div class="matchup-record">${teamRecord(team.abbrev)}</div>
+                    <div class="matchup-record">${subline}</div>
                 </div>`;
     };
 
