@@ -35,7 +35,7 @@ Key files:
 ## Routes
 
 - `/` dashboard · `/schedule` (current) · `/schedule/past[/YYYY-YY]` (past seasons, defaults to last season; `/schedule/past` canonicalizes to the season URL)
-- `/standings/{wildcard|division|conference|league|points-progression|playoffs}` (playoffs tab hidden unless `PLAYOFF_MODE`; points-progression is the all-teams chart, drawn by `renderPointsProgressionPage` in `season.js`)
+- `/standings/{wildcard|division|conference|league|points-progression|playoffs}` (playoffs is always shown: projected "If the season ended today" matchups until the NHL publishes series; points-progression is the all-teams chart, drawn by `renderPointsProgressionPage` in `season.js`)
 - `/stats` (players) · `/stats/season` · `/stats/head-to-head[/team-slug]` (defaults to next opponent) · `/stats/milestones` · `/stats/numbers` (jersey numbers)
 - `/stats/team-records/[playoffs|combined/]{all-time|season}/{stat}/{pos}` — stat slugs include `goals`, `power-play-goals`, `short-handed-points`, `empty-net-assists`, `even-strength-goals`, `games-played`, `wins`, `shootout`, `penalty-minutes`. Regular season has no type segment. Old `pp-goals` style slugs still resolve.
 
@@ -77,7 +77,7 @@ Run manually: `gh workflow run update-milestones.yml` (add `-f seed=true` for a 
 
 ## Playoff mode
 
-`PLAYOFF_MODE` in `js/seasonConfig.js` (currently `false`). When `true` it shows: magic-number columns (dashboard + standings), opponent playoff-position colors on the schedule, the Standings › Playoffs tab/bracket (projected "If the season ended today" matchups until the NHL publishes series), and Record vs Playoff Teams on `/stats/season`.
+`PLAYOFF_MODE` in `js/seasonConfig.js` (currently `false`). When `true` it shows: magic-number columns (dashboard + standings), opponent playoff-position colors on the schedule and Record vs Playoff Teams on `/stats/season`.
 
 ## Gotchas that cost time
 

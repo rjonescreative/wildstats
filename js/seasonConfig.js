@@ -8,7 +8,7 @@ const EXPANDED_SEASON_GAMES = 84;
 
 // Playoff mode: turn on late in the season to show playoff-race stats
 // (magic numbers on the dashboard and standings, opponent playoff position on the schedule,
-// Record vs Playoff Teams on the current season stats page) and the Standings > Playoffs bracket tab.
+// Record vs Playoff Teams on the current season stats page).
 export const PLAYOFF_MODE = false;
 
 // Season rolls over in October (matches getCurrentSeasonStartYear in scripts/)

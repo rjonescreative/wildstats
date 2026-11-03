@@ -20,10 +20,6 @@ const TEAM_SLUGS = {
 };
 
 export async function init(view = 'wildcard') {
-    // Playoffs tab only appears in playoff mode (the page itself stays reachable)
-    const playoffsBtn = document.querySelector('.view-btn[data-view="playoffs"]');
-    if (playoffsBtn) playoffsBtn.hidden = !PLAYOFF_MODE;
-
     // The points progression chart isn't a standings table — it draws itself
     if (view === 'points-progression') {
         const state = getUIState('standings');
@@ -37,12 +33,12 @@ export async function init(view = 'wildcard') {
     try {
         // Fetch standings and league leaders (cached if available)
         const fetches = [getStandings(), getLeagueLeaders()];
-        if (view === 'playoffs' && PLAYOFF_MODE) {
+        if (view === 'playoffs') {
             fetches.push(getPlayoffBracket());
         }
         const results = await Promise.all(fetches);
         standingsData = results[0];
-        if (view === 'playoffs' && PLAYOFF_MODE) {
+        if (view === 'playoffs') {
             bracketData = results[2];
         }
 
@@ -71,7 +67,7 @@ export function render() {
         case 'points-progression':
             return; // drawn by renderPointsProgressionPage, not from standings data
         case 'playoffs':
-            container.innerHTML = PLAYOFF_MODE ? renderPlayoffBracket() : renderPlayoffBracketPaused();
+            container.innerHTML = renderPlayoffBracket();
             break;
         case 'league':
             container.innerHTML = renderLeagueStandings(state);
@@ -726,17 +722,6 @@ function renderMobileRound(seriesLetters, roundName) {
             <div class="bracket-mobile-matchups">
                 ${seriesLetters.map(l => renderMatchupCard(getSeriesByLetter(l))).join('')}
             </div>
-        </div>
-    `;
-}
-
-function renderPlayoffBracketPaused() {
-    return `
-        <div class="playoff-paused">
-            <img src="/images/stanley-cup.png" alt="" class="playoff-paused-icon">
-            <h2>Playoff Bracket</h2>
-            <p>The playoff bracket will return as we approach the playoffs.</p>
-            <a href="/standings/wildcard" class="text-link" data-link>View the wildcard race →</a>
         </div>
     `;
 }
