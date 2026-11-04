@@ -248,8 +248,16 @@ function getPageTitle(viewName, subView = null) {
     return titles[viewName] || `Minnesota Wild Stats, Standings & Schedule ${SEASON_LABEL} | Wild Hockey Hub`;
 }
 
+// The edge (functions/[[route]].js) writes the home page's description from the schedule
+// ("Are the Minnesota Wild playing tonight? ..."); keep it rather than the fixed text below.
+const serverHomeDescription = typeof document !== 'undefined' && window.location.pathname === '/'
+    ? document.querySelector('meta[name="description"]')?.getAttribute('content')
+    : null;
+
 // Get meta description for SEO
 function getMetaDescription(viewName, subView = null) {
+    if (viewName === 'dashboard' && serverHomeDescription) return serverHomeDescription;
+
     if (viewName === 'standings') {
         const standingsDescriptions = {
             wildcard: `Minnesota Wild wildcard standings for ${SEASON_LABEL}. View current NHL wildcard standings, points, wins, losses, and playoff positioning.`,

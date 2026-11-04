@@ -1,7 +1,8 @@
 // Catch-all Cloudflare Pages Function for SSR <head> injection
 // Intercepts SPA route requests and injects page-specific title/meta tags
 // so search engines see correct metadata without needing to execute JS.
-import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear } from '../js/seasonConfig.js';
+import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear, getCurrentSeason } from '../js/seasonConfig.js';
+import { findNextGame, nextGameDescription, nextGameJsonLd } from '../js/nextGame.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
 import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../js/jerseyStats.js';
@@ -240,6 +241,26 @@ async function renderNumbersContent(env) {
     }
 }
 
+// Home page: answer "are the Minnesota Wild playing tonight?" in the meta description and add
+// SportsEvent structured data for the next game. Null (static description kept) if the schedule
+// can't be fetched or there's no game left this season.
+async function nextGameSearchData() {
+    try {
+        const res = await fetch(`https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`, {
+            redirect: 'follow',
+            signal: AbortSignal.timeout(2500),
+            cf: { cacheTtl: 300, cacheEverything: true },
+        });
+        if (!res.ok) return null;
+        const game = findNextGame((await res.json()).games);
+        if (!game) return null;
+        const description = nextGameDescription(game);
+        return { description, jsonLd: nextGameJsonLd(game, description) };
+    } catch {
+        return null;
+    }
+}
+
 // BreadcrumbList structured data for pages deeper than one level (null for other pages)
 function breadcrumbsFor(path, meta) {
     const trail = [['Home', '/']];
@@ -323,8 +344,17 @@ export async function onRequest(context) {
     const canonicalPath = path === '/schedule/past' ? `/schedule/past/${getSeasonLabel(getPreviousSeason())}` : path;
     const canonicalUrl = `https://wildhockey.win${canonicalPath}`;
     const numbersContent = path === '/stats/numbers' ? await renderNumbersContent(env) : null;
+    const nextGame = path === '/' ? await nextGameSearchData() : null;
+    if (nextGame) meta.description = nextGame.description;
 
     let rewriter = new HTMLRewriter();
+    if (nextGame) {
+        rewriter = rewriter.on('head', {
+            element(el) {
+                el.append(`<script type="application/ld+json" id="next-game-ld">${nextGame.jsonLd}</script>`, { html: true });
+            }
+        });
+    }
     const breadcrumbs = breadcrumbsFor(path, meta);
     if (breadcrumbs) {
         rewriter = rewriter.on('head', {

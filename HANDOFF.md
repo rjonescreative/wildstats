@@ -28,6 +28,7 @@ Key files:
 | `js/seasonConfig.js` | **Season helpers shared by browser, server.js, and Functions**: `getCurrentSeason` (rolls over in October), `getSeasonGames` (82 through 2025-26, 84 from 2026-27), `getPreviousSeason`, `getPlayoffYear`, `getPastSeasons`, `seasonFromLabel`, and the **`PLAYOFF_MODE`** flag |
 | `js/teamRecordsMeta.js` | Team-records URL slugs, path parse/build, titles/descriptions — shared by router and `functions/[[route]].js` |
 | `functions/[[route]].js` | Catch-all for SPA routes: injects page title/description/canonical/OG tags, BreadcrumbList JSON-LD, and pre-rendered jersey-numbers content for SEO |
+| `js/nextGame.js` | Home page search data (no visible UI): "Are the Minnesota Wild playing tonight? Yes/No – …" meta/OG/Twitter description and next-game `SportsEvent` JSON-LD, built in `functions/[[route]].js` from the schedule (Central time, 5-min edge cache, static description if the NHL fails). `router.js` keeps that description on the dashboard instead of overwriting it. Local Express doesn't inject it |
 | `js/api.js` | Client fetch helpers with in-memory cache (`state.js`) |
 | `js/views/*.js` | One module per view (`init(subView)`); stats sub-views live under `stats.js` |
 | `sitemap.xml` | ~400 URLs incl. generated team-records combos and past-season schedules |
