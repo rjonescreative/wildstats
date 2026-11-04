@@ -7,6 +7,7 @@ import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3
 import { getCurrentSeason } from './js/seasonConfig.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
+import { filterVideos, playKey } from './js/videoFilters.js';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
 setDefaultResultOrder('ipv4first');
@@ -402,60 +403,8 @@ app.get('/api/media/videos', async (req, res) => {
         let items = data.items || [];
         const fetchedCount = items.length;
 
-        // Filter out shorter duplicates (same title + same day, keep longer duration)
-        const durationToSeconds = (d) => {
-            if (!d) return 0;
-            const parts = d.split(':').map(Number);
-            if (parts.length === 3) return parts[0] * 3600 + parts[1] * 60 + parts[2];
-            if (parts.length === 2) return parts[0] * 60 + parts[1];
-            return 0;
-        };
-
-        const sameDayTitleMap = new Map();
-        items.forEach(item => {
-            const title = item.title || '';
-            const date = (item.contentDate || '').split('T')[0];
-            const key = `${date}|${title}`;
-            const duration = durationToSeconds(item.fields?.duration);
-
-            if (!sameDayTitleMap.has(key) || duration > sameDayTitleMap.get(key).duration) {
-                sameDayTitleMap.set(key, { item, duration });
-            }
-        });
-        const longerVersionIds = new Set([...sameDayTitleMap.values()].map(v => v.item._entityId));
-        items = items.filter(item => longerVersionIds.has(item._entityId));
-
-        // Filter out duplicates (matching duration + at least one other field)
-        const seen = [];
-        items = items.filter(item => {
-            const duration = item.fields?.duration || '';
-            const title = item.title || '';
-            const description = item.fields?.description || '';
-            const thumbnail = item.thumbnail?.templateUrl || '';
-
-            const isDuplicate = seen.some(s =>
-                s.duration === duration && (
-                    s.title === title ||
-                    s.description === description ||
-                    s.thumbnail === thumbnail
-                )
-            );
-
-            if (!isDuplicate) {
-                seen.push({ duration, title, description, thumbnail });
-                return true;
-            }
-            return false;
-        });
-
-        // For highlights, exclude game recaps
-        if (type === 'highlights') {
-            items = items.filter(item => {
-                const title = (item.title || '').toLowerCase();
-                const description = (item.fields?.description || '').toLowerCase();
-                return !title.includes('recap') && !description.includes('recap');
-            });
-        }
+        // One clip per play and length (NHL copy preferred), then the older duplicate checks
+        items = filterVideos(items, type);
 
         // Trim to requested limit
         items = items.slice(0, limit);
@@ -468,7 +417,8 @@ app.get('/api/media/videos', async (req, res) => {
             brightcoveId: item.fields?.brightcoveId || '',
             brightcoveAccountId: item.fields?.brightcoveAccountId || '6415718365001',
             thumbnail: item.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size40/f_auto/') || '',
-            contentDate: item.contentDate || ''
+            contentDate: item.contentDate || '',
+            playKey: playKey(item) // lets the page skip a play already shown on an earlier page
         }));
 
         res.set('Cache-Control', 'public, max-age=300');

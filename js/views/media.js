@@ -76,7 +76,10 @@ async function loadVideos(initial = false) {
 
     try {
         const data = await getVideos(offset, limit, currentView);
-        videos = initial ? data.videos : [...videos, ...data.videos];
+        // Skip a play already shown from an earlier page (its two copies can straddle a page break)
+        const shownPlays = new Set(initial ? [] : videos.map(v => v.playKey).filter(Boolean));
+        const newVideos = data.videos.filter(v => !v.playKey || !shownPlays.has(v.playKey));
+        videos = initial ? newVideos : [...videos, ...newVideos];
         hasMore = data.hasMore;
         offset = data.nextOffset;
         renderVideos();
