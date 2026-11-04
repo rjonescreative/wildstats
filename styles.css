@@ -1117,7 +1117,8 @@ th {
 
 /* Tooltip styles */
 
-th[data-tooltip]:hover::after {
+th[data-tooltip]:hover::after,
+td[data-tooltip]:hover::after {
     content: attr(data-tooltip);
     position: absolute;
     bottom: 100%;
@@ -1137,6 +1138,10 @@ th[data-tooltip]:hover::after {
     animation: tooltipFadeIn 0.2s ease-in-out 0.5s forwards;
     pointer-events: none;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+td[data-tooltip] {
+    position: relative;
 }
 
 @keyframes tooltipFadeIn {

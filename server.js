@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
+import { addFaceoffCounts, fetchFaceoffReport } from './js/faceoffs.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
 import { filterVideos, playKey } from './js/videoFilters.js';
@@ -81,15 +82,18 @@ app.get('/api/wild/stats', async (req, res) => {
         const controller = new AbortController();
         const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
-            signal: controller.signal,
-            redirect: 'follow'
-        });
+        const [response, faceoffs] = await Promise.all([
+            fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
+                signal: controller.signal,
+                redirect: 'follow'
+            }),
+            fetchFaceoffReport(getCurrentSeason(), { signal: controller.signal })
+        ]);
         clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
-        res.json(data);
+        res.json(addFaceoffCounts(data, faceoffs));
     } catch (error) {
         console.error('Error fetching Wild stats:', error);
         res.status(500).json({ error: 'Failed to fetch Wild stats' });

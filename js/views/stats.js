@@ -715,7 +715,7 @@ function renderSkaters() {
                         <td class="center hide-mobile ${isBest(player.shorthandedGoals, 'shorthandedGoals')}">${player.shorthandedGoals ?? '--'}</td>
                         <td class="center hide-mobile ${isBest(player.shots, 'shots')}">${player.shots ?? '--'}</td>
                         <td class="center hide-mobile ${isBest(player.shootingPctg, 'shootingPctg')}">${player.shootingPctg != null ? (player.shootingPctg * 100).toFixed(1) : '--'}</td>
-                        <td class="center hide-mobile ${isBest(player.faceoffWinPctg, 'faceoffWinPctg')}">${player.faceoffWinPctg != null && player.faceoffWinPctg > 0 ? (player.faceoffWinPctg * 100).toFixed(1) : '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.faceoffWinPctg, 'faceoffWinPctg')}"${player.faceoffTotal > 0 && player.faceoffWinPctg > 0 ? ` data-tooltip="${player.faceoffWins}/${player.faceoffTotal}"` : ''}>${player.faceoffWinPctg != null && player.faceoffWinPctg > 0 ? (player.faceoffWinPctg * 100).toFixed(1) : '--'}</td>
                         <td class="center hide-mobile ${isBest(player.avgTimeOnIcePerGame, 'avgTimeOnIcePerGame')}">${player.avgTimeOnIcePerGame ? formatTimeOnIce(player.avgTimeOnIcePerGame) : '--'}</td>
                     </tr>
                 `).join('')}

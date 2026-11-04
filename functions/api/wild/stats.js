@@ -1,11 +1,15 @@
 // Cloudflare Pages Function for Wild team stats
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
+import { addFaceoffCounts, fetchFaceoffReport } from '../../../js/faceoffs.js';
 
 export async function onRequest() {
     try {
-        const response = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`);
+        const [response, faceoffs] = await Promise.all([
+            fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`),
+            fetchFaceoffReport(getCurrentSeason())
+        ]);
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
-        const data = await response.json();
+        const data = addFaceoffCounts(await response.json(), faceoffs);
 
         return new Response(JSON.stringify(data), {
             headers: {
