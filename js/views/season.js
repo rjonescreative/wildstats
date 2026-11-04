@@ -396,6 +396,7 @@ function specialTeamsProgression(games, mode) {
 }
 
 function buildSpecialTeamsChart(points, mode, leagueAvg, width) {
+    const areaId = uniqueSvgId('st-area');
     const W = Math.round(width);
     const H = W < 500 ? 200 : 240;
     const m = { top: 14, right: 16, bottom: 34, left: 46 };
@@ -433,7 +434,7 @@ function buildSpecialTeamsChart(points, mode, leagueAvg, width) {
 
     return `<svg class="points-chart st-chart-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${mode === 'pp' ? 'Power play' : 'Penalty kill'} percentage after each game">
   <defs>
-    <linearGradient id="st-area" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="${areaId}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#1C8C47" stop-opacity="0.25"/>
       <stop offset="100%" stop-color="#1C8C47" stop-opacity="0"/>
     </linearGradient>
@@ -442,7 +443,7 @@ function buildSpecialTeamsChart(points, mode, leagueAvg, width) {
   <line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}" class="chart-axis"/>
   <line x1="${m.left}" y1="${m.top + ph}" x2="${m.left + pw}" y2="${m.top + ph}" class="chart-axis"/>
   ${avgLine}
-  <path d="${area}" fill="url(#st-area)" stroke="none"/>
+  <path d="${area}" fill="url(#${areaId})" stroke="none"/>
   <path class="st-line" d="${line}" fill="none" stroke="#1C8C47" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
   <circle cx="${x(last.game).toFixed(1)}" cy="${y(last.pct).toFixed(1)}" r="3.5" fill="#1C8C47" stroke="#111" stroke-width="1.5"/>
   <line class="st-guide" x1="0" y1="${m.top}" x2="0" y2="${m.top + ph}" visibility="hidden"/>
@@ -1084,7 +1085,13 @@ function pointsScale(teams) {
     return { yMax: Math.ceil(target / step) * step, step };
 }
 
+// SVG ids must be unique in the whole page: the dashboard's chart stays in the DOM (hidden) on
+// other views, and url(#id) resolves to the first match, so a hidden copy would blank the fill.
+let svgIdCounter = 0;
+const uniqueSvgId = prefix => `${prefix}-${++svgIdCounter}`;
+
 export function buildChart(teams) {
+    const areaId = uniqueSvgId('area');
     const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
 
     const { yMax, step: yStep } = pointsScale(teams);
@@ -1113,7 +1120,7 @@ export function buildChart(teams) {
     ].join('\n    ');
 
     const defs = teams.map(t => `
-    <linearGradient id="area-${t.abbrev}" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="${areaId}-${t.abbrev}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${t.config.lineColor}" stop-opacity="0.25"/>
       <stop offset="100%" stop-color="${t.config.lineColor}" stop-opacity="0"/>
     </linearGradient>`).join('');
@@ -1123,7 +1130,7 @@ export function buildChart(teams) {
         const lx = sx(last.game, xMax);
         const ly = sy(last.points, yMax);
         const area = t.abbrev === 'MIN'
-            ? `<path d="${areaPath(t.data, xMax, yMax)}" fill="url(#area-${t.abbrev})" stroke="none" pointer-events="none"/>`
+            ? `<path d="${areaPath(t.data, xMax, yMax)}" fill="url(#${areaId}-${t.abbrev})" stroke="none" pointer-events="none"/>`
             : '';
         return `
     <g class="team-group" data-team="${t.abbrev}">
@@ -1149,6 +1156,8 @@ export function buildChart(teams) {
 // ─── Points percentage chart ────────────────────────────────────────────────
 
 function buildPctChart(teams) {
+    const areaId = uniqueSvgId('area-pct');
+    const clipId = uniqueSvgId('pct-plot-area');
     const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
 
     // Wider left margin for pct chart — decimal labels like "0.500" are wider
@@ -1197,7 +1206,7 @@ function buildPctChart(teams) {
     ].join('\n    ');
 
     const defs = teams.map(t => `
-    <linearGradient id="area-pct-${t.abbrev}" x1="0" y1="0" x2="0" y2="1">
+    <linearGradient id="${areaId}-${t.abbrev}" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="${t.config.lineColor}" stop-opacity="0.25"/>
       <stop offset="100%" stop-color="${t.config.lineColor}" stop-opacity="0"/>
     </linearGradient>`).join('');
@@ -1210,10 +1219,10 @@ function buildPctChart(teams) {
         const last = pctData[pctData.length - 1];
         const ly = syPct(last.pct);
         const area = t.abbrev === 'MIN'
-            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sxPct(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#area-pct-${t.abbrev})" stroke="none" clip-path="url(#pct-plot-area)" pointer-events="none"/>`
+            ? `<path d="${linePathPct(pctData, xMax)} L${lx.toFixed(1)},${syPct(0).toFixed(1)} L${sxPct(pctData[0].game, xMax).toFixed(1)},${syPct(0).toFixed(1)} Z" fill="url(#${areaId}-${t.abbrev})" stroke="none" clip-path="url(#${clipId})" pointer-events="none"/>`
             : '';
         return `<g class="team-group" data-team="${t.abbrev}">
-    ${area}<path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#pct-plot-area)"/>
+    ${area}<path d="${linePathPct(pctData, xMax)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#${clipId})"/>
     <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
     <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" style="cursor:pointer"/>
     </g>`;
@@ -1221,7 +1230,7 @@ function buildPctChart(teams) {
 
     return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
   <defs>${defs}
-    <clipPath id="pct-plot-area">
+    <clipPath id="${clipId}">
       <rect x="${ML}" y="${M.top}" width="${PW}" height="${PLOT_H}"/>
     </clipPath>
   </defs>
