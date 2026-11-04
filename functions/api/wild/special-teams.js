@@ -63,7 +63,11 @@ export async function onRequest(context) {
         }
 
         return new Response(JSON.stringify(payload), {
-            headers: { ...jsonHeaders, 'Cache-Control': `public, max-age=${stale ? 300 : 1800}` },
+            headers: {
+                ...jsonHeaders,
+                'Cache-Control': `public, max-age=${stale ? 300 : 1800}`,
+                ...(stale ? { 'X-Data-Stale': 'true' } : {}),
+            },
         });
     } catch (error) {
         return new Response(JSON.stringify({ error: 'Failed to fetch special teams stats' }), {

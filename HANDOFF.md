@@ -75,6 +75,14 @@ Run manually: `gh workflow run update-milestones.yml` (add `-f seed=true` for a 
 - `numbers[num][playerId] = { regular, playoffs, firstSeason, lastSeason, seasons: { [season]: { regular, playoffs } } }`. The page groups consecutive seasons into stints (2004-05 lockout counts as consecutive) and falls back to one range if per-season counts don't add up.
 - Validated against official GP: all 344 players match. Full seed takes ~22 min on Actions.
 
+## NHL API outages (last-good fallback)
+
+The NHL API often returns 5xx/429 or an HTML error page for a few minutes. Every `/api` GET goes through a last-good layer: `functions/api/_middleware.js` (Cloudflare edge cache, 7-day copy per URL incl. query) and the matching `app.use('/api', …)` in `server.js` (in-memory). A 200 JSON response is saved; a 5xx/429 or thrown error serves the saved copy as 200 with `X-Data-Stale: true`, `X-Data-Updated` and `max-age=60`. Other 4xx (e.g. no H2H data yet) pass through. With no saved copy, the original error is returned.
+- Routes must fail (throw → 500) on a bad NHL response, never return it as a 200, or the error would be saved as last good. Pass-through routes check `response.ok`; league leaders fails if any category is missing.
+- Routes with their own R2 fallback (special teams, season breakdown) set `X-Data-Stale` when serving old data, so the middleware doesn't save it.
+- `js/api.js` logs a `[Wild Hockey Hub] NHL API unavailable — … not real time` console warning for stale responses and keeps them in the client cache for 1 minute instead of 5.
+- The edge cache is per Cloudflare data center, so a quiet data center may have no copy yet.
+
 ## Playoff mode
 
 `PLAYOFF_MODE` in `js/seasonConfig.js` (currently `false`). When `true` it shows: magic-number columns (dashboard + standings), opponent playoff-position colors on the schedule and Record vs Playoff Teams on `/stats/season`.

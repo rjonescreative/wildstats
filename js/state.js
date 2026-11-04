@@ -39,7 +39,7 @@ export function isCacheValid(cacheKey) {
     if (!cached || !cached.data || !cached.timestamp) {
         return false;
     }
-    return (Date.now() - cached.timestamp) < TTL;
+    return (Date.now() - cached.timestamp) < (cached.ttl ?? TTL);
 }
 
 // Get cached data
@@ -47,11 +47,12 @@ export function getCachedData(cacheKey) {
     return state.cache[cacheKey]?.data || null;
 }
 
-// Set cached data
-export function setCachedData(cacheKey, data) {
+// Set cached data (ttl in ms, e.g. shorter for stale fallback data)
+export function setCachedData(cacheKey, data, ttl = TTL) {
     state.cache[cacheKey] = {
         data: data,
-        timestamp: Date.now()
+        timestamp: Date.now(),
+        ttl
     };
 }
 

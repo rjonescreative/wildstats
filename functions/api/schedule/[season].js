@@ -9,6 +9,7 @@ export async function onRequest(context) {
             { redirect: 'follow' }
         );
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
 
         return new Response(JSON.stringify(data), {

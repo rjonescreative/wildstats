@@ -2,6 +2,7 @@ export async function onRequest(context) {
     const playerId = context.params.id;
     try {
         const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`);
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         return new Response(JSON.stringify(data), {
             headers: {

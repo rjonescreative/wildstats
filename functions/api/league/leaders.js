@@ -30,16 +30,10 @@ export async function onRequest() {
             fetchCategory(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, 'shutouts')
         ]);
 
-        // Filter out null values and build response
-        const data = {};
-        if (goals) data.goals = goals;
-        if (assists) data.assists = assists;
-        if (points) data.points = points;
-        if (plusMinus) data.plusMinus = plusMinus;
-        if (wins) data.wins = wins;
-        if (savePctg) data.savePctg = savePctg;
-        if (goalsAgainstAverage) data.goalsAgainstAverage = goalsAgainstAverage;
-        if (shutouts) data.shutouts = shutouts;
+        // Fail if any category is missing, so the /api middleware serves the last complete copy
+        const data = { goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts };
+        const missing = Object.keys(data).filter(k => !data[k]);
+        if (missing.length) throw new Error(`Missing categories: ${missing.join(', ')}`);
 
         return new Response(JSON.stringify(data), {
             headers: {

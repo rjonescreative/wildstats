@@ -30,6 +30,29 @@ const r2 = new S3Client({
 // Serve static files (CSS, JS, logos, etc.)
 app.use(express.static(__dirname));
 
+// Last-good fallback for every /api route (matches functions/api/_middleware.js).
+// Each successful JSON response is kept in memory under its URL; when a route fails (usually the
+// NHL API being down or rate-limiting us), the last good copy is served, marked X-Data-Stale.
+const lastGoodResponses = new Map(); // url → { body, updatedAt }
+app.use('/api', (req, res, next) => {
+    if (req.method !== 'GET') return next();
+    const key = req.originalUrl;
+    const sendJson = res.json.bind(res);
+    res.json = body => {
+        const status = res.statusCode;
+        if (status === 200 && !res.get('X-Data-Stale')) {
+            lastGoodResponses.set(key, { body, updatedAt: new Date().toISOString() });
+        } else if ((status >= 500 || status === 429) && lastGoodResponses.has(key)) {
+            const { body: lastGood, updatedAt } = lastGoodResponses.get(key);
+            console.warn(`Serving last good response for ${key} (from ${updatedAt})`);
+            res.status(200).set({ 'X-Data-Stale': 'true', 'X-Data-Updated': updatedAt, 'Cache-Control': 'public, max-age=60' });
+            return sendJson(lastGood);
+        }
+        return sendJson(body);
+    };
+    next();
+});
+
 // Proxy endpoint for NHL API
 app.get('/api/standings/now', async (req, res) => {
     try {
@@ -42,6 +65,7 @@ app.get('/api/standings/now', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -62,6 +86,7 @@ app.get('/api/wild/stats', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.json(data);
     } catch (error) {
@@ -114,6 +139,9 @@ app.get('/api/league/leaders', async (req, res) => {
         ]);
         clearTimeout(timeout);
 
+        const failed = [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes].find(r => !r.ok);
+        if (failed) throw new Error(`NHL API error: ${failed.status}`);
+
         const goals = await goalsRes.json();
         const assists = await assistsRes.json();
         const points = await pointsRes.json();
@@ -143,6 +171,7 @@ app.get('/api/player/:id/details', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.set('Cache-Control', 'public, max-age=900'); // 15 min
         res.json(data);
@@ -165,6 +194,7 @@ app.get('/api/player/:id/game-log', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.set('Cache-Control', 'public, max-age=300'); // 5 min
         res.json(data);
@@ -187,6 +217,7 @@ app.get('/api/schedule/:season', async (req, res) => {
         );
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.set('Cache-Control', 'public, max-age=300');
         res.json(data);
@@ -309,6 +340,7 @@ app.get('/api/game/:id/live', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         // Return only the fields needed for live score display
         res.set('Cache-Control', 'public, max-age=10'); // Short cache for live data
@@ -841,8 +873,8 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
             { redirect: 'follow' }
         );
         if (!schedResponse.ok || !schedResponse.headers.get('content-type')?.includes('json')) {
-            // Schedule unavailable — return whatever we have cached
-            return res.set('Cache-Control', 'public, max-age=300').json({
+            // Schedule unavailable — return whatever we have cached, marked stale
+            return res.set({ 'Cache-Control': 'public, max-age=300', 'X-Data-Stale': 'true' }).json({
                 periodScores:    cached.periodScores,
                 soScorers:       cached.soScorers,
                 goalieSeasonGA:  cached.goalieSeasonGA,
@@ -1020,6 +1052,7 @@ app.get('/api/wild/special-teams', async (req, res) => {
         }
 
         res.set('Cache-Control', `public, max-age=${stale ? 300 : 1800}`);
+        if (stale) res.set('X-Data-Stale', 'true');
         res.json(payload);
     } catch (error) {
         console.error('Error fetching special teams:', error);
@@ -1039,6 +1072,7 @@ app.get('/api/playoff-bracket/:season', async (req, res) => {
         });
         clearTimeout(timeout);
 
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         res.json(data);
     } catch (error) {

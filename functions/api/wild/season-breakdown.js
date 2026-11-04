@@ -95,13 +95,13 @@ export async function onRequest(context) {
             { redirect: 'follow' }
         );
         if (!schedResponse.ok || !schedResponse.headers.get('content-type')?.includes('json')) {
-            // Schedule unavailable — return whatever is cached
+            // Schedule unavailable — return whatever is cached, marked stale
             return new Response(JSON.stringify({
                 periodScores:    cached.periodScores,
                 soScorers:       cached.soScorers,
                 goalieSeasonGA:  cached.goalieSeasonGA,
                 goalieDecisions: cached.goalieDecisions,
-            }), { headers: { ...jsonHeaders, 'Cache-Control': 'public, max-age=300' } });
+            }), { headers: { ...jsonHeaders, 'Cache-Control': 'public, max-age=300', 'X-Data-Stale': 'true' } });
         }
         const schedData = await schedResponse.json();
         const completedGames = (schedData.games ?? []).filter(

@@ -2,6 +2,20 @@
 import { isCacheValid, getCachedData, setCachedData } from './state.js';
 import { getCurrentSeason, getPlayoffYear } from './seasonConfig.js';
 
+// The /api routes serve their last good copy when the NHL API fails, marked X-Data-Stale.
+// Say so in the console so it's clear the page isn't showing real-time data.
+const STALE_TTL = 60 * 1000; // re-check stale data after a minute
+
+function isStale(response) {
+    return response.headers.get('X-Data-Stale') === 'true';
+}
+
+function logStale(url, response) {
+    const updated = response.headers.get('X-Data-Updated');
+    const since = updated ? ` from ${new Date(updated).toLocaleString()}` : '';
+    console.warn(`[Wild Hockey Hub] NHL API unavailable — ${url} is falling back to saved data${since}, not real time.`);
+}
+
 // Fetch with automatic retry + exponential backoff.
 // Retries on network errors, 5xx responses, and 429 rate-limit responses.
 // Other 4xx errors are not retried (bad request, not transient).
@@ -18,6 +32,7 @@ async function fetchWithRetry(url, maxAttempts = 3) {
                 // Other 4xx — don't retry
                 throw Object.assign(new Error(`HTTP error! status: ${response.status}`), { permanent: true });
             }
+            if (isStale(response)) logStale(url, response);
             return response;
         } catch (err) {
             lastError = err;
@@ -52,13 +67,13 @@ async function fetchWithCache(url, cacheKey, forceRefresh = false) {
         try {
             const response = await fetchWithRetry(url);
             const data = await response.json();
-            setCachedData(cacheKey, data);
+            setCachedData(cacheKey, data, isStale(response) ? STALE_TTL : undefined);
             return data;
         } catch (error) {
             console.error(`Error fetching ${url}:`, error);
             const cached = getCachedData(cacheKey);
             if (cached) {
-                console.warn(`Using stale cache for ${cacheKey}`);
+                console.warn(`[Wild Hockey Hub] ${url} failed — falling back to data already loaded in this page, not real time.`);
                 return cached;
             }
             throw error;
@@ -116,6 +131,7 @@ export async function getLiveGame(gameId) {
     if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
     }
+    if (isStale(response)) logStale(`/api/game/${gameId}/live`, response);
     return response.json();
 }
 

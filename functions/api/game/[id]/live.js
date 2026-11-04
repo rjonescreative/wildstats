@@ -2,6 +2,7 @@ export async function onRequest(context) {
     const gameId = context.params.id;
     try {
         const response = await fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`);
+        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
 
         // Return only the fields needed for live score display
