@@ -789,6 +789,8 @@ function renderGoalies() {
                     <th class="center sortable ${state.goalieSort === 'gamesStarted' ? 'sorted' : ''}" data-sort="gamesStarted" data-tooltip="Games Started" aria-label="Games Started">GS${getSortIcon('gamesStarted')}</th>
                     <th class="center sortable ${state.goalieSort === 'wins' ? 'sorted' : ''}" data-sort="wins" data-tooltip="Wins" aria-label="Wins">W${getSortIcon('wins')}</th>
                     <th class="center sortable ${state.goalieSort === 'losses' ? 'sorted' : ''}" data-sort="losses" data-tooltip="Losses" aria-label="Losses">L${getSortIcon('losses')}</th>
+                    <th class="center sortable ${state.goalieSort === 'overtimeLosses' ? 'sorted' : ''}" data-sort="overtimeLosses" data-tooltip="Overtime Losses (incl. shootouts)" aria-label="Overtime Losses, including shootouts">OTL${getSortIcon('overtimeLosses')}</th>
+                    <th class="center sortable ${state.goalieSort === 'shootoutLosses' ? 'sorted' : ''}" data-sort="shootoutLosses" data-tooltip="Shootout Losses" aria-label="Shootout Losses">SOL${getSortIcon('shootoutLosses')}</th>
                     <th class="center sortable ${state.goalieSort === 'goalsAgainstAverage' ? 'sorted' : ''}" data-sort="goalsAgainstAverage" data-tooltip="Goals Against Average" aria-label="Goals Against Average">GAA${getSortIcon('goalsAgainstAverage')}</th>
                     <th class="center sortable ${state.goalieSort === 'savePercentage' ? 'sorted' : ''}" data-sort="savePercentage" data-tooltip="Save Percentage" aria-label="Save Percentage">SV%${getSortIcon('savePercentage')}</th>
                     <th class="center hide-mobile" data-tooltip="Shots Against" aria-label="Shots Against">SA</th>
@@ -809,6 +811,8 @@ function renderGoalies() {
                         <td class="center">${player.gamesStarted ?? '--'}</td>
                         <td class="center">${player.wins ?? '--'}</td>
                         <td class="center">${player.losses ?? '--'}</td>
+                        <td class="center">${player.overtimeLosses ?? '--'}</td>
+                        <td class="center">${player.shootoutLosses ?? '--'}</td>
                         <td class="center ${isBest(player.goalsAgainstAverage, 'goalsAgainstAverage')}"><strong>${player.goalsAgainstAverage != null ? player.goalsAgainstAverage.toFixed(2) : '--'}</strong></td>
                         <td class="center ${isBest(player.savePercentage, 'savePercentage')}"><strong>${player.savePercentage != null ? player.savePercentage.toFixed(3) : '--'}</strong></td>
                         <td class="center hide-mobile">${player.shotsAgainst ?? '--'}</td>
