@@ -757,7 +757,14 @@ function getGoalieBestValues(goalies) {
 
 function renderGoalies() {
     const state = getUIState('stats');
-    const goalies = [...wildStats.goalies].sort((a, b) => {
+    // NHL overtimeLosses includes shootout losses; split them so OTL and SOL don't overlap.
+    // Without the shootout report the split is unknown, so OTL shows '--' rather than the combined total.
+    const goalies = wildStats.goalies.map(g => ({
+        ...g,
+        overtimeOnlyLosses: g.overtimeLosses != null && g.shootoutLosses != null
+            ? g.overtimeLosses - g.shootoutLosses
+            : null
+    })).sort((a, b) => {
         const aVal = a[state.goalieSort] || 0;
         const bVal = b[state.goalieSort] || 0;
         return state.goalieSortDirection === 'desc' ? bVal - aVal : aVal - bVal;
@@ -789,7 +796,7 @@ function renderGoalies() {
                     <th class="center sortable ${state.goalieSort === 'gamesStarted' ? 'sorted' : ''}" data-sort="gamesStarted" data-tooltip="Games Started" aria-label="Games Started">GS${getSortIcon('gamesStarted')}</th>
                     <th class="center sortable ${state.goalieSort === 'wins' ? 'sorted' : ''}" data-sort="wins" data-tooltip="Wins" aria-label="Wins">W${getSortIcon('wins')}</th>
                     <th class="center sortable ${state.goalieSort === 'losses' ? 'sorted' : ''}" data-sort="losses" data-tooltip="Losses" aria-label="Losses">L${getSortIcon('losses')}</th>
-                    <th class="center sortable ${state.goalieSort === 'overtimeLosses' ? 'sorted' : ''}" data-sort="overtimeLosses" data-tooltip="Overtime Losses (incl. shootouts)" aria-label="Overtime Losses, including shootouts">OTL${getSortIcon('overtimeLosses')}</th>
+                    <th class="center sortable ${state.goalieSort === 'overtimeOnlyLosses' ? 'sorted' : ''}" data-sort="overtimeOnlyLosses" data-tooltip="Overtime Losses (excl. shootouts)" aria-label="Overtime Losses, excluding shootouts">OTL${getSortIcon('overtimeOnlyLosses')}</th>
                     <th class="center sortable ${state.goalieSort === 'shootoutLosses' ? 'sorted' : ''}" data-sort="shootoutLosses" data-tooltip="Shootout Losses" aria-label="Shootout Losses">SOL${getSortIcon('shootoutLosses')}</th>
                     <th class="center sortable ${state.goalieSort === 'goalsAgainstAverage' ? 'sorted' : ''}" data-sort="goalsAgainstAverage" data-tooltip="Goals Against Average" aria-label="Goals Against Average">GAA${getSortIcon('goalsAgainstAverage')}</th>
                     <th class="center sortable ${state.goalieSort === 'savePercentage' ? 'sorted' : ''}" data-sort="savePercentage" data-tooltip="Save Percentage" aria-label="Save Percentage">SV%${getSortIcon('savePercentage')}</th>
@@ -811,7 +818,7 @@ function renderGoalies() {
                         <td class="center">${player.gamesStarted ?? '--'}</td>
                         <td class="center">${player.wins ?? '--'}</td>
                         <td class="center">${player.losses ?? '--'}</td>
-                        <td class="center">${player.overtimeLosses ?? '--'}</td>
+                        <td class="center">${player.overtimeOnlyLosses ?? '--'}</td>
                         <td class="center">${player.shootoutLosses ?? '--'}</td>
                         <td class="center ${isBest(player.goalsAgainstAverage, 'goalsAgainstAverage')}"><strong>${player.goalsAgainstAverage != null ? player.goalsAgainstAverage.toFixed(2) : '--'}</strong></td>
                         <td class="center ${isBest(player.savePercentage, 'savePercentage')}"><strong>${player.savePercentage != null ? player.savePercentage.toFixed(3) : '--'}</strong></td>
