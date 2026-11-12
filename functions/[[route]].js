@@ -6,6 +6,10 @@ import { findNextGame, nextGameDescription, nextGameJsonLd } from '../js/nextGam
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
 import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../js/jerseyStats.js';
+import { NHL_TEAMS as TEAMS } from '../js/teams.js';
+import {
+    escapeHtml, renderH2HTeamContent, renderH2HHubContent, renderTeamRecordsContent, renderPointsProgressionContent,
+} from '../js/searchPrerender.js';
 
 
 const NHL_TEAMS = [
@@ -179,10 +183,6 @@ function resolveMeta(path) {
 // seasons, games) into the page so search engines get the content in the initial HTML.
 // The page script replaces it with the full layout once it loads.
 
-function escapeHtml(text) {
-    return String(text).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
 function formatSeasonLabel(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
 }
@@ -239,6 +239,58 @@ async function renderNumbersContent(env) {
     } catch {
         return null; // The page still loads the data in the browser
     }
+}
+
+// ─── Other data-driven pages: crawlable content ───────────────────────────────
+// Head-to-head, Team Records and the Points Progression chart are drawn in the browser, so
+// without this every one of them reaches search engines as the same "Loading…" app shell.
+
+async function readR2Json(env, key) {
+    const object = await env.H2H_DATA.get(key);
+    return object ? JSON.parse(await object.text()) : null;
+}
+
+// { selector, html } to fill into the page for search engines, or null (the page still loads in the browser)
+async function prerenderFor(path, env, meta) {
+    try {
+        if (path === '/stats/numbers') {
+            const html = await renderNumbersContent(env);
+            return html && { selector: '#stats-numbers-view', html };
+        }
+        if (path === '/stats/head-to-head') {
+            return { selector: '#h2h-content', html: renderH2HHubContent(TEAMS) };
+        }
+        const h2hMatch = path.match(/^\/stats\/head-to-head\/([^/]+)$/);
+        if (h2hMatch) {
+            const team = TEAMS.find(t => t.slug === h2hMatch[1]);
+            const data = team && await readR2Json(env, `h2h/MIN-${team.abbrev}.json`);
+            return data && { selector: '#h2h-content', html: renderH2HTeamContent(team, data, TEAMS) };
+        }
+        const records = path === '/stats/team-records'
+            ? { gameType: 'regular', timeMode: 'alltime', statMode: 'goals', posMode: 'all' }
+            : parseTeamRecordsPath(path);
+        if (records) {
+            const data = await readR2Json(env, 'milestones/franchise-leaders.json');
+            const heading = meta.title.replace(/ \| Wild Hockey Hub$/, '');
+            const html = data && renderTeamRecordsContent(data, records, heading);
+            return html && { selector: '#stats-team-records-view', html };
+        }
+        if (path === '/standings/points-progression') {
+            const res = await fetch('https://api-web.nhle.com/v1/standings/now', {
+                redirect: 'follow',
+                signal: AbortSignal.timeout(2500),
+                cf: { cacheTtl: 300, cacheEverything: true },
+            });
+            if (!res.ok) return null;
+            const { standings = [] } = await res.json();
+            return standings.length
+                ? { selector: '#standings-container', html: renderPointsProgressionContent(standings, getSeasonLabel()) }
+                : null;
+        }
+    } catch {
+        // Fall through: the page still loads its data in the browser
+    }
+    return null;
 }
 
 // Home page: answer "are the Minnesota Wild playing tonight?" in the meta description and add
@@ -343,8 +395,10 @@ export async function onRequest(context) {
     // /schedule/past shows last season, so point it at that season's own URL (avoids duplicate pages)
     const canonicalPath = path === '/schedule/past' ? `/schedule/past/${getSeasonLabel(getPreviousSeason())}` : path;
     const canonicalUrl = `https://wildhockey.win${canonicalPath}`;
-    const numbersContent = path === '/stats/numbers' ? await renderNumbersContent(env) : null;
-    const nextGame = path === '/' ? await nextGameSearchData() : null;
+    const [prerender, nextGame] = await Promise.all([
+        prerenderFor(path, env, meta),
+        path === '/' ? nextGameSearchData() : null,
+    ]);
     if (nextGame) meta.description = nextGame.description;
 
     let rewriter = new HTMLRewriter();
@@ -363,14 +417,12 @@ export async function onRequest(context) {
             }
         });
     }
-    if (path === '/stats/numbers') {
-        if (numbersContent) {
-            rewriter = rewriter.on('#stats-numbers-view', {
-                element(el) {
-                    el.setInnerContent(numbersContent, { html: true });
-                }
-            });
-        }
+    if (prerender) {
+        rewriter = rewriter.on(prerender.selector, {
+            element(el) {
+                el.setInnerContent(prerender.html, { html: true });
+            }
+        });
     }
 
     return rewriter

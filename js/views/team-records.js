@@ -1,6 +1,7 @@
 // Team Records view module — Wild all-time franchise leaders
 import { getMilestones, getWildStats } from '../api.js';
 import { parseTeamRecordsPath, updateTeamRecordsURL } from '../router.js';
+import { recordEntries, RECORDS_DISPLAY_LIMIT as DISPLAY_LIMIT } from '../teamRecordsData.js';
 
 function currentSeasonId() {
     const now = new Date();
@@ -9,7 +10,6 @@ function currentSeasonId() {
 }
 
 const CURRENT_SEASON = currentSeasonId();
-const DISPLAY_LIMIT = 20;
 
 function formatSeason(s) {
     return `${s.slice(0, 4)}-${s.slice(6, 8)}`;
@@ -48,50 +48,8 @@ function splitStatKey(key) {
         : { situation: 'all', statMode: key };
 }
 
-// Records data for each type; playoffs and combined have the same shape as the regular season
-function recordsSource() {
-    if (gameType === 'playoffs') return milestones.playoffs;
-    if (gameType === 'combined') return milestones.combined;
-    return milestones;
-}
-
 function getEntries() {
-    const source = recordsSource();
-    if (!source) return { entries: [], showSeason: false };
-    const { skaters, goalies } = source;
-    const src = timeMode === 'alltime';
-
-    // Wins always uses goalies pool regardless of posMode
-    if (statMode === 'wins') {
-        const entries = src
-            ? (goalies.careerLeaders.wins ?? [])
-            : (goalies.singleSeasonRecords.wins ?? []);
-        return { entries, showSeason: !src };
-    }
-
-    // All goalie-position stats route to goalies pool
-    if (posMode === 'goalies') {
-        const pool = src ? goalies.careerLeaders : goalies.singleSeasonRecords;
-        // gamesPlayed is all-time only (constraint enforced, but guard here too)
-        const entries = statMode === 'gamesPlayed'
-            ? (goalies.careerLeaders.gamesPlayed ?? [])
-            : (pool[statMode] ?? []);
-        return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src && statMode !== 'gamesPlayed' };
-    }
-
-    // Shootout (position-aware, skaters only)
-    if (statMode === 'shootout') {
-        const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
-        const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
-        const entries = pool[posKey]?.shootoutGoals ?? [];
-        return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
-    }
-
-    // All skater stats (including situational) — position-specific pools
-    const posKey = posMode === 'forwards' ? 'forwards' : posMode === 'defense' ? 'defense' : 'all';
-    const pool = src ? skaters.careerLeaders : skaters.singleSeasonRecords;
-    const entries = pool[posKey]?.[statKey()] ?? [];
-    return { entries: entries.slice(0, DISPLAY_LIMIT), showSeason: !src };
+    return recordEntries(milestones, { gameType, timeMode, statKey: statKey(), posMode });
 }
 
 function tableLabel() {

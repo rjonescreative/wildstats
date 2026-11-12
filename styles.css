@@ -5043,26 +5043,64 @@ footer {
 }
 
 /* Server-rendered list for search engines; the page script replaces it with the full layout */
-.numbers-prerender h2 {
+.numbers-prerender h2,
+.search-prerender h2 {
     font-size: 1rem;
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--text-secondary);
 }
 
-.numbers-prerender h3 {
+.numbers-prerender h3,
+.search-prerender h3 {
     margin-top: 1rem;
     font-size: 0.9rem;
 }
 
 .numbers-prerender p,
-.numbers-prerender li {
+.numbers-prerender li,
+.search-prerender p,
+.search-prerender li,
+.search-prerender table {
     color: var(--text-secondary);
     font-size: 0.85rem;
 }
 
-.numbers-prerender ul {
+.numbers-prerender ul,
+.search-prerender ul,
+.search-prerender ol {
     padding-left: 1.25rem;
+}
+
+.search-prerender table {
+    width: 100%;
+    max-width: 640px;
+    margin: 1rem 0;
+    border-collapse: collapse;
+}
+
+.search-prerender caption {
+    text-align: left;
+    padding-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.search-prerender th,
+.search-prerender td {
+    padding: 0.35rem 0.5rem;
+    border-bottom: 1px solid var(--bg-tertiary);
+    text-align: right;
+}
+
+.search-prerender th[scope="row"],
+.search-prerender thead th:first-child {
+    text-align: left;
+}
+
+.search-prerender .search-prerender-links {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.25rem 1rem;
 }
 
 /* Matches the section headings on Milestones and Team Records */
