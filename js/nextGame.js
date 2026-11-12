@@ -94,6 +94,7 @@ export function nextGameJsonLd(game, description) {
         homeTeam: home,
         awayTeam: away,
         competitor: [home, away],
+        performer: [home, away],
         url: 'https://wildhockey.win/',
     };
     if (game.ticketsLink) {
