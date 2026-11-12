@@ -89,7 +89,7 @@ export function nextGameJsonLd(game, description) {
         eventStatus: 'https://schema.org/EventScheduled',
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         location,
-        image: ['https://wildhockey.win/apple-touch-icon.png'],
+        image: ['1x1', '4x3', '16x9'].map(r => `https://wildhockey.win/images/event/wild-event-${r}.jpg`),
         organizer: { '@type': 'SportsOrganization', name: 'National Hockey League', url: 'https://www.nhl.com/' },
         homeTeam: home,
         awayTeam: away,
