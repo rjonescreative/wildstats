@@ -5,6 +5,8 @@ import { teamBySlug } from './teams.js';
 import { getSeasonLabel, getPlayoffYear, getPreviousSeason, getPastSeasons, seasonFromLabel } from './seasonConfig.js';
 import { parseTeamRecordsPath, buildTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from './teamRecordsMeta.js';
 import { isKnownRoute, redirectTarget } from './knownRoutes.js';
+import { parseVideoPath, videoPath } from './videoLinks.js';
+import { showVideoModal, hideVideoModal, openVideoId } from './videoModal.js';
 
 // Re-exported so views can keep importing records URL helpers from the router
 export { parseTeamRecordsPath, buildTeamRecordsPath };
@@ -58,6 +60,7 @@ export function setViewModules(modules) {
 function getViewFromPath(path) {
     if (!isKnownRoute(path)) return 'not-found';
     if (routes[path]) return routes[path];
+    if (parseVideoPath(path)) return 'media';
     if (path.startsWith('/stats/')) return 'stats';
     if (path.startsWith('/schedule/')) return 'schedule';
     return 'dashboard';
@@ -94,7 +97,7 @@ function pastScheduleLabel(path = window.location.pathname) {
 
 // Get media sub-view from path
 function getMediaView(path) {
-    if (path === '/media') return 'all';
+    if (path === '/media' || parseVideoPath(path)) return 'all';
     const match = path.match(/^\/media\/(.+)$/);
     return match ? match[1] : 'all';
 }
@@ -146,6 +149,72 @@ function updateNavStates(viewName) {
     });
 }
 
+// ─── Shareable video URLs ─────────────────────────────────────────────────────
+// Opening a video pushes /media/video/{slug} over the current page without re-rendering it;
+// closing it goes back to the page. A shared link opens the Media page with the video playing.
+
+let viewPath = null; // the page currently rendered (under any open video)
+
+// Server-written title for a shared video link (functions/[[route]].js looks the video up)
+const serverVideoTitle = typeof document !== 'undefined' && parseVideoPath(window.location.pathname)
+    && document.querySelector('meta[property="og:type"]')?.getAttribute('content') === 'video.other'
+    ? document.querySelector('meta[property="og:title"]')?.getAttribute('content')
+    : null;
+
+function videoPageTitle(video) {
+    if (video.title) return `${video.title} | Wild Hockey Hub`;
+    return serverVideoTitle || 'Minnesota Wild Video | Wild Hockey Hub';
+}
+
+// Open a video from a card: { slug, brightcoveId, accountId, title }
+export function openVideo(video) {
+    if (!video.slug) {
+        showVideoModal(video);
+        return;
+    }
+    const path = videoPath(video.slug);
+    const state = history.state || {};
+    history.pushState({ ...state, path, video }, '', path);
+    showVideo(video);
+}
+
+// Show the video for the current /media/video/... URL and update title, meta and analytics
+function showVideo(video) {
+    const path = window.location.pathname;
+    const title = videoPageTitle(video);
+    document.title = title;
+    setVideoMetaTags(path, title);
+    trackPageView(path, title);
+    if (openVideoId() !== video.brightcoveId) {
+        showVideoModal(video, () => closeVideo(video));
+    }
+}
+
+// The viewer closed the video: go back to the page it was opened over, or for a shared
+// link (no page behind it in history) swap the URL for the Media page
+function closeVideo(video) {
+    if (!video.deepLink) {
+        history.back();
+        return;
+    }
+    const path = viewPath || '/media';
+    const viewName = getViewFromPath(path);
+    const subView = viewName === 'media' ? getMediaView(path) : null;
+    history.replaceState({ path, viewName, subView }, '', path);
+    const pageTitle = getPageTitle(viewName, subView);
+    document.title = pageTitle;
+    updateMetaTags(path, viewName, subView);
+    trackPageView(path, pageTitle);
+}
+
+function setVideoMetaTags(path, title) {
+    const url = `https://wildhockey.win${path}`;
+    document.querySelector('link[rel="canonical"]')?.setAttribute('href', url);
+    document.querySelector('meta[property="og:url"]')?.setAttribute('content', url);
+    document.querySelector('meta[property="og:title"]')?.setAttribute('content', title);
+    document.querySelector('meta[name="twitter:title"]')?.setAttribute('content', title);
+}
+
 // Navigate to a path
 export async function navigateTo(path) {
     const previousView = getCurrentView();
@@ -156,8 +225,11 @@ export async function navigateTo(path) {
     const scheduleView = viewName === 'schedule' ? getScheduleView(path) : null;
     const subView = standingsView || statsView || mediaView || scheduleView;
 
+    hideVideoModal({ restoreFocus: false });
+
     // Update URL
     history.pushState({ path, viewName, subView }, '', path);
+    viewPath = path;
 
     // Scroll to top of page
     window.scrollTo(0, 0);
@@ -378,6 +450,24 @@ function handleNavClick(e) {
 // Handle browser back/forward buttons
 function handlePopState(e) {
     const path = window.location.pathname;
+
+    // Back/forward between a page and a video opened over it: open or close the video only
+    const video = parseVideoPath(path);
+    if (video && viewPath) {
+        showVideo({ ...video, ...e.state?.video });
+        return;
+    }
+    hideVideoModal();
+    if (!video && path === viewPath) {
+        const viewName = getViewFromPath(path);
+        const state = e.state || {};
+        const pageTitle = getPageTitle(viewName, state.subView);
+        document.title = pageTitle;
+        updateMetaTags(path, viewName, state.subView);
+        trackPageView(path, pageTitle);
+        return;
+    }
+    viewPath = path;
     const viewName = getViewFromPath(path);
     const standingsView = viewName === 'standings' ? getStandingsView(path) : null;
     const statsView = viewName === 'stats' ? getStatsView(path) : null;
@@ -422,6 +512,12 @@ export function init() {
     updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
-    // Show initial view
+    // Show initial view (a shared video link shows the Media page with the video open over it)
+    const video = parseVideoPath(path);
+    viewPath = video ? '/media' : path;
     showView(viewName, subView);
+    if (video) {
+        history.replaceState({ path, viewName, subView, video: { ...video, deepLink: true } }, '', path);
+        showVideo({ ...video, deepLink: true });
+    }
 }

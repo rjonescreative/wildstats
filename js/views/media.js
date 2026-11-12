@@ -1,5 +1,7 @@
 // Media view module
 import { getVideos } from '../api.js';
+import { openVideo } from '../router.js';
+import { hideVideoModal } from '../videoModal.js';
 
 let videos = [];
 let hasMore = false;
@@ -21,6 +23,10 @@ function formatDuration(duration) {
         return `${mins}:${secs}`;
     }
     return duration;
+}
+
+function escapeAttr(text = '') {
+    return text.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
 }
 
 function formatDate(dateString) {
@@ -57,7 +63,7 @@ export function render() {
 }
 
 export function cleanup() {
-    closeVideoModal();
+    hideVideoModal();
 }
 
 async function loadVideos(initial = false) {
@@ -102,7 +108,7 @@ function renderVideos() {
     }
 
     const videoCards = videos.map(video => `
-        <div class="video-card" tabindex="0" role="button" aria-label="Play video: ${video.title.replace(/"/g, '&quot;')}" data-brightcove-id="${video.brightcoveId}" data-account-id="${video.brightcoveAccountId}">
+        <div class="video-card" tabindex="0" role="button" aria-label="Play video: ${video.title.replace(/"/g, '&quot;')}" data-brightcove-id="${video.brightcoveId}" data-account-id="${video.brightcoveAccountId}" data-slug="${video.slug || ''}" data-title="${escapeAttr(video.title)}">
             <div class="video-thumbnail-container">
                 <img src="${video.thumbnail}" alt="" class="video-thumbnail" loading="lazy">
                 <div class="video-play-overlay" aria-hidden="true">
@@ -137,10 +143,9 @@ function setupEventListeners() {
     // Video card clicks and keyboard activation
     document.querySelectorAll('.video-card').forEach(card => {
         const handleActivation = () => {
-            const brightcoveId = card.dataset.brightcoveId;
-            const accountId = card.dataset.accountId;
+            const { brightcoveId, accountId, slug, title } = card.dataset;
             if (brightcoveId) {
-                openVideoModal(brightcoveId, accountId);
+                openVideo({ brightcoveId, accountId, slug, title });
             }
         };
 
@@ -158,99 +163,4 @@ function setupEventListeners() {
     if (loadMoreBtn) {
         loadMoreBtn.addEventListener('click', () => loadVideos(false));
     }
-}
-
-function openVideoModal(brightcoveId, accountId) {
-    // Remove existing modal if any
-    closeVideoModal();
-
-    // Store the element that triggered the modal for focus restoration
-    const triggerElement = document.activeElement;
-
-    const modal = document.createElement('div');
-    modal.className = 'video-modal';
-    modal.setAttribute('role', 'dialog');
-    modal.setAttribute('aria-modal', 'true');
-    modal.setAttribute('aria-label', 'Video player');
-    modal.innerHTML = `
-        <div class="video-modal-backdrop"></div>
-        <div class="video-modal-content">
-            <button class="video-modal-close" aria-label="Close video">&times;</button>
-            <div class="video-player-container">
-                <iframe
-                    src="https://players.brightcove.net/${accountId}/EXtG1xJ7H_default/index.html?videoId=${brightcoveId}"
-                    allowfullscreen
-                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                    class="video-player-iframe"
-                    title="Video player"
-                ></iframe>
-            </div>
-        </div>
-    `;
-
-    document.body.appendChild(modal);
-    document.body.style.overflow = 'hidden';
-
-    // Store trigger element for focus restoration
-    modal._triggerElement = triggerElement;
-
-    // Trigger animation
-    requestAnimationFrame(() => {
-        modal.classList.add('visible');
-        // Focus the close button
-        modal.querySelector('.video-modal-close').focus();
-    });
-
-    // Close handlers
-    modal.querySelector('.video-modal-backdrop').addEventListener('click', closeVideoModal);
-    modal.querySelector('.video-modal-close').addEventListener('click', closeVideoModal);
-
-    // Escape key handler
-    document.addEventListener('keydown', handleEscapeKey);
-
-    // Focus trap
-    modal.addEventListener('keydown', handleFocusTrap);
-}
-
-function handleFocusTrap(e) {
-    if (e.key !== 'Tab') return;
-
-    const modal = document.querySelector('.video-modal');
-    if (!modal) return;
-
-    const focusableElements = modal.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"]), iframe');
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (e.shiftKey && document.activeElement === firstElement) {
-        lastElement.focus();
-        e.preventDefault();
-    } else if (!e.shiftKey && document.activeElement === lastElement) {
-        firstElement.focus();
-        e.preventDefault();
-    }
-}
-
-function handleEscapeKey(e) {
-    if (e.key === 'Escape') {
-        closeVideoModal();
-    }
-}
-
-function closeVideoModal() {
-    const modal = document.querySelector('.video-modal');
-    if (modal) {
-        const triggerElement = modal._triggerElement;
-        modal.classList.remove('visible');
-        setTimeout(() => {
-            modal.remove();
-            document.body.style.overflow = '';
-            // Restore focus to trigger element
-            if (triggerElement && triggerElement.focus) {
-                triggerElement.focus();
-            }
-        }, 200);
-    }
-    document.removeEventListener('keydown', handleEscapeKey);
-    document.removeEventListener('keydown', handleFocusTrap);
 }

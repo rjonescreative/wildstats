@@ -3,6 +3,7 @@
 import { NHL_TEAMS } from './teams.js';
 import { getPastSeasons, getSeasonLabel, seasonFromLabel } from './seasonConfig.js';
 import { parseTeamRecordsPath } from './teamRecordsMeta.js';
+import { parseVideoPath } from './videoLinks.js';
 
 const STATIC_ROUTES = new Set([
     '/',
@@ -20,6 +21,8 @@ export function isKnownRoute(path) {
 
     const past = path.match(/^\/schedule\/past\/(\d{4}-\d{2})$/);
     if (past) return getPastSeasons().includes(seasonFromLabel(past[1]));
+
+    if (parseVideoPath(path)) return true;
 
     return Boolean(parseTeamRecordsPath(path));
 }

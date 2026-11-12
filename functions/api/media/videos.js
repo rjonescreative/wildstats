@@ -48,6 +48,7 @@ export async function onRequest(context) {
             brightcoveAccountId: item.fields?.brightcoveAccountId || '6415718365001',
             thumbnail: item.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size40/f_auto/') || '',
             contentDate: item.contentDate || '',
+            slug: item.slug || '', // shareable URL /media/video/{slug}
             playKey: playKey(item) // lets the page skip a play already shown on an earlier page
         }));
 

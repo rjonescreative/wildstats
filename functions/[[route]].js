@@ -5,6 +5,7 @@ import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, get
 import { findNextGame, nextGameDescription, nextGameJsonLd } from '../js/nextGame.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
+import { parseVideoPath, brightcovePlayerUrl, DEFAULT_BRIGHTCOVE_ACCOUNT } from '../js/videoLinks.js';
 import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../js/jerseyStats.js';
 import { NHL_TEAMS as TEAMS } from '../js/teams.js';
 import {
@@ -313,6 +314,72 @@ async function nextGameSearchData() {
     }
 }
 
+// ─── Shared video links: /media/video/{slug} ──────────────────────────────────
+// Link previews (Reddit, Discord, Slack, iMessage, X…) read these tags without running the page
+// script: the video's title, description and 16:9 thumbnail, plus the Brightcove player page as
+// og:video / twitter:player for sites that embed playable video from page tags.
+
+// "00:08:30" → "PT8M30S"
+function isoDuration(duration) {
+    const [h, m, s] = (duration || '').split(':').map(Number);
+    if ([h, m, s].some(n => !Number.isFinite(n))) return null;
+    return `PT${h ? `${h}H` : ''}${m ? `${m}M` : ''}${s || (!h && !m) ? `${s}S` : ''}`;
+}
+
+async function videoSearchData(video) {
+    let item = null;
+    try {
+        const res = await fetch(`https://forge-dapi.d3.nhle.com/v2/content/en-us/videos/${encodeURIComponent(video.slug)}`, {
+            redirect: 'follow',
+            signal: AbortSignal.timeout(2500),
+            cf: { cacheTtl: 3600, cacheEverything: true },
+        });
+        if (res.ok) item = await res.json();
+        if (item?.fields?.brightcoveId !== video.brightcoveId) item = null;
+    } catch {
+        item = null; // Still embed the player (the ID is in the URL), with the default title and image
+    }
+
+    const accountId = item?.fields?.brightcoveAccountId || DEFAULT_BRIGHTCOVE_ACCOUNT;
+    const playerUrl = brightcovePlayerUrl(accountId, video.brightcoveId);
+    const image = item?.thumbnail?.templateUrl?.replace('{formatInstructions}', 't_ratio16_9-size50') || null; // 1280×720 JPEG
+    const title = item?.title ? `${item.title} | Wild Hockey Hub` : 'Minnesota Wild Video | Wild Hockey Hub';
+    const description = item?.fields?.longDescription || item?.fields?.description || item?.title || 'Watch this Minnesota Wild video on Wild Hockey Hub.';
+
+    const jsonLd = item && image ? JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'VideoObject',
+        name: item.title,
+        description,
+        thumbnailUrl: image,
+        uploadDate: item.contentDate,
+        ...(isoDuration(item.fields?.duration) && { duration: isoDuration(item.fields.duration) }),
+        embedUrl: playerUrl,
+    }).replace(/</g, '\\u003c') : null;
+
+    return { title, description, image, playerUrl, jsonLd, found: Boolean(item) };
+}
+
+// Video tags added to <head> (the shell's own og:image / twitter:card are rewritten in place)
+function videoHeadTags(data) {
+    const attr = v => escapeHtml(String(v));
+    return [
+        `<meta property="og:video" content="${attr(data.playerUrl)}">`,
+        `<meta property="og:video:secure_url" content="${attr(data.playerUrl)}">`,
+        `<meta property="og:video:type" content="text/html">`,
+        `<meta property="og:video:width" content="1280">`,
+        `<meta property="og:video:height" content="720">`,
+        ...(data.image ? [
+            `<meta property="og:image:width" content="1280">`,
+            `<meta property="og:image:height" content="720">`,
+        ] : []),
+        `<meta name="twitter:player" content="${attr(data.playerUrl)}">`,
+        `<meta name="twitter:player:width" content="1280">`,
+        `<meta name="twitter:player:height" content="720">`,
+        ...(data.jsonLd ? [`<script type="application/ld+json">${data.jsonLd}</script>`] : []),
+    ].join('');
+}
+
 // BreadcrumbList structured data for pages deeper than one level (null for other pages)
 function breadcrumbsFor(path, meta) {
     const trail = [['Home', '/']];
@@ -391,6 +458,9 @@ export async function onRequest(context) {
 
     const response = await env.ASSETS.fetch(assetRequest);
 
+    const video = parseVideoPath(path);
+    if (video) return renderVideoPage(response, path, await videoSearchData(video));
+
     const meta = withSeason(resolveMeta(path));
     // /schedule/past shows last season, so point it at that season's own URL (avoids duplicate pages)
     const canonicalPath = path === '/schedule/past' ? `/schedule/past/${getSeasonLabel(getPreviousSeason())}` : path;
@@ -467,4 +537,30 @@ export async function onRequest(context) {
             }
         })
         .transform(response);
+}
+
+// The app shell for a shared video link, with the video's preview and player tags
+function renderVideoPage(response, path, data) {
+    const url = `https://wildhockey.win${path}`;
+    const setContent = value => ({ element(el) { el.setAttribute('content', value); } });
+    let rewriter = new HTMLRewriter()
+        .on('head', { element(el) { el.append(videoHeadTags(data), { html: true }); } })
+        .on('title', { element(el) { el.setInnerContent(data.title); } })
+        .on('meta[name="description"]', setContent(data.description))
+        .on('meta[property="og:type"]', setContent('video.other'))
+        .on('meta[property="og:title"]', setContent(data.title))
+        .on('meta[property="og:description"]', setContent(data.description))
+        .on('meta[property="og:url"]', setContent(url))
+        .on('meta[name="twitter:card"]', setContent('player'))
+        .on('meta[name="twitter:title"]', setContent(data.title))
+        .on('meta[name="twitter:description"]', setContent(data.description))
+        .on('link[rel="canonical"]', { element(el) { el.setAttribute('href', url); } });
+    // A link the NHL doesn't know (or couldn't confirm) still plays, but stays out of search results
+    if (!data.found) rewriter = rewriter.on('meta[name="robots"]', setContent('noindex'));
+    if (data.image) {
+        rewriter = rewriter
+            .on('meta[property="og:image"]', setContent(data.image))
+            .on('meta[name="twitter:image"]', setContent(data.image));
+    }
+    return rewriter.transform(response);
 }
