@@ -48,28 +48,56 @@ export function nextGameDescription(game, now = new Date()) {
     return `${question} No – the Wild's next game is ${day} at ${centralTime(start)}, when they ${matchup}.${tail}`;
 }
 
+// Home arena city for each team, for the event's location address
+const ARENA_CITY = {
+    ANA: ['Anaheim', 'CA', 'US'], BOS: ['Boston', 'MA', 'US'], BUF: ['Buffalo', 'NY', 'US'],
+    CGY: ['Calgary', 'AB', 'CA'], CAR: ['Raleigh', 'NC', 'US'], CHI: ['Chicago', 'IL', 'US'],
+    COL: ['Denver', 'CO', 'US'], CBJ: ['Columbus', 'OH', 'US'], DAL: ['Dallas', 'TX', 'US'],
+    DET: ['Detroit', 'MI', 'US'], EDM: ['Edmonton', 'AB', 'CA'], FLA: ['Sunrise', 'FL', 'US'],
+    LAK: ['Los Angeles', 'CA', 'US'], MIN: ['Saint Paul', 'MN', 'US'], MTL: ['Montreal', 'QC', 'CA'],
+    NSH: ['Nashville', 'TN', 'US'], NJD: ['Newark', 'NJ', 'US'], NYI: ['Elmont', 'NY', 'US'],
+    NYR: ['New York', 'NY', 'US'], OTT: ['Ottawa', 'ON', 'CA'], PHI: ['Philadelphia', 'PA', 'US'],
+    PIT: ['Pittsburgh', 'PA', 'US'], SJS: ['San Jose', 'CA', 'US'], SEA: ['Seattle', 'WA', 'US'],
+    STL: ['St. Louis', 'MO', 'US'], TBL: ['Tampa', 'FL', 'US'], TOR: ['Toronto', 'ON', 'CA'],
+    UTA: ['Salt Lake City', 'UT', 'US'], VAN: ['Vancouver', 'BC', 'CA'], VGK: ['Las Vegas', 'NV', 'US'],
+    WSH: ['Washington', 'DC', 'US'], WPG: ['Winnipeg', 'MB', 'CA'],
+};
+
+const GAME_LENGTH_MS = 3 * 60 * 60 * 1000; // Typical NHL game with intermissions, for endDate
+
 // schema.org SportsEvent for the game (as a JSON string for a ld+json script)
 export function nextGameJsonLd(game, description) {
     const team = t => ({ '@type': 'SportsTeam', name: teamName(t) });
     const home = team(game.homeTeam);
     const away = team(game.awayTeam);
     const location = { '@type': 'Place', name: game.venue?.default ?? `${home.name} home arena` };
-    if (game.homeTeam.abbrev === 'MIN') {
-        location.address = { '@type': 'PostalAddress', addressLocality: 'Saint Paul', addressRegion: 'MN', addressCountry: 'US' };
+    const city = !game.neutralSite && ARENA_CITY[game.homeTeam.abbrev];
+    if (city) {
+        const [addressLocality, addressRegion, addressCountry] = city;
+        location.address = { '@type': 'PostalAddress', addressLocality, addressRegion, addressCountry };
     }
-    return JSON.stringify({
+    const endDate = new Date(new Date(game.startTimeUTC).getTime() + GAME_LENGTH_MS)
+        .toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const event = {
         '@context': 'https://schema.org',
         '@type': 'SportsEvent',
         name: `${away.name} at ${home.name}`,
         description,
         sport: 'Ice Hockey',
         startDate: game.startTimeUTC,
+        endDate,
         eventStatus: 'https://schema.org/EventScheduled',
         eventAttendanceMode: 'https://schema.org/OfflineEventAttendanceMode',
         location,
+        image: ['https://wildhockey.win/apple-touch-icon.png'],
+        organizer: { '@type': 'SportsOrganization', name: 'National Hockey League', url: 'https://www.nhl.com/' },
         homeTeam: home,
         awayTeam: away,
         competitor: [home, away],
         url: 'https://wildhockey.win/',
-    }).replace(/</g, '\\u003c');
+    };
+    if (game.ticketsLink) {
+        event.offers = { '@type': 'Offer', url: game.ticketsLink };
+    }
+    return JSON.stringify(event).replace(/</g, '\\u003c');
 }
