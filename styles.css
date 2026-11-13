@@ -870,6 +870,11 @@ main {
     margin-bottom: 3rem;
 }
 
+/* Head-to-head keeps its section headings centered over the mirrored tables */
+.h2h-section-title {
+    text-align: center;
+}
+
 .h2h-table {
     width: 100%;
     border-collapse: collapse;
