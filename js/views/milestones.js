@@ -494,7 +494,7 @@ function renderAchievedCard(m) {
 function renderSection(title, cards, emptyMessage) {
     return `
         <div class="milestones-section">
-            <h2 class="milestones-section-title">${title}</h2>
+            <h2 class="section-title">${title}</h2>
             ${cards.length > 0
                 ? `<div class="milestones-grid">${cards.join('')}</div>`
                 : `<p class="milestones-empty">${emptyMessage}</p>`}

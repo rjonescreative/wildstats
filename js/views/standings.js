@@ -230,7 +230,7 @@ function renderLeagueStandings(state) {
 
     return `
         <div class="standings-section">
-            <h2>League</h2>
+            <h2 class="section-title">League</h2>
             <div class="standings-table">
                 ${createStandingsTable(allTeams, state, true, hideMagicCol)}
             </div>
@@ -246,13 +246,13 @@ function renderConferenceStandings(state) {
 
     return `
         <div class="standings-section">
-            <h2>Western Conference</h2>
+            <h2 class="section-title">Western Conference</h2>
             <div class="standings-table">
                 ${createStandingsTable(western, state, false, hideMagicCol)}
             </div>
         </div>
         <div class="standings-section">
-            <h2>Eastern Conference</h2>
+            <h2 class="section-title">Eastern Conference</h2>
             <div class="standings-table">
                 ${createStandingsTable(eastern, state, false, hideMagicCol)}
             </div>
@@ -270,7 +270,7 @@ function renderDivisionStandings(state) {
 
         return `
             <div class="standings-section">
-                <h2>${division} Division</h2>
+                <h2 class="section-title">${division} Division</h2>
                 <div class="standings-table">
                     ${createStandingsTable(teams, state, false, hideMagicCol)}
                 </div>
@@ -292,13 +292,13 @@ function renderWildcardStandings(state) {
 
     return `
         <div class="standings-section">
-            <h2>Western Conference - Wildcard</h2>
+            <h2 class="section-title">Western Conference - Wildcard</h2>
             <div class="standings-table">
                 ${createWildcardTable(western, state, hideMagicCol)}
             </div>
         </div>
         <div class="standings-section">
-            <h2>Eastern Conference - Wildcard</h2>
+            <h2 class="section-title">Eastern Conference - Wildcard</h2>
             <div class="standings-table">
                 ${createWildcardTable(eastern, state, hideMagicCol)}
             </div>

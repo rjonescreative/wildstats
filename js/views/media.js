@@ -3,6 +3,13 @@ import { getVideos } from '../api.js';
 import { openVideo } from '../router.js';
 import { hideVideoModal } from '../videoModal.js';
 
+const SECTION_TITLES = {
+    all: 'Latest Videos',
+    highlights: 'Highlights',
+    recaps: 'Game Recaps',
+    condensed: 'Condensed Games',
+};
+
 let videos = [];
 let hasMore = false;
 let offset = 0;
@@ -43,8 +50,10 @@ export async function init(view = 'all') {
     isLoading = false;
     currentView = view;
 
-    // Update active state of view buttons
+    // Update active state of view buttons and the section heading
     updateViewButtons(view);
+    const heading = document.getElementById('media-heading');
+    if (heading) heading.textContent = SECTION_TITLES[view] || SECTION_TITLES.all;
 
     await loadVideos(true);
 }
@@ -119,7 +128,7 @@ function renderVideos() {
                 ${video.duration ? `<span class="video-duration">${formatDuration(video.duration)}</span>` : ''}
             </div>
             <div class="video-info">
-                <h3 class="video-title">${video.title}</h3>
+                <p class="video-title">${video.title}</p>
                 <span class="video-date">${formatDate(video.contentDate)}</span>
             </div>
         </div>

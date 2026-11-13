@@ -8,6 +8,7 @@ import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
 import { parseVideoPath, brightcovePlayerUrl, DEFAULT_BRIGHTCOVE_ACCOUNT } from '../js/videoLinks.js';
 import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../js/jerseyStats.js';
 import { NHL_TEAMS as TEAMS } from '../js/teams.js';
+import { headingFromTitle } from '../js/pageHeading.js';
 import {
     escapeHtml, renderH2HTeamContent, renderH2HHubContent, renderTeamRecordsContent, renderPointsProgressionContent,
 } from '../js/searchPrerender.js';
@@ -501,6 +502,11 @@ export async function onRequest(context) {
                 el.setInnerContent(meta.title);
             }
         })
+        .on('#page-heading', {
+            element(el) {
+                el.setInnerContent(headingFromTitle(meta.title));
+            }
+        })
         .on('meta[name="description"]', {
             element(el) {
                 el.setAttribute('content', meta.description);
@@ -546,6 +552,7 @@ function renderVideoPage(response, path, data) {
     let rewriter = new HTMLRewriter()
         .on('head', { element(el) { el.append(videoHeadTags(data), { html: true }); } })
         .on('title', { element(el) { el.setInnerContent(data.title); } })
+        .on('#page-heading', { element(el) { el.setInnerContent(headingFromTitle(withSeason(PAGE_META['/media']).title)); } })
         .on('meta[name="description"]', setContent(data.description))
         .on('meta[property="og:type"]', setContent('video.other'))
         .on('meta[property="og:title"]', setContent(data.title))

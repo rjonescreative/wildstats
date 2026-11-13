@@ -319,7 +319,7 @@ export async function init() {
                 </div>
                 <div class="records-drawer-backdrop" id="records-drawer-backdrop"></div>
                 <div class="records-table-wrap">
-                    <div class="records-table-header" id="records-table-label">All-Time Goals</div>
+                    <h2 class="section-title" id="records-table-label">All-Time Goals</h2>
                     <div class="records-big-list" id="records-table"></div>
                 </div>
             </div>`;

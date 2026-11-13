@@ -100,11 +100,11 @@
             <div class="header-content">
                 <a href="/" class="site-title" data-link>
                     <img src="/logos/MIN_dark_custom.svg" alt="Minnesota Wild" class="header-logo">
-                    <h1 class="header-text">
+                    <span class="header-text">
                         <img src="/images/wild-hockey-hub-white.svg" alt="Wild Hockey Hub" class="header-wordmark">
-                        <div class="header-divider"></div>
+                        <span class="header-divider"></span>
                         <span class="subtitle">A Minnesota Wild Fan Site</span>
-                    </h1>
+                    </span>
                 </a>
                 <nav class="main-nav" id="main-nav" aria-label="Main navigation">
                     <button class="nav-close-btn" id="nav-close-btn" aria-label="Close navigation">
@@ -129,16 +129,20 @@
     <div class="nav-overlay" id="nav-overlay"></div>
 
     <main class="container" id="app">
+        <!-- The page's one h1 (set by the router from the page title; the 404 view shows its own) -->
+        <h1 id="page-heading" class="sr-only">Minnesota Wild Stats, Standings &amp; Schedule</h1>
+
         <!-- Dashboard View -->
         <div id="dashboard-view" class="view">
             <div class="standings-section">
+                <h2 class="sr-only">Games</h2>
                 <div id="dashboard-games">
                     <div class="loading">Loading games...</div>
                 </div>
             </div>
 
             <div class="standings-section">
-                <h2>Leader Board</h2>
+                <h2 class="section-title">Leader Board</h2>
                 <div id="stat-leaders" class="stat-leaders">
                     <div class="loading">Loading stat leaders...</div>
                 </div>
@@ -148,7 +152,7 @@
             </div>
 
             <div class="standings-section">
-                <h2>Central Division</h2>
+                <h2 class="section-title">Central Division</h2>
                 <div id="central-standings" class="standings-table">
                     <div class="loading">Loading standings...</div>
                 </div>
@@ -158,7 +162,7 @@
             </div>
 
             <div class="standings-section">
-                <h2>Points Progression</h2>
+                <h2 class="section-title">Points Progression</h2>
                 <div id="dashboard-points-chart" class="points-chart-wrap">
                     <div class="loading">Loading chart...</div>
                 </div>
@@ -168,14 +172,14 @@
             </div>
 
             <div class="standings-section">
-                <h2>Highlights</h2>
+                <h2 class="section-title">Highlights</h2>
                 <div id="highlights-section">
                     <div class="loading">Loading highlights...</div>
                 </div>
             </div>
 
             <div class="standings-section">
-                <h2>Wild News</h2>
+                <h2 class="section-title">Wild News</h2>
                 <div id="news-section">
                     <div class="loading">Loading news...</div>
                 </div>
@@ -196,7 +200,7 @@
             <div id="stats-player-view">
                 <div class="stats-section">
                     <div class="section-header">
-                        <h2>Skaters</h2>
+                        <h2 class="section-title">Skaters</h2>
                         <a href="https://puckpedia.com/team/minnesota-wild" target="_blank" rel="noopener noreferrer" class="text-link">View cap data on PuckPedia ↗</a>
                     </div>
                     <div id="skaters-table" class="stats-table-container">
@@ -206,7 +210,7 @@
 
                 <div class="stats-section">
                     <div class="section-header">
-                        <h2>Goalies</h2>
+                        <h2 class="section-title">Goalies</h2>
                     </div>
                     <div id="goalies-table" class="stats-table-container">
                         <div class="loading">Loading goalie stats...</div>
@@ -261,6 +265,7 @@
                 <a href="/media/condensed" class="view-btn" data-link data-view="condensed">CONDENSED GAMES</a>
             </div>
 
+            <h2 class="section-title" id="media-heading">Latest Videos</h2>
             <div id="media-container">
                 <div class="loading">Loading videos...</div>
             </div>

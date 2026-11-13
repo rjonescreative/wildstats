@@ -7,6 +7,7 @@ import { parseTeamRecordsPath, buildTeamRecordsPath, teamRecordsTitle, teamRecor
 import { isKnownRoute, redirectTarget } from './knownRoutes.js';
 import { parseVideoPath, videoPath } from './videoLinks.js';
 import { showVideoModal, hideVideoModal, openVideoId } from './videoModal.js';
+import { headingFromTitle, setPageHeading } from './pageHeading.js';
 
 // Re-exported so views can keep importing records URL helpers from the router
 export { parseTeamRecordsPath, buildTeamRecordsPath };
@@ -19,7 +20,7 @@ export function updateTeamRecordsURL(timeMode, statMode, posMode, gameType = 're
     const path  = buildTeamRecordsPath(timeMode, statMode, posMode, gameType);
     const title = teamRecordsTitle(timeMode, statMode, posMode, gameType);
     history.pushState({ path, viewName: 'stats', subView: 'team-records' }, '', path);
-    document.title = title;
+    setDocumentTitle(title);
     updateMetaTags(path, 'stats', 'team-records');
     trackPageView(path, title);
 }
@@ -102,8 +103,17 @@ function getMediaView(path) {
     return match ? match[1] : 'all';
 }
 
+// Set the browser title and the page's h1 (the 404 view has its own visible h1)
+function setDocumentTitle(title) {
+    document.title = title;
+    setPageHeading(headingFromTitle(title));
+}
+
 // Show a specific view
 async function showView(viewName, subView = null) {
+    const pageHeading = document.getElementById('page-heading');
+    if (pageHeading) pageHeading.hidden = viewName === 'not-found';
+
     // Hide all views
     document.querySelectorAll('.view').forEach(view => {
         view.classList.remove('active');
@@ -202,7 +212,7 @@ function closeVideo(video) {
     const subView = viewName === 'media' ? getMediaView(path) : null;
     history.replaceState({ path, viewName, subView }, '', path);
     const pageTitle = getPageTitle(viewName, subView);
-    document.title = pageTitle;
+    setDocumentTitle(pageTitle);
     updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 }
@@ -246,7 +256,7 @@ export async function navigateTo(path) {
 
     // Update page title, meta tags, and track page view
     const pageTitle = getPageTitle(viewName, subView);
-    document.title = pageTitle;
+    setDocumentTitle(pageTitle);
     updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
@@ -462,7 +472,7 @@ function handlePopState(e) {
         const viewName = getViewFromPath(path);
         const state = e.state || {};
         const pageTitle = getPageTitle(viewName, state.subView);
-        document.title = pageTitle;
+        setDocumentTitle(pageTitle);
         updateMetaTags(path, viewName, state.subView);
         trackPageView(path, pageTitle);
         return;
@@ -480,7 +490,7 @@ function handlePopState(e) {
 
     // Update page title, meta tags, and track page view
     const pageTitle = getPageTitle(viewName, subView);
-    document.title = pageTitle;
+    setDocumentTitle(pageTitle);
     updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 
@@ -508,7 +518,7 @@ export function init() {
 
     // Update page title, meta tags, and track initial page view
     const pageTitle = getPageTitle(viewName, subView);
-    document.title = pageTitle;
+    setDocumentTitle(pageTitle);
     updateMetaTags(path, viewName, subView);
     trackPageView(path, pageTitle);
 

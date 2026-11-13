@@ -3,6 +3,7 @@ import { getWildStats, getLeagueLeaders, getH2HData, getSchedule } from '../api.
 import { getUIState, setUIState } from '../state.js';
 import { trackTableSort } from '../analytics.js';
 import { NHL_TEAMS, teamBySlug } from '../teams.js';
+import { setPageHeading } from '../pageHeading.js';
 import * as teamRecords from './team-records.js';
 import * as milestones from './milestones.js';
 import * as numbers from './numbers.js';
@@ -76,7 +77,7 @@ function buildSinceTitleHtml(selectedYear) {
         const label = `${y}-${String(y + 1).slice(2)}`;
         options.push(`<option value="${y}"${y === selectedYear ? ' selected' : ''}>${label}</option>`);
     }
-    return `SINCE <select id="h2h-since-select" class="h2h-since-select">${options.join('')}</select>`;
+    return `Since <select id="h2h-since-select" class="h2h-since-select" aria-label="Since season">${options.join('')}</select>`;
 }
 
 function formatTimeOnIce(seconds) {
@@ -174,9 +175,11 @@ function renderH2HContent(team) {
         h2hOutsideClickHandler = null;
     }
 
+    // The default page (/stats/head-to-head) shows the next opponent; name the team in the h1
+    setPageHeading(`Minnesota Wild vs ${team.name} Head-to-Head`);
+
     const container = document.getElementById('h2h-content');
     container.innerHTML = `
-        <h2 class="sr-only">Minnesota Wild vs ${team.name} Head-to-Head Stats</h2>
         <div class="h2h-picker">
             <button class="h2h-picker-trigger" id="h2h-picker-trigger" aria-haspopup="listbox" aria-expanded="false">
                 <img src="/logos/${team.abbrev}_dark.svg" alt="${team.name}" class="h2h-picker-logo">
@@ -247,7 +250,7 @@ async function loadH2HMatchup(team) {
             const regGames = (h2hCurrentData.games ?? []).filter(g => (g.gameType ?? 2) === 2);
             const sinceGames = regGames.filter(g => parseInt(g.season.slice(0, 4), 10) >= sinceYear);
             const agg = aggregateGamesSince(regGames, sinceYear);
-            section.outerHTML = buildH2HTable('SINCE', agg, team, {
+            section.outerHTML = buildH2HTable('Since', agg, team, {
                 titleHtml: buildSinceTitleHtml(sinceYear),
                 sectionId: 'h2h-since-section',
                 games: sinceGames,
@@ -284,17 +287,17 @@ function buildH2HMatchup(team, data) {
     const curGames  = regGames.filter(g => g.season === curSeasonStr);
     const prevGames = regGames.filter(g => g.season === prevSeasonStr);
     const thisSeason = curGames.length
-        ? buildH2HTable('THIS SEASON', aggregateGames(curGames), team, { games: curGames }) : '';
+        ? buildH2HTable('This Season', aggregateGames(curGames), team, { games: curGames }) : '';
     const lastSeason = prevGames.length
-        ? buildH2HTable('LAST SEASON', aggregateGames(prevGames), team, { games: prevGames }) : '';
+        ? buildH2HTable('Last Season', aggregateGames(prevGames), team, { games: prevGames }) : '';
     const sinceSection = sinceAgg
-        ? buildH2HTable('SINCE', sinceAgg, team, {
+        ? buildH2HTable('Since', sinceAgg, team, {
             titleHtml: buildSinceTitleHtml(defaultSince),
             sectionId: 'h2h-since-section',
             games: sinceGames,
           }) : '';
     const allTime = (data.allTime?.gamesPlayed > 0)
-        ? buildH2HTable('ALL TIME', data.allTime, team, { games: regGames }) : '';
+        ? buildH2HTable('All Time', data.allTime, team, { games: regGames }) : '';
     const playoffs = data.playoffs
         ? buildPlayoffsTable(data.playoffs, team, playoffGames) : '';
 
@@ -414,7 +417,7 @@ function buildPlayoffsTable(playoffsData, team, playoffGames = []) {
 
     return `
         <div class="h2h-section">
-            <div class="h2h-section-title">PLAYOFFS</div>
+            <h2 class="section-title h2h-section-title">Playoffs</h2>
             <div class="stats-table-container">
                 <table class="h2h-table">
                     <tbody>
@@ -447,7 +450,7 @@ function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null, g
 
     const { min, opp, gamesPlayed } = agg;
     const hasDetailedStats = min.statsGamesCount > 0;
-    const isAllTime = title === 'ALL TIME';
+    const isAllTime = title === 'All Time';
     const na = '--';
 
     // Home/away sub-records from raw games
@@ -546,7 +549,7 @@ function buildH2HTable(title, agg, team, { titleHtml = null, sectionId = null, g
 
     return `
         <div class="h2h-section"${sectionId ? ` id="${sectionId}"` : ''}>
-            <div class="h2h-section-title">${titleHtml ?? title}</div>
+            <h2 class="section-title h2h-section-title">${titleHtml ?? title}</h2>
             <div class="stats-table-container">
                 <table class="h2h-table">
                     <tbody>

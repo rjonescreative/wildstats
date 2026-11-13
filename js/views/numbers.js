@@ -154,7 +154,7 @@ function renderStatCard(title, rows, { note = '', value, rank = true, visible = 
         : '';
     return `
         <article class="jersey-stat-card">
-            <h3 class="jersey-stat-title">${title}</h3>
+            <h3 class="subsection-title">${title}</h3>
             ${note ? `<p class="jersey-stat-note">${note}</p>` : ''}
             <ol class="jersey-stat-list">${items}</ol>
             ${showAll}
@@ -167,10 +167,10 @@ function renderJerseyStats(list) {
     const stats = buildJerseyStats(list);
     return `
         <section class="jersey-stats" id="jersey-stats">
-            <h2 class="numbers-section-title">Jersey Stats</h2>
+            <h2 class="section-title">Jersey Stats</h2>
             <div class="jersey-stats-grid">
                 <article class="jersey-stat-card">
-                    <h3 class="jersey-stat-title">Never Worn</h3>
+                    <h3 class="subsection-title">Never Worn</h3>
                     <p class="jersey-stat-note">${stats.neverWorn.length} numbers no Wild player has worn</p>
                     <ul class="jersey-never-worn">${stats.neverWorn.map(n => `<li>${n}</li>`).join('')}</ul>
                 </article>
@@ -217,7 +217,7 @@ export async function init() {
 
         container.innerHTML = `
             <div class="numbers-header">
-                <h2 class="numbers-section-title">Jersey Numbers</h2>
+                <h2 class="section-title">Jersey Numbers</h2>
                 <p class="numbers-intro">${list.length} numbers worn by ${totalWearers} players since 2000-01. Games played include the regular season and playoffs. <a href="#jersey-stats" class="text-link" data-jump-stats>Jump to Jersey Stats ↓</a></p>
             </div>
             <div class="numbers-grid">

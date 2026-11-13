@@ -199,7 +199,7 @@ function buildAtAGlance(games) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Season At a Glance</h2>
+      <h2 class="section-title">Season At a Glance</h2>
       <div class="season-glance-grid">
         <div class="season-glance-card">
           <div class="glance-label">Record</div>
@@ -270,7 +270,7 @@ function tallySpecialTeams(games) {
 }
 
 function buildSpecialTeams(st) {
-    const title = '<h2 class="season-section-title">Special Teams</h2>';
+    const title = '<h2 class="section-title">Special Teams</h2>';
     if (!st?.totals || st.totals.gamesPlayed === 0) {
         return `<div class="season-section">${title}<p class="season-no-data">Special teams data unavailable.</p></div>`;
     }
@@ -337,7 +337,7 @@ function buildSpecialTeams(st) {
             ? ` Splits cover ${splitGames.length} of ${st.games.length} games; games whose play-by-play doesn't line up with the official totals are left out.`
             : '';
         splitsHtml = `
-      <h3 class="season-subsection-title">By Period and Score</h3>
+      <h3 class="subsection-title">By Period and Score</h3>
       <p class="season-section-note st-splits-note">PP shows goals / opportunities; PK shows kills / times shorthanded. Goals count in the period they were scored and opportunities in the period the penalty was called, so a power play that carries over can add a goal to the next period. Score is the Wild's score when the penalty was called.${coverage}</p>
       <div class="season-table-wrap">
         <table class="season-table situation-table st-table">
@@ -360,7 +360,7 @@ function buildSpecialTeams(st) {
     }
 
     const chartHtml = st.games.length >= 2 ? `
-      <h3 class="season-subsection-title">Season Progression</h3>
+      <h3 class="subsection-title">Season Progression</h3>
       <div class="st-chart-wrap">
         <div class="st-chart"></div>
         <div class="st-chart-tooltip" hidden></div>
@@ -542,7 +542,7 @@ function buildPeriodScoring(games) {
     const gamesWithPeriods = games.filter(g => g.periods.length > 0);
     if (gamesWithPeriods.length === 0) {
         return `<div class="season-section">
-          <h2 class="season-section-title">Period-by-Period Scoring</h2>
+          <h2 class="section-title">Period-by-Period Scoring</h2>
           <p class="season-no-data">Period data unavailable.</p>
         </div>`;
     }
@@ -592,7 +592,7 @@ function buildPeriodScoring(games) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Period-by-Period Scoring</h2>
+      <h2 class="section-title">Period-by-Period Scoring</h2>
       <p class="season-section-note">Goals scored and allowed per period across all ${gamesWithPeriods.length} games with data.</p>
       <div class="season-table-wrap">
         <table class="season-table">
@@ -632,7 +632,7 @@ function buildSituationalRecords(games) {
 
     if (gamesWithP1.length === 0) {
         return `<div class="season-section">
-          <h2 class="season-section-title">Situational Records</h2>
+          <h2 class="section-title">Situational Records</h2>
           <p class="season-no-data">Period data unavailable.</p>
         </div>`;
     }
@@ -660,7 +660,7 @@ function buildSituationalRecords(games) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Situational Records</h2>
+      <h2 class="section-title">Situational Records</h2>
       <p class="season-section-note">Wild record based on score at the end of each period.</p>
       <div class="season-table-wrap">
         <table class="season-table situation-table">
@@ -717,7 +717,7 @@ function buildBackToBack(games) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Back-to-Back Performance</h2>
+      <h2 class="section-title">Back-to-Back Performance</h2>
       <p class="season-section-note">How the Wild perform on the second game of back-to-back sets.</p>
       <div class="season-table-wrap">
         <table class="season-table">
@@ -773,7 +773,7 @@ function buildDivisionConferenceRecords(games) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Division &amp; Conference Records</h2>
+      <h2 class="section-title">Division &amp; Conference Records</h2>
       <div class="season-table-wrap">
         <table class="season-table">
           <thead>
@@ -806,7 +806,7 @@ function buildDivisionConferenceRecords(games) {
 function buildPlayoffTeamRecords(games, standings) {
     if (!standings.length) {
         return `<div class="season-section">
-          <h2 class="season-section-title">Record vs Playoff Teams</h2>
+          <h2 class="section-title">Record vs Playoff Teams</h2>
           <p class="season-no-data">Standings data unavailable.</p>
         </div>`;
     }
@@ -856,7 +856,7 @@ function buildPlayoffTeamRecords(games, standings) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Record vs Playoff Teams</h2>
+      <h2 class="section-title">Record vs Playoff Teams</h2>
       <p class="season-section-note">Based on teams currently holding a playoff position (${playoffAbbrevs.size} teams).</p>
       <div class="season-table-wrap">
         <table class="season-table">
@@ -938,7 +938,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
     const goalieIds = Object.keys(goalieDecisions).filter(id => goalieMap[id]);
 
     const goalieSection = goalieIds.length > 0 ? `
-      <h3 class="season-subsection-title">Goalie Records &amp; Goals Against by Period</h3>
+      <h3 class="subsection-title">Goalie Records &amp; Goals Against by Period</h3>
       <div class="season-table-wrap">
         <table class="season-table">
           <thead>
@@ -986,7 +986,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
 
     return `
     <div class="season-section">
-      <h2 class="season-section-title">Overtime &amp; Shootout</h2>
+      <h2 class="section-title">Overtime &amp; Shootout</h2>
       <div class="ot-summary-row">
         <div class="ot-summary-card">
           <div class="glance-label">OT Record</div>
@@ -1007,7 +1007,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
 
       <div class="ot-tables-grid">
         <div>
-          <h3 class="season-subsection-title">OT Goal Scorers (${getSeasonLabel().replace('-', '–')})</h3>
+          <h3 class="subsection-title">OT Goal Scorers (${getSeasonLabel().replace('-', '–')})</h3>
           <div class="season-table-wrap">
             <table class="season-table">
               <thead>
@@ -1024,7 +1024,7 @@ function buildOTShootout(games, wildStats, soScorers, seasonBreakdown = {}) {
           </div>
         </div>
         <div>
-          <h3 class="season-subsection-title">Shootout Scorers (${getSeasonLabel().replace('-', '–')})</h3>
+          <h3 class="subsection-title">Shootout Scorers (${getSeasonLabel().replace('-', '–')})</h3>
           <div class="season-table-wrap">
             <table class="season-table">
               <thead>
@@ -1453,7 +1453,7 @@ function buildChartSection(initialChartHtml) {
 
     return `
         <div class="season-section">
-            <h2 class="season-section-title">Points Progression</h2>
+            <h2 class="section-title">Points Progression</h2>
             <p class="points-chart-intro">How every NHL team has piled up points, game by game, through the ${getSeasonLabel()} regular season. Pick divisions to compare, or switch to points percentage to even out teams with games in hand.</p>
             <div class="points-chart-wrap">${initialChartHtml}</div>
             <div class="chart-controls">

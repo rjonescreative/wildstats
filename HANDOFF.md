@@ -113,7 +113,7 @@ Commit messages end with the `Co-Authored-By` line from the current session's at
 
 ## Design conventions
 
-- Dark UI; section headings use the uppercase/gray/letter-spaced style with a bottom border (`.milestones-section-title` pattern). Cards: `rgba(20,20,20,0.75)` background, `--border-subtle`, 8–10px radius.
+- Dark UI. **Headings:** each page has one `<h1 id="page-heading" class="sr-only">`, set by the router from the page title (`js/pageHeading.js`; `functions/[[route]].js` writes the same text into the served HTML). Sections are `<h2 class="section-title">` (uppercase, gray, rule underneath); headings inside a section are `<h3 class="subsection-title">`. Don't skip levels or add per-page heading styles. Cards: `rgba(20,20,20,0.75)` background, `--border-subtle`, 8–10px radius.
 - Team records selectors: desktop sidebar (>1024px); ≤1024px collapse to gold "LABEL / value ▾" triggers that open a left slide-out menu (5 across ≥700px, 3 ≥480px, 2 below).
 - Jersey numbers: `images/jersey-back.png` (100×100) with an SVG number — Saira Condensed 800, 45px, `y="60"`, fill `--jersey-wheat` `#F8F1DF`, stroke `--jersey-red` `#BA161C`.
 - Former teams (PHX, ATL, ARI) have no local logo; schedule rows fall back to the NHL's era logo (`team.darkLogo`).

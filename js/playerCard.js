@@ -426,7 +426,7 @@ function generateCardHTML(data) {
             <img class="player-card-photo" src="${data.headshot}" alt="${data.name}">
             <div class="player-card-title">
                 <div class="player-card-name-row">
-                    <h3>${data.name}</h3>
+                    <h2>${data.name}</h2>
                     <span class="player-card-number">#${data.number}</span>
                 </div>
                 <div class="player-card-meta">

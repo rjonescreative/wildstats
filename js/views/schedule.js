@@ -178,7 +178,7 @@ function renderPlayoffSection(hidePastGames) {
 
     return `
         <div class="standings-section schedule-month schedule-playoffs">
-            <h2><img src="/images/stanley-cup.png" alt="Stanley Cup" class="stanley-cup-icon">Stanley Cup Playoffs</h2>
+            <h2 class="section-title"><img src="/images/stanley-cup.png" alt="" class="stanley-cup-icon">Stanley Cup Playoffs</h2>
             <div class="standings-table schedule-table">
                 <table>
                     <thead>
@@ -306,7 +306,7 @@ export function getTVBroadcast(game) {
 function createMonthTable(monthName, games) {
     return `
         <div class="standings-section schedule-month">
-            <h2>${monthName}</h2>
+            <h2 class="section-title">${monthName}</h2>
             <div class="standings-table schedule-table">
                 <table>
                     <thead>
