@@ -2,6 +2,7 @@
 // club-stats has overtimeLosses (which, per NHL convention, includes shootout losses) but no
 // shootout split, so it comes from the stats API's goalie shootout report
 // (franchiseId 37 = Minnesota Wild, counting only games played for the Wild).
+import { upstreamFetch } from './upstream.js';
 
 export const goalieShootoutReportUrl = season =>
     `https://api.nhle.com/stats/rest/en/goalie/shootout?limit=-1&cayenneExp=seasonId=${season}%20and%20gameTypeId=2%20and%20franchiseId=37`;
@@ -20,7 +21,7 @@ export function addGoalieShootoutLosses(clubStats, report) {
 // The report is extra detail: a failed fetch leaves the counts off instead of failing the stats
 export async function fetchGoalieShootoutReport(season, options = {}) {
     try {
-        const response = await fetch(goalieShootoutReportUrl(season), options);
+        const response = await upstreamFetch(goalieShootoutReportUrl(season), options);
         return response.ok ? await response.json() : null;
     } catch {
         return null;

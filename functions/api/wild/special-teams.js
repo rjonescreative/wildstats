@@ -5,6 +5,7 @@
 
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from '../../../js/specialTeams.js';
+import { upstreamFetch } from '../../../js/upstream.js';
 
 // Keep each request well under the Workers subrequest limit; later requests pick up the rest
 const MAX_NEW_GAMES = 40;
@@ -21,7 +22,7 @@ export async function onRequest(context) {
 
     try {
         const urls = specialTeamsStatsUrls(SEASON);
-        const report = url => fetch(url).then(r => r.json()).then(statsRows).catch(() => null);
+        const report = url => upstreamFetch(url).then(r => r.json()).then(statsRows).catch(() => null);
         const [powerPlay, penaltyKill, league, cachedObj] = await Promise.all([
             report(urls.powerPlay),
             report(urls.penaltyKill),
@@ -38,7 +39,8 @@ export async function onRequest(context) {
             const batch = newIds.slice(i, i + BATCH_SIZE);
             const results = await Promise.allSettled(
                 batch.map(id =>
-                    fetch(`https://api-web.nhle.com/v1/gamecenter/${id}/play-by-play`, { redirect: 'follow' })
+                    // stored in R2; skip per-call cache (subrequest limit)
+                    upstreamFetch(`https://api-web.nhle.com/v1/gamecenter/${id}/play-by-play`, { ttl: 0 })
                         .then(r => r.json())
                 )
             );

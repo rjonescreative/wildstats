@@ -1,10 +1,11 @@
 // Cloudflare Pages Function for Wild schedule endpoint
+import { upstreamFetch } from '../../../js/upstream.js';
 export async function onRequest(context) {
     const { params } = context;
     const season = params.season;
 
     try {
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`,
             { redirect: 'follow' }
         );

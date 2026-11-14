@@ -1,11 +1,12 @@
 // Cloudflare Pages Function — any-team schedule endpoint
+import { upstreamFetch } from '../../../../js/upstream.js';
 export async function onRequest(context) {
     const { params } = context;
     const team   = params.team.toUpperCase();
     const season = params.season;
 
     try {
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/${team}/${season}`,
             { redirect: 'follow' }
         );

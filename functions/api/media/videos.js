@@ -1,5 +1,6 @@
 // Cloudflare Pages Function for Wild videos
 import { filterVideos, playKey } from '../../../js/videoFilters.js';
+import { upstreamFetch } from '../../../js/upstream.js';
 
 export async function onRequest(context) {
     try {
@@ -21,7 +22,7 @@ export async function onRequest(context) {
         // Fetch extra to account for filtered duplicates and recaps
         const fetchLimit = type === 'highlights' ? limit * 3 : limit * 2;
 
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://forge-dapi.d3.nhle.com/v2/content/en-us/videos?tags.slug=${encodeURIComponent(tags)}&$skip=${offset}&$limit=${fetchLimit}`
         );
 

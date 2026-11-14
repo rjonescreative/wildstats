@@ -1,7 +1,8 @@
+import { upstreamFetch } from '../../../../js/upstream.js';
 export async function onRequest(context) {
     const gameId = context.params.id;
     try {
-        const response = await fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`);
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`, { ttl: 5 });
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
 

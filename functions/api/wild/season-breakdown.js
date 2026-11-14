@@ -2,6 +2,7 @@
 // Stores per-game period scores + SO scorers + goalie data in R2, only fetching new games on each request.
 
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
+import { upstreamFetch } from '../../../js/upstream.js';
 
 // Extract period scores, SO scorers, and goalie data from a play-by-play response
 function extractGameData(pbp) {
@@ -90,7 +91,7 @@ export async function onRequest(context) {
         const processedSet = new Set(cached.processedGameIds ?? []);
 
         // 2. Fetch MIN schedule to find all completed games
-        const schedResponse = await fetch(
+        const schedResponse = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/MIN/${SEASON}`,
             { redirect: 'follow' }
         );
@@ -128,9 +129,8 @@ export async function onRequest(context) {
             const batch = newGames.slice(i, i + BATCH_SIZE);
             const batchResults = await Promise.allSettled(
                 batch.map(game =>
-                    fetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/play-by-play`, {
-                        redirect: 'follow'
-                    }).then(r => r.json())
+                    // stored in R2; skip per-call cache (subrequest limit)
+                    upstreamFetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/play-by-play`, { ttl: 0 }).then(r => r.json())
                 )
             );
             pbpResults.push(...batchResults);

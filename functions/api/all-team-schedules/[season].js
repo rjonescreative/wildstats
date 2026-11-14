@@ -7,6 +7,7 @@
 //
 // A GitHub Actions cron hits this endpoint every 55 min so real users almost
 // always land on path #1 and the 32 NHL API calls never run during a user request.
+import { upstreamFetch } from '../../../js/upstream.js';
 
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 
@@ -29,29 +30,34 @@ function stripGameFields(game) {
     };
 }
 
+// A team's games, or null if the NHL request failed
 async function fetchTeam(abbrev, season) {
     try {
-        const response = await fetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`,
-            { redirect: 'follow' }
-        );
-        if (!response.ok) return { abbrev, games: [] };
+        // fan-out: no per-call cache (subrequest limit)
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`, { ttl: 0 });
+        if (!response.ok) return null;
         const data = await response.json();
-        return { abbrev, games: (data.games ?? []).map(stripGameFields) };
+        return (data.games ?? []).map(stripGameFields);
     } catch {
-        return { abbrev, games: [] };
+        return null;
     }
 }
 
-async function fetchAllTeams(season) {
+// All teams' schedules. A team whose request fails keeps its games from `previous`; with no
+// previous copy the whole fetch fails, so a rate-limited team is never saved as an empty schedule.
+async function fetchAllTeams(season, previous = null) {
     const BATCH_SIZE = 8;
     const BATCH_DELAY_MS = 200;
     const payload = {};
     for (let i = 0; i < ALL_NHL_TEAMS.length; i += BATCH_SIZE) {
         const batch = ALL_NHL_TEAMS.slice(i, i + BATCH_SIZE);
-        const results = await Promise.allSettled(batch.map(a => fetchTeam(a, season)));
-        results.forEach(r => {
-            if (r.status === 'fulfilled') payload[r.value.abbrev] = r.value.games;
+        const results = await Promise.all(batch.map(a => fetchTeam(a, season)));
+        results.forEach((games, j) => {
+            const abbrev = batch[j];
+            const fallback = previous?.[abbrev];
+            if (games) payload[abbrev] = games;
+            else if (fallback) payload[abbrev] = fallback;
+            else throw new Error(`Schedule unavailable for ${abbrev}`);
         });
         if (i + BATCH_SIZE < ALL_NHL_TEAMS.length) {
             await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
@@ -91,7 +97,7 @@ export async function onRequest(context) {
         }
         // Stale — return immediately, refresh R2 in background
         context.waitUntil(
-            fetchAllTeams(season)
+            fetchAllTeams(season, cached.data)
                 .then(data => writeR2(env, R2_KEY, data))
                 .catch(() => {})
         );

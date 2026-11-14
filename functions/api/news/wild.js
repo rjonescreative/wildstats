@@ -1,4 +1,5 @@
 // Cloudflare Pages Function for Wild news (combines The Athletic RSS + NHL.com + Star Tribune)
+import { upstreamFetch } from '../../../js/upstream.js';
 export async function onRequest(context) {
     try {
         const url = new URL(context.request.url);
@@ -7,9 +8,9 @@ export async function onRequest(context) {
 
         // Fetch from all sources in parallel (get more items for pagination)
         const [athleticResponse, nhlResponse, stribResponse] = await Promise.all([
-            fetch('https://www.nytimes.com/athletic/rss/nhl/wild/').catch(() => null),
-            fetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20').catch(() => null),
-            fetch('https://www.startribune.com/sports/index.rss2').catch(() => null)
+            upstreamFetch('https://www.nytimes.com/athletic/rss/nhl/wild/', { ttl: 300 }).catch(() => null),
+            upstreamFetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', { ttl: 300 }).catch(() => null),
+            upstreamFetch('https://www.startribune.com/sports/index.rss2', { ttl: 300 }).catch(() => null)
         ]);
 
         const articles = [];

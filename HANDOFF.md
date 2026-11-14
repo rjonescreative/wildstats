@@ -79,13 +79,22 @@ Run manually: `gh workflow run update-milestones.yml` (add `-f seed=true` for a 
 - `numbers[num][playerId] = { regular, playoffs, firstSeason, lastSeason, seasons: { [season]: { regular, playoffs } } }`. The page groups consecutive seasons into stints (2004-05 lockout counts as consecutive) and falls back to one range if per-season counts don't add up.
 - Validated against official GP: all 344 players match. Full seed takes ~22 min on Actions.
 
-## NHL API outages (last-good fallback)
+## NHL API outages and rate limits
 
-The NHL API often returns 5xx/429 or an HTML error page for a few minutes. Every `/api` GET goes through a last-good layer: `functions/api/_middleware.js` (Cloudflare edge cache, 7-day copy per URL incl. query) and the matching `app.use('/api', …)` in `server.js` (in-memory). A 200 JSON response is saved; a 5xx/429 or thrown error serves the saved copy as 200 with `X-Data-Stale: true`, `X-Data-Updated` and `max-age=60`. Other 4xx (e.g. no H2H data yet) pass through. With no saved copy, the original error is returned.
-- Routes must fail (throw → 500) on a bad NHL response, never return it as a 200, or the error would be saved as last good. Pass-through routes check `response.ok`; league leaders fails if any category is missing.
+The NHL API rate-limits busy callers with HTTP 429 — Cloudflare's shared egress IPs especially (confirmed Nov 14, 2026: production routes returned 429/500 while the same URLs worked from a home connection). It also has short 5xx blips. Three layers handle this:
+
+1. **`js/upstream.js` → `upstreamFetch(url, init)`**, a drop-in `fetch()` used for every upstream call in `server.js`, the Functions and shared modules. It caches successful responses for `init.ttl` seconds (default 60; edge cache in Workers, in-memory map in Node), so visitors and routes sharing a URL (club-stats, player landing pages, play-by-play) cost one NHL request per ttl. It retries 429/5xx/network errors twice with backoff (honours `Retry-After`, max 2s wait), 10s timeout per attempt. When the caller passes `init.signal` (e.g. `[[route]].js` page renders with a 2.5s budget) it doesn't retry. `mapLimit(items, n, fn)` caps fan-outs (career totals fetch ~30 landing pages 6 at a time).
+2. **`functions/api/_middleware.js`** (every `/api` GET): a 200 JSON response is saved in the edge cache with the route's max-age. While a copy is younger than that max-age (capped at 5 min) it's served **without running the route** — this is what keeps traffic from multiplying NHL requests. On a 5xx/429/thrown error the last good copy is served as 200 with `X-Data-Stale: true`, `X-Data-Updated`, `max-age=60`. Other 4xx (e.g. no H2H data yet) pass through.
+3. **R2 global copy**: the edge cache is per data center, so the middleware also writes each URL's last good response to R2 under `api-last-good/<path>?<query>` (at most every 15 min per data center) and serves it when the local data center has no copy. With no copy anywhere, the original error is returned.
+
+`server.js` mirrors 1 and the stale fallback (in-memory `app.use('/api', …)`), not the fresh-copy serving or R2 copy.
+
+Rules:
+- Routes must fail (throw → 500) on a bad NHL response, never return it as a 200, or the error would be saved as last good. Pass-through routes check `response.ok`; league leaders fails if any category is missing; career totals fails if any player's landing page fails (instead of saving zeros).
+- `all-team-schedules` keeps a team's previous games from R2 when that team's request fails; it never saves a rate-limited team as an empty schedule.
 - Routes with their own R2 fallback (special teams, season breakdown) set `X-Data-Stale` when serving old data, so the middleware doesn't save it.
 - `js/api.js` logs a `[Wild Hockey Hub] NHL API unavailable — … not real time` console warning for stale responses and keeps them in the client cache for 1 minute instead of 5.
-- The edge cache is per Cloudflare data center, so a quiet data center may have no copy yet.
+- Testing: production URLs with a cache-busting query (`?r=…`) are separate cache keys, so they bypass layers 2–3 and show the raw route result.
 
 ## Playoff mode
 

@@ -1,10 +1,11 @@
 // Cloudflare Pages Function for league stat leaders
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
+import { upstreamFetch } from '../../../js/upstream.js';
 
 export async function onRequest() {
     const fetchCategory = async (url, category) => {
         try {
-            const res = await fetch(url);
+            const res = await upstreamFetch(url, { ttl: 300 });
             if (!res.ok) {
                 console.error(`Failed to fetch ${category}: ${res.status}`);
                 return null;

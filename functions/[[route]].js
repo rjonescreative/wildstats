@@ -12,6 +12,7 @@ import { headingFromTitle } from '../js/pageHeading.js';
 import {
     escapeHtml, renderH2HTeamContent, renderH2HHubContent, renderTeamRecordsContent, renderPointsProgressionContent,
 } from '../js/searchPrerender.js';
+import { upstreamFetch } from '../js/upstream.js';
 
 
 const NHL_TEAMS = [
@@ -278,9 +279,10 @@ async function prerenderFor(path, env, meta) {
             return html && { selector: '#stats-team-records-view', html };
         }
         if (path === '/standings/points-progression') {
-            const res = await fetch('https://api-web.nhle.com/v1/standings/now', {
+            const res = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
                 redirect: 'follow',
                 signal: AbortSignal.timeout(2500),
+                ttl: 300,
                 cf: { cacheTtl: 300, cacheEverything: true },
             });
             if (!res.ok) return null;
@@ -300,9 +302,10 @@ async function prerenderFor(path, env, meta) {
 // can't be fetched or there's no game left this season.
 async function nextGameSearchData() {
     try {
-        const res = await fetch(`https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`, {
+        const res = await upstreamFetch(`https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`, {
             redirect: 'follow',
             signal: AbortSignal.timeout(2500),
+            ttl: 300,
             cf: { cacheTtl: 300, cacheEverything: true },
         });
         if (!res.ok) return null;
@@ -330,9 +333,10 @@ function isoDuration(duration) {
 async function videoSearchData(video) {
     let item = null;
     try {
-        const res = await fetch(`https://forge-dapi.d3.nhle.com/v2/content/en-us/videos/${encodeURIComponent(video.slug)}`, {
+        const res = await upstreamFetch(`https://forge-dapi.d3.nhle.com/v2/content/en-us/videos/${encodeURIComponent(video.slug)}`, {
             redirect: 'follow',
             signal: AbortSignal.timeout(2500),
+            ttl: 3600,
             cf: { cacheTtl: 3600, cacheEverything: true },
         });
         if (res.ok) item = await res.json();

@@ -1,9 +1,10 @@
 import { getCurrentSeason } from '../../../../js/seasonConfig.js';
+import { upstreamFetch } from '../../../../js/upstream.js';
 
 export async function onRequest(context) {
     const playerId = context.params.id;
     try {
-        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`);
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`, { ttl: 300 });
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
         return new Response(JSON.stringify(data), {

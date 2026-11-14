@@ -2,11 +2,12 @@
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
 import { addFaceoffCounts, fetchFaceoffReport } from '../../../js/faceoffs.js';
 import { addGoalieShootoutLosses, fetchGoalieShootoutReport } from '../../../js/goalieShootouts.js';
+import { upstreamFetch } from '../../../js/upstream.js';
 
 export async function onRequest() {
     try {
         const [response, faceoffs, shootouts] = await Promise.all([
-            fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`),
+            upstreamFetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`),
             fetchFaceoffReport(getCurrentSeason()),
             fetchGoalieShootoutReport(getCurrentSeason())
         ]);

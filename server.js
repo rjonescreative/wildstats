@@ -5,6 +5,7 @@ import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
+import { upstreamFetch, mapLimit } from './js/upstream.js';
 import { addFaceoffCounts, fetchFaceoffReport } from './js/faceoffs.js';
 import { addGoalieShootoutLosses, fetchGoalieShootoutReport } from './js/goalieShootouts.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
@@ -59,14 +60,9 @@ app.use('/api', (req, res, next) => {
 // Proxy endpoint for NHL API
 app.get('/api/standings/now', async (req, res) => {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch('https://api-web.nhle.com/v1/standings/now', {
-            signal: controller.signal,
+        const response = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
             redirect: 'follow'
         });
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -80,18 +76,13 @@ app.get('/api/standings/now', async (req, res) => {
 // Wild team stats endpoint
 app.get('/api/wild/stats', async (req, res) => {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
         const [response, faceoffs, shootouts] = await Promise.all([
-            fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
                 redirect: 'follow'
             }),
-            fetchFaceoffReport(getCurrentSeason(), { signal: controller.signal }),
-            fetchGoalieShootoutReport(getCurrentSeason(), { signal: controller.signal })
+            fetchFaceoffReport(getCurrentSeason()),
+            fetchGoalieShootoutReport(getCurrentSeason())
         ]);
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -105,46 +96,34 @@ app.get('/api/wild/stats', async (req, res) => {
 // League stat leaders endpoint
 app.get('/api/league/leaders', async (req, res) => {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
         const [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes] = await Promise.all([
             // Skater stats
-            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=goals&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=goals&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=assists&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=assists&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=points&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=points&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=plusMinus&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=plusMinus&limit=100`, {
                 redirect: 'follow'
             }),
             // Goalie stats
-            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=wins&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=wins&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=savePctg&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=savePctg&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=goalsAgainstAverage&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=goalsAgainstAverage&limit=100`, {
                 redirect: 'follow'
             }),
-            fetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, {
-                signal: controller.signal,
+            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, {
                 redirect: 'follow'
             })
         ]);
-        clearTimeout(timeout);
 
         const failed = [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes].find(r => !r.ok);
         if (failed) throw new Error(`NHL API error: ${failed.status}`);
@@ -169,14 +148,10 @@ app.get('/api/league/leaders', async (req, res) => {
 app.get('/api/player/:id/details', async (req, res) => {
     const playerId = req.params.id;
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, {
-            signal: controller.signal,
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, {
+            ttl: 900,
             redirect: 'follow'
         });
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -192,14 +167,10 @@ app.get('/api/player/:id/details', async (req, res) => {
 app.get('/api/player/:id/game-log', async (req, res) => {
     const playerId = req.params.id;
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`, {
-            signal: controller.signal,
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/player/${playerId}/game-log/${getCurrentSeason()}/2`, {
+            ttl: 300,
             redirect: 'follow'
         });
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -215,14 +186,10 @@ app.get('/api/player/:id/game-log', async (req, res) => {
 app.get('/api/schedule/:season', async (req, res) => {
     const season = req.params.season;
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`,
-            { signal: controller.signal, redirect: 'follow' }
+            { redirect: 'follow' }
         );
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -238,14 +205,10 @@ app.get('/api/schedule/:season', async (req, res) => {
 app.get('/api/team-schedule/:team/:season', async (req, res) => {
     const { team, season } = req.params;
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/${team.toUpperCase()}/${season}`,
-            { signal: controller.signal, redirect: 'follow' }
+            { redirect: 'follow' }
         );
-        clearTimeout(timeout);
 
         if (!response.ok) {
             console.error(`NHL API error for ${team} schedule: ${response.status}`);
@@ -296,20 +259,17 @@ app.get('/api/all-team-schedules/:season', async (req, res) => {
     const BATCH_DELAY_MS = 200;
 
     async function fetchTeam(abbrev) {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 15000);
         try {
-            const response = await fetch(
+            const response = await upstreamFetch(
                 `https://api-web.nhle.com/v1/club-schedule-season/${abbrev}/${season}`,
-                { signal: controller.signal, redirect: 'follow' }
+                { redirect: 'follow' }
             );
-            clearTimeout(timeout);
-            if (!response.ok) return { abbrev, games: [] };
+            if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
             const data = await response.json();
             return { abbrev, games: (data.games ?? []).map(stripGameFields) };
-        } catch {
-            clearTimeout(timeout);
-            return { abbrev, games: [] };
+        } catch (error) {
+            // Fail the route (→ last good copy) rather than return the team with no games
+            throw new Error(`Schedule unavailable for ${abbrev}: ${error.message}`);
         }
     }
 
@@ -317,10 +277,8 @@ app.get('/api/all-team-schedules/:season', async (req, res) => {
         const payload = {};
         for (let i = 0; i < ALL_NHL_TEAMS.length; i += BATCH_SIZE) {
             const batch = ALL_NHL_TEAMS.slice(i, i + BATCH_SIZE);
-            const results = await Promise.allSettled(batch.map(fetchTeam));
-            results.forEach(r => {
-                if (r.status === 'fulfilled') payload[r.value.abbrev] = r.value.games;
-            });
+            const results = await Promise.all(batch.map(fetchTeam));
+            results.forEach(r => { payload[r.abbrev] = r.games; });
             if (i + BATCH_SIZE < ALL_NHL_TEAMS.length) {
                 await new Promise(r => setTimeout(r, BATCH_DELAY_MS));
             }
@@ -338,14 +296,10 @@ app.get('/api/all-team-schedules/:season', async (req, res) => {
 app.get('/api/game/:id/live', async (req, res) => {
     const gameId = req.params.id;
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`, {
-            signal: controller.signal,
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/gamecenter/${gameId}/play-by-play`, {
+            ttl: 5,
             redirect: 'follow'
         });
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -392,14 +346,11 @@ app.get('/api/media/videos', async (req, res) => {
         // Fetch extra to account for filtered duplicates and recaps
         const fetchLimit = type === 'highlights' ? limit * 3 : limit * 2;
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
 
-        const response = await fetch(
+        const response = await upstreamFetch(
             `https://forge-dapi.d3.nhle.com/v2/content/en-us/videos?tags.slug=${encodeURIComponent(tags)}&$skip=${offset}&$limit=${fetchLimit}`,
-            { signal: controller.signal, redirect: 'follow' }
+            { redirect: 'follow' }
         );
-        clearTimeout(timeout);
 
         if (!response.ok) {
             throw new Error(`NHL API error: ${response.status}`);
@@ -447,25 +398,19 @@ app.get('/api/news/wild', async (req, res) => {
         const offset = parseInt(req.query.offset) || 0;
         const limit = parseInt(req.query.limit) || 6;
 
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
 
         // Fetch from all sources in parallel (get more items for pagination)
         const [athleticResponse, nhlResponse, stribResponse] = await Promise.all([
-            fetch('https://www.nytimes.com/athletic/rss/nhl/wild/', {
-                signal: controller.signal,
+            upstreamFetch('https://www.nytimes.com/athletic/rss/nhl/wild/', {
                 redirect: 'follow'
             }).catch(() => null),
-            fetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', {
-                signal: controller.signal,
+            upstreamFetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', {
                 redirect: 'follow'
             }).catch(() => null),
-            fetch('https://www.startribune.com/sports/index.rss2', {
-                signal: controller.signal,
+            upstreamFetch('https://www.startribune.com/sports/index.rss2', {
                 redirect: 'follow'
             }).catch(() => null)
         ]);
-        clearTimeout(timeout);
 
         const articles = [];
 
@@ -604,7 +549,7 @@ function situationalFromLanding(rs) {
 async function fetchEmptyNetCareers(playerIds) {
     const cayenne = `gameTypeId=2 and playerId in (${playerIds.join(',')})`;
     const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=true&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
-    const r = await fetch(url, { redirect: 'follow' });
+    const r = await upstreamFetch(url, { redirect: 'follow' });
     if (!r.ok) throw new Error(`Empty-net fetch failed: ${r.status}`);
     const { data = [] } = await r.json();
     return new Map(data.map(row => [row.playerId, row]));
@@ -648,13 +593,10 @@ app.get('/api/numbers/sweater', async (req, res) => {
 app.get('/api/milestones/career-totals', async (req, res) => {
     try {
         // Step 1: get current Wild roster
-        const rosterController = new AbortController();
-        const rosterTimeout = setTimeout(() => rosterController.abort(), 10000);
-        const rosterRes = await fetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
-            signal: rosterController.signal,
+        const rosterRes = await upstreamFetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
             redirect: 'follow',
         });
-        clearTimeout(rosterTimeout);
+        if (!rosterRes.ok) throw new Error(`Roster fetch failed: ${rosterRes.status}`);
         const rosterData = await rosterRes.json();
 
         const players = [
@@ -662,40 +604,29 @@ app.get('/api/milestones/career-totals', async (req, res) => {
             ...(rosterData.goalies  || []).map(p => p.playerId),
         ];
 
-        // Step 2: fetch each player's landing page in parallel for career totals
-        const results = await Promise.allSettled(
-            players.map(async playerId => {
-                const ctrl = new AbortController();
-                const t = setTimeout(() => ctrl.abort(), 8000);
-                try {
-                    const r = await fetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, {
-                        signal: ctrl.signal,
-                        redirect: 'follow',
-                    });
-                    clearTimeout(t);
-                    const d = await r.json();
-                    const rs = d.careerTotals?.regularSeason ?? {};
-                    return {
-                        playerId,
-                        gamesPlayed: rs.gamesPlayed ?? 0,
-                        goals:       rs.goals       ?? 0,
-                        assists:     rs.assists     ?? 0,
-                        points:      rs.points      ?? 0,
-                        ...situationalFromLanding(rs),
-                    };
-                } catch {
-                    clearTimeout(t);
-                    return { playerId, gamesPlayed: 0, goals: 0, assists: 0, points: 0 };
-                }
-            })
-        );
+        // Step 2: each player's landing page, a few at a time (matches the Cloudflare Function).
+        // Any failure fails the route, so the last good copy is served instead of zeros.
+        const results = await mapLimit(players, 6, async playerId => {
+            const r = await upstreamFetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, { ttl: 3600 });
+            if (!r.ok) throw new Error(`Landing fetch failed for ${playerId}: ${r.status}`);
+            const d = await r.json();
+            const rs = d.careerTotals?.regularSeason ?? {};
+            return {
+                playerId,
+                gamesPlayed: rs.gamesPlayed ?? 0,
+                goals:       rs.goals       ?? 0,
+                assists:     rs.assists     ?? 0,
+                points:      rs.points      ?? 0,
+                ...situationalFromLanding(rs),
+            };
+        });
+        const failed = results.find(r => r.status === 'rejected');
+        if (failed) throw failed.reason;
 
         const careerTotals = {};
         results.forEach(r => {
-            if (r.status === 'fulfilled') {
-                const { playerId, ...stats } = r.value;
-                careerTotals[playerId] = stats;
-            }
+            const { playerId, ...stats } = r.value;
+            careerTotals[playerId] = stats;
         });
 
         // Step 3: empty-net career totals (if this fails, those milestones are just skipped)
@@ -825,7 +756,7 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
         const processedSet = new Set(cached.processedGameIds ?? []);
 
         // 2. Fetch MIN schedule to find all completed games
-        const schedResponse = await fetch(
+        const schedResponse = await upstreamFetch(
             `https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`,
             { redirect: 'follow' }
         );
@@ -865,12 +796,8 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
             const batch = newGames.slice(i, i + BATCH_SIZE);
             const batchResults = await Promise.allSettled(
                 batch.map(game => {
-                    const ctrl = new AbortController();
-                    const t = setTimeout(() => ctrl.abort(), 10000);
-                    return fetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/play-by-play`, {
-                        signal: ctrl.signal, redirect: 'follow'
-                    }).then(r => { clearTimeout(t); return r.json(); })
-                    .catch(err => { clearTimeout(t); throw err; });
+                    return upstreamFetch(`https://api-web.nhle.com/v1/gamecenter/${game.id}/play-by-play`, { ttl: 3600 })
+                        .then(r => r.json());
                 })
             );
             pbpResults.push(...batchResults);
@@ -947,11 +874,8 @@ app.get('/api/wild/special-teams', async (req, res) => {
     const MAX_NEW_GAMES = 40;
 
     const fetchJson = url => {
-        const ctrl = new AbortController();
-        const t = setTimeout(() => ctrl.abort(), 10000);
-        return fetch(url, { signal: ctrl.signal, redirect: 'follow' })
-            .then(r => r.json())
-            .finally(() => clearTimeout(t));
+        return upstreamFetch(url, { ttl: url.includes('play-by-play') ? 3600 : 60 })
+            .then(r => r.json());
     };
 
     try {
@@ -1020,14 +944,10 @@ app.get('/api/wild/special-teams', async (req, res) => {
 // Playoff bracket endpoint
 app.get('/api/playoff-bracket/:season', async (req, res) => {
     try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-
-        const response = await fetch(`https://api-web.nhle.com/v1/playoff-bracket/${req.params.season}`, {
-            signal: controller.signal,
+        const response = await upstreamFetch(`https://api-web.nhle.com/v1/playoff-bracket/${req.params.season}`, {
+            ttl: 300,
             redirect: 'follow'
         });
-        clearTimeout(timeout);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
