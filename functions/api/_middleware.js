@@ -22,8 +22,15 @@ function lastGoodKey(url) {
     return new Request(u.toString());
 }
 
+// Query params the site's own requests use (news and videos paging). A URL with any other param,
+// or an unusual value, gets no R2 copy, so made-up query strings can't fill the bucket.
+const R2_PARAMS = { offset: /^\d{1,4}$/, limit: /^\d{1,3}$/, type: /^[a-z-]{1,20}$/ };
+
+// R2 key for a URL's global last-good copy, or null if the URL shouldn't have one
 function r2Key(url) {
     const u = new URL(url);
+    const params = [...u.searchParams];
+    if (params.some(([name, value]) => !R2_PARAMS[name]?.test(value))) return null;
     return R2_PREFIX + u.pathname.replace(/^\/api\//, '') + u.search;
 }
 
@@ -54,6 +61,7 @@ export async function onRequest(context) {
 
     const cache = caches.default;
     const key = lastGoodKey(request.url);
+    const storeKey = env?.H2H_DATA ? r2Key(request.url) : null; // null: no global copy for this URL
     const cached = await cache.match(key).catch(() => null);
 
     // 1. Recent enough copy: serve it without running the route
@@ -89,9 +97,9 @@ export async function onRequest(context) {
                 cache.put(key, new Response(body, { status: 200, headers })).catch(() => {}) // a failed copy just means no fallback next time
             );
             // Global copy for data centers that have none (throttled to limit R2 writes)
-            if (env?.H2H_DATA && ageMs(cached) > R2_REFRESH) {
+            if (storeKey && ageMs(cached) > R2_REFRESH) {
                 context.waitUntil(
-                    env.H2H_DATA.put(r2Key(request.url), body, {
+                    env.H2H_DATA.put(storeKey, body, {
                         httpMetadata: { contentType: response.headers.get('content-type') },
                         customMetadata: { updatedAt },
                     }).catch(() => {})
@@ -108,7 +116,7 @@ export async function onRequest(context) {
         return staleResponse(cached.body, headers);
     }
 
-    const stored = env?.H2H_DATA ? await env.H2H_DATA.get(r2Key(request.url)).catch(() => null) : null;
+    const stored = storeKey ? await env.H2H_DATA.get(storeKey).catch(() => null) : null;
     if (stored) {
         return staleResponse(stored.body, {
             'Content-Type': stored.httpMetadata?.contentType || 'application/json',
