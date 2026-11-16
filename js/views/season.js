@@ -1552,7 +1552,12 @@ function buildPlayoffLineChart(teams) {
 
     const zeroY = s.sy(0).toFixed(1);
     const playoffLine = `<line x1="${s.ML}" y1="${zeroY}" x2="${plotRight}" y2="${zeroY}" class="chart-playoff-line"/>
-  <text x="${(s.ML + 6).toFixed(1)}" y="${(+zeroY - 6).toFixed(1)}" class="chart-playoff-line-label">Playoff line</text>`;
+`;
+    // Key for the dashed line sits under the x-axis, clear of every team's line
+    const keyX = s.ML + s.PW / 2 - 50;
+    const keyY = VB_H - 8;
+    const playoffKey = `<line x1="${keyX.toFixed(1)}" y1="${keyY}" x2="${(keyX + 24).toFixed(1)}" y2="${keyY}" class="chart-playoff-line"/>
+  <text x="${(keyX + 30).toFixed(1)}" y="${keyY}" dy="0.35em" class="chart-playoff-line-label">Playoff line</text>`;
 
     const axisLabels = [
         ...yTicks.map(v => `<text x="${(s.ML - 8).toFixed(1)}" y="${s.sy(v).toFixed(1)}" dy="0.35em" text-anchor="end" class="chart-label">${v > 0 ? '+' : ''}${v}</text>`),
@@ -1590,6 +1595,7 @@ function buildPlayoffLineChart(teams) {
   ${playoffLine}
   ${teamGroups}
   ${axisLabels}
+  ${playoffKey}
   <text x="12" y="${(M.top + PLOT_H / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90,12,${(M.top + PLOT_H / 2).toFixed(1)})" class="chart-axis-title">Pts vs Wild Card</text>
 </svg>`;
 }
