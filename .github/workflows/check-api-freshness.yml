@@ -1,0 +1,26 @@
+name: Check API freshness
+
+# Every 30 minutes, check that the live site's key /api routes serve fresh NHL data rather than
+# a stale fallback copy (the NHL API rate-limits Cloudflare's shared IPs). A run fails — and
+# GitHub emails the repo owner — when a route errors or its data is over an hour old. Each run's
+# summary has a table of every route's status, staleness and data age.
+on:
+  schedule:
+    - cron: '*/30 * * * *'
+  workflow_dispatch: # allow manual trigger
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Check API freshness
+        run: node scripts/check-api-freshness.js
