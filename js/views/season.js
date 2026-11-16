@@ -237,17 +237,24 @@ function gameSlots(scheduleGames, games) {
         });
 }
 
-// Wild's NHL rank in goals for and against per game (per game, since teams have played different counts).
+// Wild's NHL rank in goals for and against, both as season totals and per game
+// (teams have played different numbers of games, so the two can differ).
 // Ties share a rank: 1 + the number of teams strictly better.
 function leagueGoalRanks(standings) {
     const teams = standings
         .filter(t => t.gamesPlayed > 0)
-        .map(t => ({ abbrev: t.teamAbbrev?.default ?? t.teamAbbrev, gf: t.goalFor / t.gamesPlayed, ga: t.goalAgainst / t.gamesPlayed }));
+        .map(t => ({
+            abbrev: t.teamAbbrev?.default ?? t.teamAbbrev,
+            gfTotal: t.goalFor, gaTotal: t.goalAgainst,
+            gf: t.goalFor / t.gamesPlayed, ga: t.goalAgainst / t.gamesPlayed,
+        }));
     const min = teams.find(t => t.abbrev === 'MIN');
     if (!min) return {};
     return {
         gf: 1 + teams.filter(t => t.gf > min.gf).length,
         ga: 1 + teams.filter(t => t.ga < min.ga).length,
+        gfTotal: 1 + teams.filter(t => t.gfTotal > min.gfTotal).length,
+        gaTotal: 1 + teams.filter(t => t.gaTotal < min.gaTotal).length,
     };
 }
 
@@ -258,21 +265,22 @@ function buildMarginAverages(games, ranks = {}) {
     const r = computeRecord(games);
     const total = r.GF - r.GA;
     const rankStr = rank => rank ? ` &middot; ${ordinal(rank)} in NHL` : '';
+    const totalRank = rank => rank ? `${ordinal(rank)} in NHL` : '';
     const wins = games.filter(g => g.result === 'W');
     const losses = games.filter(g => g.result !== 'W');
     const diff = avg(games);
     const winDiff = avg(wins);
     const lossDiff = avg(losses);
-    const card = (label, value, sub, cls = '') => `
+    const card = (label, value, subs, cls = '') => `
         <div class="season-glance-card">
           <div class="glance-label">${label}</div>
           <div class="glance-value${cls}">${value}</div>
-          <div class="glance-sub">${sub}</div>
+          ${[].concat(subs).filter(Boolean).map(t => `<div class="glance-sub">${t}</div>`).join('')}
         </div>`;
     return `
       <div class="season-glance-grid gm-averages">
-        ${card('Goals For', r.GF, `${(r.GF / r.GP).toFixed(2)} per game${rankStr(ranks.gf)}`)}
-        ${card('Goals Against', r.GA, `${(r.GA / r.GP).toFixed(2)} per game${rankStr(ranks.ga)}`)}
+        ${card('Goals For', r.GF, [totalRank(ranks.gfTotal), `${(r.GF / r.GP).toFixed(2)} per game${rankStr(ranks.gf)}`])}
+        ${card('Goals Against', r.GA, [totalRank(ranks.gaTotal), `${(r.GA / r.GP).toFixed(2)} per game${rankStr(ranks.ga)}`])}
         ${card('Goal Diff', `${total > 0 ? '+' : total < 0 ? '−' : ''}${Math.abs(total)}`, `${signed(diff)} per game`, valueClass(total))}
         ${card('Goal Diff in Wins', signed(winDiff), `${wins.length} ${wins.length === 1 ? 'win' : 'wins'}`, valueClass(winDiff))}
         ${card('Goal Diff in Losses', signed(lossDiff), `${losses.length} ${losses.length === 1 ? 'loss' : 'losses'} incl. OT/SO`, valueClass(lossDiff))}
