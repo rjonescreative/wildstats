@@ -298,26 +298,48 @@ function buildGameMargins(slots, games, ranks) {
         <div class="gm-chart"></div>
         <div class="gm-chart-tooltip" hidden></div>
       </div>
-      <div class="gm-legend" aria-hidden="true">
-        <span class="gm-legend-item"><span class="gm-swatch gm-w"></span>Win</span>
-        <span class="gm-legend-item"><span class="gm-swatch gm-l"></span>Loss</span>
-        <span class="gm-legend-item"><span class="gm-swatch gm-otl"></span>OT/SO Loss</span>
+      <div class="chart-controls gm-controls">
+        <div class="chart-mode-toggles">
+          <button class="division-toggle gm-mode-toggle${gmChartMode === 'diff' ? ' active' : ''}" data-mode="diff">Goals Diff</button>
+          <button class="division-toggle gm-mode-toggle${gmChartMode === 'goals' ? ' active' : ''}" data-mode="goals">All Goals</button>
+        </div>
+        <div class="gm-legend" aria-hidden="true">${gmLegend(gmChartMode)}</div>
       </div>
       ${buildMarginAverages(games, ranks)}`;
 }
 
-const RESULT_CLASS = { W: 'gm-w', L: 'gm-l', OTL: 'gm-otl' };
+let gmChartMode = 'diff'; // 'diff' | 'goals'
 
-function buildGameMarginsChart(slots, width) {
+function gmLegend(mode) {
+    const item = (cls, label) => `<span class="gm-legend-item"><span class="gm-swatch ${cls}"></span>${label}</span>`;
+    return mode === 'goals'
+        ? item('gm-w', 'Wild Goals') + item('gm-l', 'Opponent Goals') + item('gm-otl', 'OT/SO')
+        : item('gm-w', 'Win') + item('gm-l', 'Loss') + item('gm-otl', 'OT/SO');
+}
+
+const isExtraTime = g => g.lastPeriod === 'OT' || g.lastPeriod === 'SO';
+
+// Colour of the winning side: green for a Wild regulation win, red for a regulation loss,
+// grey whenever the game went to OT/SO (either way)
+const resultClass = g => isExtraTime(g) ? 'gm-otl' : g.result === 'W' ? 'gm-w' : 'gm-l';
+
+function buildGameMarginsChart(slots, width, mode) {
+    const goalsMode = mode === 'goals';
     const W = Math.round(width);
     const narrow = W < 500;
     const m = { top: 10, right: 8, bottom: 26, left: 30 };
     const pw = W - m.left - m.right;
 
-    const margins = slots.filter(s => s.game).map(s => Math.abs(s.game.myScore - s.game.oppScore));
-    const yMax = Math.max(3, ...margins);
-    const unit = narrow ? 15 : 22;                  // px per goal
-    const half = yMax * unit;
+    const played = slots.filter(s => s.game).map(s => s.game);
+    const heights = goalsMode
+        ? played.flatMap(g => [g.myScore, g.oppScore])
+        : played.map(g => Math.abs(g.myScore - g.oppScore));
+    const yMax = Math.max(3, ...heights);
+    // Both modes share one plot height (sized for the highest single-team score) so the
+    // page doesn't shift when toggling; each mode then scales its own goals into it
+    const maxScore = Math.max(3, ...played.flatMap(g => [g.myScore, g.oppScore]));
+    const half = maxScore * (narrow ? 15 : 22);
+    const unit = half / yMax;                       // px per goal
     const ph = half * 2;
     const H = m.top + ph + m.bottom;
     const base = m.top + half;
@@ -331,17 +353,26 @@ function buildGameMarginsChart(slots, width) {
     const ticks = [];
     for (let v = step; v <= yMax; v += step) ticks.push(v, -v);
     const grid = ticks.map(v => `<line x1="${m.left}" y1="${y(v)}" x2="${m.left + pw}" y2="${y(v)}" class="chart-grid"/>
-    <text x="${m.left - 6}" y="${y(v)}" dy="0.35em" text-anchor="end" class="chart-label">${v > 0 ? '+' : '−'}${Math.abs(v)}</text>`).join('\n    ');
+    <text x="${m.left - 6}" y="${y(v)}" dy="0.35em" text-anchor="end" class="chart-label">${goalsMode ? '' : v > 0 ? '+' : '−'}${Math.abs(v)}</text>`).join('\n    ');
 
     const bars = slots.map((s, i) => {
         if (!s.game) {
             // Unplayed: a faint stub on the baseline
             return `<rect x="${(cx(i) - barW / 2).toFixed(1)}" y="${base - 1}" width="${barW.toFixed(1)}" height="2" class="gm-future"/>`;
         }
-        const diff = s.game.myScore - s.game.oppScore;
-        const top = diff > 0 ? y(diff) : base;
-        const h = Math.abs(diff) * unit;
-        return `<rect x="${(cx(i) - barW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="${barW > 4 ? 1.5 : 0}" class="gm-bar ${RESULT_CLASS[s.game.result]}"/>`;
+        const g = s.game;
+        const rect = (top, h, cls) => h > 0
+            ? `<rect x="${(cx(i) - barW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h.toFixed(1)}" rx="${barW > 4 ? 1.5 : 0}" class="gm-bar ${cls}"/>`
+            : '';
+        if (goalsMode) {
+            // Wild goals up, opponent goals down; the winning side in full colour, the loser faded
+            const won = g.result === 'W';
+            const winCls = resultClass(g);
+            return rect(y(g.myScore), g.myScore * unit, won ? winCls : 'gm-w gm-faded')
+                 + rect(base, g.oppScore * unit, won ? 'gm-l gm-faded' : winCls);
+        }
+        const diff = g.myScore - g.oppScore;
+        return rect(diff > 0 ? y(diff) : base, Math.abs(diff) * unit, resultClass(g));
     }).join('');
 
     // Month labels at each month's first game, skipping any that would collide
@@ -358,7 +389,7 @@ function buildGameMarginsChart(slots, width) {
     <text x="${x.toFixed(1)}" y="${H - 6}" class="chart-label">${d.toLocaleDateString('en-US', { month: 'short' })}</text>`;
     }).join('');
 
-    return `<svg class="points-chart gm-chart-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Goal margin of each Wild game this season">
+    return `<svg class="points-chart gm-chart-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="${goalsMode ? 'Wild and opponent goals in each Wild game this season' : 'Goal margin of each Wild game this season'}">
   ${grid}
   <line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}" class="chart-axis"/>
   <rect class="gm-hover" x="0" y="${m.top}" width="${slotW.toFixed(1)}" height="${ph}" visibility="hidden"/>
@@ -379,7 +410,7 @@ function attachGameMarginsChart(root, slots) {
         const width = chartEl.clientWidth;
         if (!width) return;
         renderedWidth = width;
-        chartEl.innerHTML = buildGameMarginsChart(slots, width);
+        chartEl.innerHTML = buildGameMarginsChart(slots, width, gmChartMode);
         tooltip.hidden = true;
 
         const svg = chartEl.querySelector('svg');
@@ -401,9 +432,9 @@ function attachGameMarginsChart(root, slots) {
             const g = s.game;
             let body;
             if (g) {
-                const extra = g.lastPeriod === 'OT' || g.lastPeriod === 'SO' ? ` (${g.lastPeriod})` : '';
+                const extra = isExtraTime(g) ? ` (${g.lastPeriod})` : '';
                 const label = g.result === 'W' ? 'W' : g.result === 'OTL' ? 'OTL' : 'L';
-                body = `<div class="st-tip-value"><span class="gm-tip-result ${RESULT_CLASS[g.result]}">${label}</span> ${g.myScore}–${g.oppScore}${extra}</div>`;
+                body = `<div class="st-tip-value"><span class="gm-tip-result ${resultClass(g)}">${label}</span> ${g.myScore}–${g.oppScore}${extra}</div>`;
             } else {
                 body = '<div>Not played yet</div>';
             }
@@ -427,6 +458,17 @@ function attachGameMarginsChart(root, slots) {
     };
 
     render();
+
+    const legend = root.querySelector('.gm-legend');
+    root.querySelectorAll('.gm-mode-toggle').forEach(btn => {
+        btn.addEventListener('click', () => {
+            if (gmChartMode === btn.dataset.mode) return;
+            gmChartMode = btn.dataset.mode;
+            root.querySelectorAll('.gm-mode-toggle').forEach(b => b.classList.toggle('active', b === btn));
+            if (legend) legend.innerHTML = gmLegend(gmChartMode);
+            render();
+        });
+    });
 
     let resizeTimer = null;
     const onResize = () => {

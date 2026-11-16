@@ -4828,8 +4828,21 @@ footer {
 
 .gm-bar.gm-w, .gm-swatch.gm-w     { fill: #3cb96a; background: #3cb96a; }
 .gm-bar.gm-l, .gm-swatch.gm-l     { fill: #D03B4C; background: #D03B4C; }
-/* OT/SO losses earn a point: a neutral slate, distinct from both win and loss */
+/* Games decided in OT/SO (won or lost): a neutral slate, distinct from both win and loss */
 .gm-bar.gm-otl, .gm-swatch.gm-otl { fill: #8796AB; background: #8796AB; }
+
+/* All Goals mode: the losing side's bar */
+.gm-bar.gm-faded { fill-opacity: 0.3; }
+
+.gm-controls {
+    column-gap: 1rem;
+}
+
+@media (max-width: 600px) {
+    .gm-controls {
+        row-gap: 0.75rem;
+    }
+}
 
 .gm-tip-result { font-weight: 700; }
 .gm-tip-result.gm-w   { color: #3cb96a; }
@@ -4854,7 +4867,6 @@ footer {
     display: flex;
     flex-wrap: wrap;
     gap: 0.4rem 1.1rem;
-    margin-top: 0.625rem;
     font-size: 0.72rem;
     color: var(--text-secondary);
 }
