@@ -7,6 +7,14 @@
 // 2. Last good: when a route fails (5xx/429/thrown), the last good copy is served instead, marked
 //    X-Data-Stale so the browser can log that the data isn't real time. The edge cache is per data
 //    center, so a copy is also kept in R2 (global) and used when this data center has none.
+// 3. Deadline: a route that hasn't answered within ROUTE_DEADLINE while a last good copy exists
+//    gets the copy served in its place. The route keeps running in the background and refreshes
+//    the copy if it succeeds, so a hung NHL API (up to ~16s of timeouts and retries per call)
+//    costs visitors at most the deadline. With no copy to fall back on, the route is awaited.
+// 4. Failing URL: when a URL's route fails, it's marked failing for FAILING_FOR. While marked, its
+//    last good copy is served at once without running the route, so an outage doesn't keep paying
+//    the deadline or hammer a rate-limited NHL API. Once the mark expires, the next visitor's
+//    request tries the route again (within the deadline).
 // Routes with their own R2 fallback set X-Data-Stale themselves; those responses aren't kept.
 
 const LAST_GOOD_TTL = 7 * 24 * 60 * 60; // keep an edge copy for a week
@@ -14,11 +22,24 @@ const STALE_MAX_AGE = 60;                // browsers retry the real data after a
 const FRESH_CAP = 300;                   // serve a cached copy without re-running the route for at most 5 min
 const R2_REFRESH = 15 * 60 * 1000;       // rewrite a URL's R2 copy at most every 15 min (per data center)
 const R2_PREFIX = 'api-last-good/';
+const ROUTE_DEADLINE = 2000;             // ms to wait for a route before serving the last good copy
+// Routes that fan out to many NHL requests and can pass 2s even when the NHL is healthy
+const SLOW_ROUTE_DEADLINES = { '/api/milestones/career-totals': 8000 };
+const FAILING_FOR = 60;                  // seconds a failed URL serves its last good copy without retrying
+
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 // Cache key for a URL's last good copy, kept apart from any normal edge caching of that URL
 function lastGoodKey(url) {
     const u = new URL(url);
     u.searchParams.set('__lastGood', '1');
+    return new Request(u.toString());
+}
+
+// Cache key marking a URL whose route failed recently (see 4. above)
+function failingKey(url) {
+    const u = new URL(url);
+    u.searchParams.set('__failing', '1');
     return new Request(u.toString());
 }
 
@@ -61,8 +82,12 @@ export async function onRequest(context) {
 
     const cache = caches.default;
     const key = lastGoodKey(request.url);
+    const failKey = failingKey(request.url);
     const storeKey = env?.H2H_DATA ? r2Key(request.url) : null; // null: no global copy for this URL
-    const cached = await cache.match(key).catch(() => null);
+    const [cached, failing] = await Promise.all([
+        cache.match(key).catch(() => null),
+        cache.match(failKey).catch(() => null),
+    ]);
 
     // 1. Recent enough copy: serve it without running the route
     if (cached) {
@@ -77,14 +102,46 @@ export async function onRequest(context) {
         }
     }
 
-    let response = null;
-    try {
-        response = await context.next();
-    } catch {
-        // treated as a failure below
+    // Last good copy to fall back on: this data center's, else R2's (looked up at most once, and
+    // only once it's needed, so a healthy route costs no R2 reads)
+    let lastGood;
+    const loadLastGood = () => lastGood ??= (async () => {
+        if (cached) {
+            const headers = new Headers(cached.headers);
+            headers.delete('X-Fresh-For');
+            return staleResponse(cached.body, headers);
+        }
+        const stored = storeKey ? await env.H2H_DATA.get(storeKey).catch(() => null) : null;
+        return stored
+            ? staleResponse(stored.body, {
+                'Content-Type': stored.httpMetadata?.contentType || 'application/json',
+                'X-Data-Updated': stored.customMetadata?.updatedAt || stored.uploaded?.toISOString?.() || '',
+            })
+            : null;
+    })();
+
+    // 4. Failed recently: serve the last good copy straight away
+    if (failing) {
+        const fallback = await loadLastGood();
+        if (fallback) return fallback;
     }
 
-    if (response && !isFailure(response.status)) {
+    // Run the route; keep a successful answer as the last good copy, or mark the URL failing.
+    // Resolves to { response, ok } (response null when the route threw).
+    const run = (async () => {
+        let response = null;
+        try {
+            response = await context.next();
+        } catch {
+            // treated as a failure below
+        }
+
+        if (!response || isFailure(response.status)) {
+            const mark = new Response('1', { headers: { 'Cache-Control': `public, max-age=${FAILING_FOR}` } });
+            await cache.put(failKey, mark).catch(() => {});
+            return { response, ok: false };
+        }
+
         const isJson = response.headers.get('content-type')?.includes('application/json');
         if (response.status === 200 && isJson && !response.headers.get('X-Data-Stale')) {
             const updatedAt = new Date().toISOString();
@@ -106,23 +163,27 @@ export async function onRequest(context) {
                 );
             }
         }
-        return response;
+        return { response, ok: true };
+    })();
+
+    // 3. Deadline: past it, serve the last good copy if there is one and let the route finish
+    // in the background (refreshing the copy, or marking the URL failing)
+    const deadline = SLOW_ROUTE_DEADLINES[new URL(request.url).pathname] ?? ROUTE_DEADLINE;
+    const first = await Promise.race([run, sleep(deadline).then(() => null)]);
+    if (!first) {
+        const fallback = await loadLastGood();
+        if (fallback) {
+            context.waitUntil(run);
+            return fallback;
+        }
     }
+
+    const { response, ok } = first ?? await run;
+    if (ok) return response;
 
     // 2. Failure: last good copy from this data center, then from R2
-    if (cached) {
-        const headers = new Headers(cached.headers);
-        headers.delete('X-Fresh-For');
-        return staleResponse(cached.body, headers);
-    }
-
-    const stored = storeKey ? await env.H2H_DATA.get(storeKey).catch(() => null) : null;
-    if (stored) {
-        return staleResponse(stored.body, {
-            'Content-Type': stored.httpMetadata?.contentType || 'application/json',
-            'X-Data-Updated': stored.customMetadata?.updatedAt || stored.uploaded?.toISOString?.() || '',
-        });
-    }
+    const fallback = await loadLastGood();
+    if (fallback) return fallback;
 
     return response ?? new Response(JSON.stringify({ error: 'Service unavailable' }), {
         status: 500,

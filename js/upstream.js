@@ -11,7 +11,7 @@
 
 const DEFAULT_TTL = 60;          // seconds a successful response is reused
 const DEFAULT_RETRIES = 2;       // extra attempts after the first
-const DEFAULT_TIMEOUT = 10000;   // ms per attempt
+const DEFAULT_TIMEOUT = 5000;    // ms per attempt (API middleware serves the last good copy after 2s anyway)
 const MAX_RETRY_WAIT = 2000;     // ms; never wait longer than this between attempts
 const MEMORY_CACHE_LIMIT = 500;  // Node only
 
@@ -86,7 +86,7 @@ async function attempt(url, init, timeout) {
  *   ttl     seconds to reuse a successful response (default 60; 0 = don't cache)
  *   retries extra attempts on 429 / 5xx / network errors (default 2; 0 when init.signal is given,
  *           since the caller has its own time budget)
- *   timeout ms per attempt (default 10000; ignored when init.signal is given)
+ *   timeout ms per attempt (default 5000; ignored when init.signal is given)
  * @returns {Promise<Response>}
  */
 export async function upstreamFetch(url, { ttl = DEFAULT_TTL, retries, timeout = DEFAULT_TIMEOUT, ...init } = {}) {

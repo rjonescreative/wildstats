@@ -37,21 +37,76 @@ app.use(express.static(__dirname));
 // Last-good fallback for every /api route (matches functions/api/_middleware.js).
 // Each successful JSON response is kept in memory under its URL; when a route fails (usually the
 // NHL API being down or rate-limiting us), the last good copy is served, marked X-Data-Stale.
+// Deadline: a route that hasn't answered within ROUTE_DEADLINE while a copy exists gets the copy
+// served in its place; the route keeps running and refreshes the copy if it succeeds.
+// Failing URL: after a route fails, its copy is served at once without running the route for
+// FAILING_FOR, so an outage doesn't keep paying the deadline or hammer a rate-limited NHL API.
+const ROUTE_DEADLINE = 2000;        // ms
+// Routes that fan out to many NHL requests and can pass 2s even when the NHL is healthy
+const SLOW_ROUTE_DEADLINES = { '/api/milestones/career-totals': 8000 };
+const FAILING_FOR = 60 * 1000;      // ms
 const lastGoodResponses = new Map(); // url → { body, updatedAt }
+const failingUntil = new Map();      // url → time its failing mark expires
 app.use('/api', (req, res, next) => {
     if (req.method !== 'GET') return next();
     const key = req.originalUrl;
     const sendJson = res.json.bind(res);
+    const { status: setStatus, set: setHeaders, send } = res;
+
+    const serveLastGood = reason => {
+        const { body, updatedAt } = lastGoodResponses.get(key);
+        console.warn(`Serving last good response for ${key} (from ${updatedAt}): ${reason}`);
+        res.status(200).set({ 'X-Data-Stale': 'true', 'X-Data-Updated': updatedAt, 'Cache-Control': 'public, max-age=60' });
+        return sendJson(body);
+    };
+
+    if ((failingUntil.get(key) ?? 0) > Date.now() && lastGoodResponses.has(key)) {
+        return serveLastGood('route failed recently');
+    }
+
+    // Once the copy has gone out, the route's own status and headers land here instead of on the
+    // sent response (setting headers after sending would throw)
+    let servedStale = false;
+    const shadow = { status: 200, headers: {} };
+    res.status = function (code) {
+        if (!servedStale) return setStatus.call(this, code);
+        shadow.status = code;
+        return this;
+    };
+    res.set = res.header = function (field, value) {
+        if (!servedStale) return setHeaders.apply(this, arguments); // Express tells the object form by argument count
+        const fields = typeof field === 'object' ? field : { [field]: value };
+        Object.entries(fields).forEach(([k, v]) => { shadow.headers[k.toLowerCase()] = String(v); });
+        return this;
+    };
+    res.send = function (...args) {
+        return servedStale ? this : send.apply(this, args);
+    };
+
+    const deadline = SLOW_ROUTE_DEADLINES[req.baseUrl + req.path] ?? ROUTE_DEADLINE;
+    const timer = lastGoodResponses.has(key)
+        ? setTimeout(() => {
+            if (res.headersSent) return;
+            shadow.status = res.statusCode; // a status the route already set still counts
+            serveLastGood(`no answer within ${deadline}ms (the route keeps running)`);
+            servedStale = true;
+        }, deadline)
+        : null;
+    res.on('close', () => clearTimeout(timer));
+
     res.json = body => {
-        const status = res.statusCode;
-        if (status === 200 && !res.get('X-Data-Stale')) {
+        clearTimeout(timer);
+        const status = servedStale ? shadow.status : res.statusCode;
+        const markedStale = servedStale ? shadow.headers['x-data-stale'] : res.get('X-Data-Stale');
+        const failed = status >= 500 || status === 429;
+        if (status === 200 && !markedStale) {
             lastGoodResponses.set(key, { body, updatedAt: new Date().toISOString() });
-        } else if ((status >= 500 || status === 429) && lastGoodResponses.has(key)) {
-            const { body: lastGood, updatedAt } = lastGoodResponses.get(key);
-            console.warn(`Serving last good response for ${key} (from ${updatedAt})`);
-            res.status(200).set({ 'X-Data-Stale': 'true', 'X-Data-Updated': updatedAt, 'Cache-Control': 'public, max-age=60' });
-            return sendJson(lastGood);
+            failingUntil.delete(key);
+        } else if (failed) {
+            failingUntil.set(key, Date.now() + FAILING_FOR);
         }
+        if (servedStale) return res; // the last good copy already went out
+        if (failed && lastGoodResponses.has(key)) return serveLastGood(`route answered ${status}`);
         return sendJson(body);
     };
     next();
