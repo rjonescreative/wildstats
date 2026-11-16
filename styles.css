@@ -4587,6 +4587,10 @@ footer {
 }
 
 .season-glance-card {
+    /* Column flex so content sits vertically centred when a row's cards differ in height */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
     flex: 1 1 110px;
     background: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
