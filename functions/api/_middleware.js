@@ -1,7 +1,7 @@
 // Cloudflare Pages middleware for every /api route — shared edge cache + last-good fallback.
 //
 // 1. Fresh copy: each successful JSON response is kept in the edge cache under its URL. While it's
-//    younger than the route's own max-age (capped at FRESH_CAP), it's served straight from the
+//    younger than the route's own max-age (capped at FRESH_CAP, or its FRESH_CAPS entry), it's served straight from the
 //    cache without running the route, so visitors don't each cost NHL API requests (the NHL
 //    rate-limits Cloudflare's shared IPs with HTTP 429).
 // 2. Last good: when a route fails (5xx/429/thrown), the last good copy is served instead, marked
@@ -20,6 +20,11 @@
 const LAST_GOOD_TTL = 7 * 24 * 60 * 60; // keep an edge copy for a week
 const STALE_MAX_AGE = 60;                // browsers retry the real data after a minute
 const FRESH_CAP = 300;                   // serve a cached copy without re-running the route for at most 5 min
+// Routes whose data only changes after games get a longer cap (still never past the route's own
+// max-age). Career totals checks for a newly finished Wild game each run and rebuilds (~28 NHL
+// requests) only after one (js/careerTotals.js); an hour's cap keeps even the check to once an
+// hour per data center.
+const FRESH_CAPS = { '/api/milestones/career-totals': 3600 };
 const R2_REFRESH = 15 * 60 * 1000;       // rewrite a URL's R2 copy at most every 15 min (per data center)
 const R2_PREFIX = 'api-last-good/';
 const ROUTE_DEADLINE = 2000;             // ms to wait for a route before serving the last good copy
@@ -91,7 +96,8 @@ export async function onRequest(context) {
 
     // 1. Recent enough copy: serve it without running the route
     if (cached) {
-        const freshFor = Math.min(Number(cached.headers.get('X-Fresh-For')) || 0, FRESH_CAP) * 1000;
+        const cap = FRESH_CAPS[new URL(request.url).pathname] ?? FRESH_CAP;
+        const freshFor = Math.min(Number(cached.headers.get('X-Fresh-For')) || 0, cap) * 1000;
         const age = ageMs(cached);
         if (age < freshFor) {
             const headers = new Headers(cached.headers);

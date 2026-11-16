@@ -287,14 +287,19 @@ async function prerenderFor(path, env, meta) {
             return html && { selector: '#stats-team-records-view', html };
         }
         if (path.startsWith('/standings/points-progression')) {
-            const res = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
-                redirect: 'follow',
-                signal: AbortSignal.timeout(2500),
-                ttl: 300,
-                cf: { cacheTtl: 300, cacheEverything: true },
-            });
-            if (!res.ok) return null;
-            const { standings = [] } = await res.json();
+            // The standings route's game-triggered build (js/gameTriggeredData.js), else the NHL
+            const stored = await readR2Json(env, 'game-triggered/standings.json').catch(() => null);
+            let standings = stored?.data?.standings;
+            if (!standings) {
+                const res = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
+                    redirect: 'follow',
+                    signal: AbortSignal.timeout(2500),
+                    ttl: 300,
+                    cf: { cacheTtl: 300, cacheEverything: true },
+                });
+                if (!res.ok) return null;
+                ({ standings = [] } = await res.json());
+            }
             return standings.length
                 ? { selector: '#standings-container', html: renderPointsProgressionContent(standings, getSeasonLabel()) }
                 : null;

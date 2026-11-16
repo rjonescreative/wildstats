@@ -5,9 +5,9 @@ import { dirname, join } from 'path';
 import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
-import { upstreamFetch, mapLimit } from './js/upstream.js';
-import { addFaceoffCounts, fetchFaceoffReport } from './js/faceoffs.js';
-import { addGoalieShootoutLosses, fetchGoalieShootoutReport } from './js/goalieShootouts.js';
+import { upstreamFetch } from './js/upstream.js';
+import { loadDataset, DATASETS } from './js/gameTriggeredData.js';
+import { memoryStore } from './js/gameTriggered.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
 import { filterVideos, playKey } from './js/videoFilters.js';
@@ -112,15 +112,15 @@ app.use('/api', (req, res, next) => {
     next();
 });
 
+// Game-triggered datasets (js/gameTriggered.js, shared with the Cloudflare Functions): rebuilt only
+// after games finish. Locally each last build is kept in memory rather than R2, so local dev never
+// overwrites production's stored copies.
+const datasetStores = Object.fromEntries(Object.keys(DATASETS).map(name => [name, memoryStore()]));
+
 // Proxy endpoint for NHL API
 app.get('/api/standings/now', async (req, res) => {
     try {
-        const response = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
-            redirect: 'follow'
-        });
-
-        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
-        const data = await response.json();
+        const { data } = await loadDataset('standings', { season: getCurrentSeason(), store: datasetStores.standings });
         res.json(data);
     } catch (error) {
         console.error('Error fetching standings:', error);
@@ -131,17 +131,8 @@ app.get('/api/standings/now', async (req, res) => {
 // Wild team stats endpoint
 app.get('/api/wild/stats', async (req, res) => {
     try {
-        const [response, faceoffs, shootouts] = await Promise.all([
-            upstreamFetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
-                redirect: 'follow'
-            }),
-            fetchFaceoffReport(getCurrentSeason()),
-            fetchGoalieShootoutReport(getCurrentSeason())
-        ]);
-
-        if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
-        const data = await response.json();
-        res.json(addGoalieShootoutLosses(addFaceoffCounts(data, faceoffs), shootouts));
+        const { data } = await loadDataset('wildStats', { season: getCurrentSeason(), store: datasetStores.wildStats });
+        res.json(data);
     } catch (error) {
         console.error('Error fetching Wild stats:', error);
         res.status(500).json({ error: 'Failed to fetch Wild stats' });
@@ -151,48 +142,8 @@ app.get('/api/wild/stats', async (req, res) => {
 // League stat leaders endpoint
 app.get('/api/league/leaders', async (req, res) => {
     try {
-        const [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes] = await Promise.all([
-            // Skater stats
-            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=goals&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=assists&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=points&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/skater-stats-leaders/${getCurrentSeason()}/2?categories=plusMinus&limit=100`, {
-                redirect: 'follow'
-            }),
-            // Goalie stats
-            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=wins&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=savePctg&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=goalsAgainstAverage&limit=100`, {
-                redirect: 'follow'
-            }),
-            upstreamFetch(`https://api-web.nhle.com/v1/goalie-stats-leaders/${getCurrentSeason()}/2?categories=shutouts&limit=100`, {
-                redirect: 'follow'
-            })
-        ]);
-
-        const failed = [goalsRes, assistsRes, pointsRes, plusMinusRes, winsRes, savePctgRes, gaaRes, shutoutsRes].find(r => !r.ok);
-        if (failed) throw new Error(`NHL API error: ${failed.status}`);
-
-        const goals = await goalsRes.json();
-        const assists = await assistsRes.json();
-        const points = await pointsRes.json();
-        const plusMinus = await plusMinusRes.json();
-        const wins = await winsRes.json();
-        const savePctg = await savePctgRes.json();
-        const goalsAgainstAverage = await gaaRes.json();
-        const shutouts = await shutoutsRes.json();
-
-        res.json({ goals, assists, points, plusMinus, wins, savePctg, goalsAgainstAverage, shutouts });
+        const { data } = await loadDataset('leagueLeaders', { season: getCurrentSeason(), store: datasetStores.leagueLeaders });
+        res.json(data);
     } catch (error) {
         console.error('Error fetching league leaders:', error);
         res.status(500).json({ error: 'Failed to fetch league leaders' });
@@ -579,49 +530,6 @@ app.get('/api/milestones/leaders', async (req, res) => {
     }
 });
 
-// A missing split value can only be inferred when the matching total is 0; otherwise it's null (excluded)
-function inferred(value, total) {
-    return value ?? (total === 0 ? 0 : null);
-}
-
-// Even-strength, power-play, and short-handed career totals from a player landing page.
-// Landing pages have no even-strength split, but goals/points = EV + PP + SH, so EV is the remainder.
-function situationalFromLanding(rs) {
-    const ppGoals  = inferred(rs.powerPlayGoals, rs.goals ?? 0);
-    const ppPoints = inferred(rs.powerPlayPoints, rs.points ?? 0);
-    const shGoals  = inferred(rs.shorthandedGoals, rs.goals ?? 0);
-    const shPoints = inferred(rs.shorthandedPoints, rs.points ?? 0);
-    const evGoals  = ppGoals === null || shGoals === null ? null : (rs.goals ?? 0) - ppGoals - shGoals;
-    const evPoints = ppPoints === null || shPoints === null ? null : (rs.points ?? 0) - ppPoints - shPoints;
-    return {
-        evGoals, evPoints, evAssists: evGoals === null || evPoints === null ? null : evPoints - evGoals,
-        ppGoals, ppPoints, ppAssists: ppGoals === null || ppPoints === null ? null : ppPoints - ppGoals,
-        shGoals, shPoints, shAssists: shGoals === null || shPoints === null ? null : shPoints - shGoals,
-    };
-}
-
-// All-team career empty-net totals (landing pages don't include them), one stats API request
-async function fetchEmptyNetCareers(playerIds) {
-    const cayenne = `gameTypeId=2 and playerId in (${playerIds.join(',')})`;
-    const url = `https://api.nhle.com/stats/rest/en/skater/realtime?isAggregate=true&isGame=false&limit=-1&cayenneExp=${encodeURIComponent(cayenne)}`;
-    const r = await upstreamFetch(url, { redirect: 'follow' });
-    if (!r.ok) throw new Error(`Empty-net fetch failed: ${r.status}`);
-    const { data = [] } = await r.json();
-    return new Map(data.map(row => [row.playerId, row]));
-}
-
-// Merge empty-net career totals into careerTotals (missing data stays null → excluded)
-function addEmptyNetCareers(careerTotals, enByPlayer) {
-    for (const [playerId, stats] of Object.entries(careerTotals)) {
-        const row = enByPlayer?.get(Number(playerId)) ?? {};
-        const enGoals   = inferred(row.emptyNetGoals, stats.goals);
-        const enAssists = inferred(row.emptyNetAssists, stats.assists);
-        stats.enGoals   = enGoals;
-        stats.enAssists = enAssists;
-        stats.enPoints  = enGoals === null || enAssists === null ? null : enGoals + enAssists;
-    }
-}
-
 // Sweater numbers endpoint — every number worn by a Wild player, from R2
 app.get('/api/numbers/sweater', async (req, res) => {
     try {
@@ -647,54 +555,9 @@ app.get('/api/numbers/sweater', async (req, res) => {
 // Returns: { playerId: { gamesPlayed, goals, assists, points } }
 app.get('/api/milestones/career-totals', async (req, res) => {
     try {
-        // Step 1: get current Wild roster
-        const rosterRes = await upstreamFetch(`https://api-web.nhle.com/v1/club-stats/MIN/${getCurrentSeason()}/2`, {
-            redirect: 'follow',
-        });
-        if (!rosterRes.ok) throw new Error(`Roster fetch failed: ${rosterRes.status}`);
-        const rosterData = await rosterRes.json();
-
-        const players = [
-            ...(rosterData.skaters || []).map(p => p.playerId),
-            ...(rosterData.goalies  || []).map(p => p.playerId),
-        ];
-
-        // Step 2: each player's landing page, a few at a time (matches the Cloudflare Function).
-        // Any failure fails the route, so the last good copy is served instead of zeros.
-        const results = await mapLimit(players, 6, async playerId => {
-            const r = await upstreamFetch(`https://api-web.nhle.com/v1/player/${playerId}/landing`, { ttl: 3600 });
-            if (!r.ok) throw new Error(`Landing fetch failed for ${playerId}: ${r.status}`);
-            const d = await r.json();
-            const rs = d.careerTotals?.regularSeason ?? {};
-            return {
-                playerId,
-                gamesPlayed: rs.gamesPlayed ?? 0,
-                goals:       rs.goals       ?? 0,
-                assists:     rs.assists     ?? 0,
-                points:      rs.points      ?? 0,
-                ...situationalFromLanding(rs),
-            };
-        });
-        const failed = results.find(r => r.status === 'rejected');
-        if (failed) throw failed.reason;
-
-        const careerTotals = {};
-        results.forEach(r => {
-            const { playerId, ...stats } = r.value;
-            careerTotals[playerId] = stats;
-        });
-
-        // Step 3: empty-net career totals (if this fails, those milestones are just skipped)
-        let enByPlayer = null;
-        try {
-            enByPlayer = await fetchEmptyNetCareers(players);
-        } catch (err) {
-            console.warn('Empty-net career totals unavailable:', err.message);
-        }
-        addEmptyNetCareers(careerTotals, enByPlayer);
-
-        res.set('Cache-Control', 'public, max-age=3600'); // 1 hour
-        res.json(careerTotals);
+        const { data } = await loadDataset('careerTotals', { season: getCurrentSeason(), store: datasetStores.careerTotals, landingTtl: 3600 });
+        res.set('Cache-Control', 'public, max-age=3600');
+        res.json(data);
     } catch (error) {
         console.error('Error fetching career totals:', error);
         res.status(500).json({ error: 'Failed to fetch career totals data' });
