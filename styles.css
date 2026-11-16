@@ -4486,7 +4486,12 @@ footer {
 
 .chart-mode-toggles {
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
+}
+
+.chart-mode-toggle {
+    white-space: nowrap;
 }
 
 .division-toggles {
@@ -5302,4 +5307,19 @@ footer {
         width: 84px;
         height: 84px;
     }
+}
+
+/* Points progression › Playoff Line mode: the zero line is the 2nd wild card's points */
+.chart-playoff-line {
+    stroke: rgba(255, 255, 255, 0.55);
+    stroke-width: 1.25;
+    stroke-dasharray: 6 4;
+}
+
+.chart-playoff-line-label {
+    fill: var(--text-secondary);
+    font-size: 10px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
 }

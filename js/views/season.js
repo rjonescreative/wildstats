@@ -51,7 +51,8 @@ export const DIVISIONS = {
 
 // ─── Module state ──────────────────────────────────────────────────────────
 let activeToggles = new Set(['Central']);
-let chartMode = 'points'; // 'points' | 'pct'
+let chartMode = 'points'; // 'points' | 'pct' | 'line' (playoff line)
+let playoffConf = 'W';     // playoff line chart filter: 'W' | 'E' conference, or 'MIN' for the Wild alone
 let alwaysShowWild = true; // Wild toggle: keep MIN on the chart even when the Central is off
 export const dataCache = {}; // abbrev → points progression array
 
@@ -1440,31 +1441,189 @@ function buildPctChart(teams) {
 </svg>`;
 }
 
+// ─── Playoff line chart: points above/below the conference's 2nd wild card ──
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const dayNumber = date => Date.UTC(+date.slice(0, 4), +date.slice(5, 7) - 1, +date.slice(8, 10)) / DAY_MS;
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const shortDate = date => `${MONTHS[+date.slice(5, 7) - 1]} ${+date.slice(8, 10)}`;
+
+let playoffLineCache = null; // { W: series, E: series } built once from the all-team schedules
+
+// Points the 2nd wild card team has: drop the top 3 in each division, and the cutoff is the
+// 2nd-best total left in the conference. Tied teams have equal points, so tiebreakers can't
+// change this number — only which team's name sits on it.
+function wildCardCutoff(points, conf) {
+    const divs = Object.keys(DIVISIONS).filter(d => ALL_TEAMS[DIVISIONS[d][0]].conf === conf);
+    const pool = divs.flatMap(d => [...DIVISIONS[d]].sort((a, b) => points[b] - points[a]).slice(3));
+    return pool.map(t => points[t]).sort((a, b) => b - a)[1];
+}
+
+// Replay every completed regular-season game in date order and, at the end of each
+// day with games, record each team's points minus its conference's wild card cutoff.
+// Returns { W: { [abbrev]: [{ x, date, diff }] }, E: { ... } }, x = days since the first game.
+function computePlayoffLines(allSchedules) {
+    const games = new Map();
+    Object.values(allSchedules).flat().forEach(g => {
+        if (g.gameType === 2 && (g.gameState === 'FINAL' || g.gameState === 'OFF')) games.set(g.id, g);
+    });
+    const sorted = [...games.values()].sort((a, b) => a.gameDate.localeCompare(b.gameDate));
+    const abbrevs = Object.keys(ALL_TEAMS);
+    const points = Object.fromEntries(abbrevs.map(a => [a, 0]));
+    const result = { W: {}, E: {} };
+    abbrevs.forEach(a => { result[ALL_TEAMS[a].conf][a] = []; });
+    if (!sorted.length) return result;
+
+    const firstDay = dayNumber(sorted[0].gameDate);
+    const recordDay = date => {
+        const cutoff = { W: wildCardCutoff(points, 'W'), E: wildCardCutoff(points, 'E') };
+        const x = dayNumber(date) - firstDay;
+        abbrevs.forEach(a => {
+            const conf = ALL_TEAMS[a].conf;
+            result[conf][a].push({ x, date, diff: points[a] - cutoff[conf] });
+        });
+    };
+
+    sorted.forEach((g, i) => {
+        const homeWon = g.homeTeam.score > g.awayTeam.score;
+        const winner = homeWon ? g.homeTeam.abbrev : g.awayTeam.abbrev;
+        const loser  = homeWon ? g.awayTeam.abbrev : g.homeTeam.abbrev;
+        if (winner in points) points[winner] += 2;
+        if (loser in points && (g.gameOutcome?.lastPeriodType ?? 'REG') !== 'REG') points[loser] += 1;
+        if (sorted[i + 1]?.gameDate !== g.gameDate) recordDay(g.gameDate);
+    });
+    return result;
+}
+
+async function loadPlayoffLines() {
+    if (!playoffLineCache) playoffLineCache = computePlayoffLines(await getAllTeamSchedules());
+    return playoffLineCache;
+}
+
+// Scale shared by the chart builder and the hover handler
+function playoffLineScale(teams) {
+    const all = teams.flatMap(t => t.data);
+    const xMax = Math.max(all.reduce((m, d) => Math.max(m, d.x), 0), 7);
+    const lo = Math.min(0, ...all.map(d => d.diff));
+    const hi = Math.max(0, ...all.map(d => d.diff));
+    const range = Math.max(hi - lo, 4);
+    const step = range <= 12 ? 2 : range <= 30 ? 5 : 10;
+    const yMin = Math.floor((lo - range * 0.08) / step) * step;
+    const yMax = Math.ceil((hi + range * 0.08) / step) * step;
+    const ML = 55;
+    const PW = VB_W - ML - M.right;
+    return {
+        xMax, yMin, yMax, step, ML, PW,
+        sx: x => ML + (x / xMax) * PW,
+        sy: v => M.top + PLOT_H - ((v - yMin) / (yMax - yMin)) * PLOT_H,
+        invX: svgX => (svgX - ML) / PW * xMax,
+    };
+}
+
+function buildPlayoffLineChart(teams) {
+    const clipId = uniqueSvgId('pl-plot-area');
+    const s = playoffLineScale(teams);
+    const plotBottom = M.top + PLOT_H;
+    const plotRight  = s.ML + s.PW;
+    const firstDate = teams.find(t => t.data.length)?.data[0].date;
+
+    const yTicks = [];
+    for (let v = s.yMin; v <= s.yMax; v += s.step) yTicks.push(v);
+
+    // Month ticks on the 1st of each month inside the plotted range
+    const xTicks = [];
+    if (firstDate) {
+        const first = dayNumber(firstDate);
+        let y = +firstDate.slice(0, 4), m = +firstDate.slice(5, 7); // next month after the first game
+        for (;;) {
+            if (++m > 12) { m = 1; y++; }
+            const x = Date.UTC(y, m - 1, 1) / DAY_MS - first;
+            if (x > s.xMax) break;
+            xTicks.push({ x, label: MONTHS[m - 1] });
+        }
+    }
+
+    const gridLineEls = [
+        ...yTicks.filter(v => v !== 0).map(v =>
+            `<line x1="${s.ML}" y1="${s.sy(v).toFixed(1)}" x2="${plotRight}" y2="${s.sy(v).toFixed(1)}" class="chart-grid"/>`),
+        ...xTicks.map(t =>
+            `<line x1="${s.sx(t.x).toFixed(1)}" y1="${M.top}" x2="${s.sx(t.x).toFixed(1)}" y2="${plotBottom}" class="chart-grid"/>`),
+    ].join('\n    ');
+
+    const zeroY = s.sy(0).toFixed(1);
+    const playoffLine = `<line x1="${s.ML}" y1="${zeroY}" x2="${plotRight}" y2="${zeroY}" class="chart-playoff-line"/>
+  <text x="${(s.ML + 6).toFixed(1)}" y="${(+zeroY - 6).toFixed(1)}" class="chart-playoff-line-label">Playoff line</text>`;
+
+    const axisLabels = [
+        ...yTicks.map(v => `<text x="${(s.ML - 8).toFixed(1)}" y="${s.sy(v).toFixed(1)}" dy="0.35em" text-anchor="end" class="chart-label">${v > 0 ? '+' : ''}${v}</text>`),
+        ...xTicks.map(t => `<text x="${s.sx(t.x).toFixed(1)}" y="${(plotBottom + 16).toFixed(1)}" text-anchor="middle" class="chart-label">${t.label}</text>`),
+    ].join('\n    ');
+
+    const linePathPl = data => data
+        .map((d, i) => `${i === 0 ? 'M' : 'L'}${s.sx(d.x).toFixed(1)},${s.sy(d.diff).toFixed(1)}`)
+        .join(' ');
+
+    const teamGroups = teams.filter(t => t.data.length).map(t => {
+        const last = t.data[t.data.length - 1];
+        const lx = s.sx(last.x);
+        const ly = s.sy(last.diff);
+        // Wild: shade the gap between its line and the playoff line
+        const area = t.abbrev === 'MIN'
+            ? `<path d="${linePathPl(t.data)} L${lx.toFixed(1)},${zeroY} L${s.sx(t.data[0].x).toFixed(1)},${zeroY} Z" fill="${t.config.lineColor}" fill-opacity="0.12" stroke="none" clip-path="url(#${clipId})" pointer-events="none"/>`
+            : '';
+        return `<g class="team-group" data-team="${t.abbrev}">
+    ${area}<path d="${linePathPl(t.data)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#${clipId})"/>
+    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
+    <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" style="cursor:pointer"/>
+    </g>`;
+    }).join('\n    ');
+
+    return `<svg class="points-chart" viewBox="0 0 ${VB_W} ${VB_H}" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <clipPath id="${clipId}">
+      <rect x="${s.ML}" y="${M.top}" width="${s.PW}" height="${PLOT_H}"/>
+    </clipPath>
+  </defs>
+  ${gridLineEls}
+  <line x1="${s.ML}" y1="${M.top}" x2="${s.ML}" y2="${plotBottom}" class="chart-axis"/>
+  <line x1="${s.ML}" y1="${plotBottom}" x2="${plotRight}" y2="${plotBottom}" class="chart-axis"/>
+  ${playoffLine}
+  ${teamGroups}
+  ${axisLabels}
+  <text x="12" y="${(M.top + PLOT_H / 2).toFixed(1)}" text-anchor="middle" transform="rotate(-90,12,${(M.top + PLOT_H / 2).toFixed(1)})" class="chart-axis-title">Pts vs Wild Card</text>
+</svg>`;
+}
+
 // ─── Chart hover: dim others, bring hovered to front, show tooltip ─────────
 
 export function attachChartHoverHandlers(svg, teams, mode) {
     const groups = svg.querySelectorAll('.team-group');
     let hoveredTeam = null;
 
-    // Chart coordinate params (mirrors buildChart / buildPctChart)
-    const xMax = teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
+    // Chart coordinate params (mirrors buildChart / buildPctChart / buildPlayoffLineChart)
+    const isLine = mode === 'line';
+    const pl = isLine ? playoffLineScale(teams) : null;
+    const xMax = isLine ? pl.xMax : teams.reduce((m, t) => Math.max(m, t.data[t.data.length - 1]?.game ?? 0), 10);
     const ML_PCT = 65;
     const PW_PCT = VB_W - ML_PCT - M.right;
 
-    const { yMax } = pointsScale(teams);
+    const { yMax } = isLine ? { yMax: 0 } : pointsScale(teams);
 
-    const gameToSvgX = (game) => mode === 'pct'
-        ? ML_PCT + (game / xMax) * PW_PCT
+    // x position of a data point ("game" on the points/pct charts, days into the season on the playoff line)
+    const xOf = d => isLine ? d.x : d.game;
+
+    const gameToSvgX = (game) => isLine ? pl.sx(game)
+        : mode === 'pct' ? ML_PCT + (game / xMax) * PW_PCT
         : sx(game, xMax);
 
-    const dataToSvgY = (d) => mode === 'pct'
-        ? M.top + PLOT_H - d.pct * PLOT_H
+    const dataToSvgY = (d) => isLine ? pl.sy(d.diff)
+        : mode === 'pct' ? M.top + PLOT_H - d.pct * PLOT_H
         : sy(d.points, yMax);
 
     const getTeamData = (team) => mode === 'pct' ? toPctProgression(team.data) : team.data;
 
-    const formatLabel = (d) => mode === 'pct'
-        ? d.pct.toFixed(3)
+    const formatLabel = (d) => isLine ? `${shortDate(d.date)}: ${d.diff > 0 ? '+' : ''}${d.diff}`
+        : mode === 'pct' ? d.pct.toFixed(3)
         : `${d.points}`;
 
     // Build tooltip elements
@@ -1499,15 +1658,15 @@ export function attachChartHoverHandlers(svg, teams, mode) {
         const data = getTeamData(team);
         if (!data.length) { tooltipG.style.display = 'none'; return; }
 
-        const rawGame = mode === 'pct'
-            ? (svgX - ML_PCT) / PW_PCT * xMax
+        const rawGame = isLine ? pl.invX(svgX)
+            : mode === 'pct' ? (svgX - ML_PCT) / PW_PCT * xMax
             : (svgX - M.left) / PLOT_W * xMax;
 
         const nearest = data.reduce((best, d) =>
-            Math.abs(d.game - rawGame) < Math.abs(best.game - rawGame) ? d : best
+            Math.abs(xOf(d) - rawGame) < Math.abs(xOf(best) - rawGame) ? d : best
         );
 
-        const cx = gameToSvgX(nearest.game);
+        const cx = gameToSvgX(xOf(nearest));
         const cy = dataToSvgY(nearest);
         const label = formatLabel(nearest);
 
@@ -1517,8 +1676,8 @@ export function attachChartHoverHandlers(svg, teams, mode) {
         const rW = label.length * charW + padX * 2;
 
         // Clamp horizontally to stay inside SVG
-        const leftBound = mode === 'pct' ? ML_PCT : M.left;
-        const rightBound = mode === 'pct' ? (ML_PCT + PW_PCT) : (M.left + PLOT_W);
+        const leftBound = isLine ? pl.ML : mode === 'pct' ? ML_PCT : M.left;
+        const rightBound = isLine ? (pl.ML + pl.PW) : mode === 'pct' ? (ML_PCT + PW_PCT) : (M.left + PLOT_W);
         const rx = Math.min(Math.max(cx - rW / 2, leftBound), rightBound - rW);
         const ry = Math.max(cy - rH - 8, M.top);
 
@@ -1562,7 +1721,7 @@ export function attachChartHoverHandlers(svg, teams, mode) {
     svg.parentNode.querySelector('.chart-team-legend')?.remove();
     const legend = document.createElement('div');
     legend.className = 'chart-team-legend';
-    const lastPoints = t => t.data[t.data.length - 1]?.points ?? 0;
+    const lastPoints = t => (isLine ? t.data[t.data.length - 1]?.diff : t.data[t.data.length - 1]?.points) ?? 0;
     legend.innerHTML = [...teams]
         .sort((a, b) => lastPoints(b) - lastPoints(a))
         .map(t => `<button type="button" class="chart-legend-team" data-team="${t.abbrev}" aria-label="Highlight ${t.config?.name || t.abbrev}">
@@ -1576,7 +1735,7 @@ export function attachChartHoverHandlers(svg, teams, mode) {
     const highlightFromLegend = abbrev => {
         highlight(abbrev);
         const data = getTeamData(hoveredTeam);
-        if (data.length) updateTooltip(hoveredTeam, gameToSvgX(data[data.length - 1].game));
+        if (data.length) updateTooltip(hoveredTeam, gameToSvgX(xOf(data[data.length - 1])));
     };
 
     legendButtons.forEach(b => {
@@ -1622,6 +1781,16 @@ async function refreshChart() {
     const id = ++refreshId;
 
     try {
+        if (chartMode === 'line') {
+            const lines = await loadPlayoffLines();
+            if (id !== refreshId) return;
+            const entries = playoffConf === 'MIN' ? [['MIN', lines.W.MIN]] : Object.entries(lines[playoffConf]);
+            const teams = entries.map(([abbrev, data]) => ({ abbrev, config: ALL_TEAMS[abbrev], data }));
+            chartWrap.innerHTML = buildPlayoffLineChart(teams);
+            const svg = chartWrap.querySelector('svg');
+            if (svg) attachChartHoverHandlers(svg, teams, 'line');
+            return;
+        }
         const abbrevs = [...new Set([...(alwaysShowWild ? ['MIN'] : []), ...[...activeToggles].flatMap(div => DIVISIONS[div])])];
         const teams = await Promise.all(
             abbrevs.map(async abbrev => ({
@@ -1640,29 +1809,58 @@ async function refreshChart() {
     }
 }
 
-function buildChartSection(initialChartHtml) {
+const CHART_INTROS = {
+    standard: () => `How every NHL team has piled up points, game by game, through the ${getSeasonLabel()} regular season. Pick divisions to compare, or switch to points percentage to even out teams with games in hand.`,
+    line: () => `How far each team has sat above or below its conference's second wild card spot on every day of the ${getSeasonLabel()} regular season. Above zero is a team holding a playoff spot. Raw points don't account for games in hand.`,
+};
+
+// Playoff line mode filters by conference; the other modes pick divisions (plus the Wild toggle)
+function buildFilterToggles() {
+    if (chartMode === 'line') {
+        const wildOnly = `<button class="division-toggle wild-toggle${playoffConf === 'MIN' ? ' active' : ''}" data-conf="MIN" aria-pressed="${playoffConf === 'MIN'}" aria-label="Show only the Minnesota Wild"><img src="/logos/MIN_dark.svg" alt="" class="wild-toggle-logo"></button>`;
+        return wildOnly + [['W', 'West'], ['E', 'East']].map(([conf, label]) =>
+            `<button class="division-toggle${playoffConf === conf ? ' active' : ''}" data-conf="${conf}" aria-pressed="${playoffConf === conf}">${label}</button>`
+        ).join('');
+    }
     const wildToggle = `<button class="division-toggle wild-toggle${alwaysShowWild ? ' active' : ''}" data-wild aria-pressed="${alwaysShowWild}" aria-label="Always show the Minnesota Wild"><img src="/logos/MIN_dark.svg" alt="" class="wild-toggle-logo"></button>`;
-    const divToggles = wildToggle + Object.keys(DIVISIONS).map(div => {
+    return wildToggle + Object.keys(DIVISIONS).map(div => {
         const isActive = activeToggles.has(div);
         return `<button class="division-toggle${isActive ? ' active' : ''}" data-division="${div}">${div}</button>`;
     }).join('');
+}
+
+function buildChartSection(initialChartHtml) {
 
     return `
         <div class="season-section">
             <h2 class="section-title">Points Progression</h2>
-            <p class="points-chart-intro">How every NHL team has piled up points, game by game, through the ${getSeasonLabel()} regular season. Pick divisions to compare, or switch to points percentage to even out teams with games in hand.</p>
+            <p class="points-chart-intro">${CHART_INTROS[chartMode === 'line' ? 'line' : 'standard']()}</p>
             <div class="points-chart-wrap">${initialChartHtml}</div>
             <div class="chart-controls">
                 <div class="chart-mode-toggles">
                     <button class="division-toggle chart-mode-toggle${chartMode === 'points' ? ' active' : ''}" data-mode="points">Points</button>
                     <button class="division-toggle chart-mode-toggle${chartMode === 'pct' ? ' active' : ''}" data-mode="pct">Points Percentage</button>
+                    <button class="division-toggle chart-mode-toggle${chartMode === 'line' ? ' active' : ''}" data-mode="line">Playoff Line</button>
                 </div>
-                <div class="division-toggles">${divToggles}</div>
+                <div class="division-toggles">${buildFilterToggles()}</div>
             </div>
         </div>`;
 }
 
-function attachToggleHandlers() {
+// Division / Wild / conference buttons — re-rendered when switching into or out of playoff line mode
+function attachFilterHandlers() {
+    chartRoot.querySelectorAll('.division-toggle[data-conf]').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            if (playoffConf === btn.dataset.conf) return;
+            playoffConf = btn.dataset.conf;
+            chartRoot.querySelectorAll('.division-toggle[data-conf]').forEach(b => {
+                b.classList.toggle('active', b === btn);
+                b.setAttribute('aria-pressed', b === btn);
+            });
+            await refreshChart();
+        });
+    });
+
     chartRoot.querySelectorAll('.division-toggle[data-division]').forEach(btn => {
         btn.addEventListener('click', async () => {
             const div = btn.dataset.division;
@@ -1677,18 +1875,28 @@ function attachToggleHandlers() {
         });
     });
 
-    chartRoot.querySelector('.wild-toggle')?.addEventListener('click', async e => {
+    chartRoot.querySelector('.wild-toggle[data-wild]')?.addEventListener('click', async e => {
         alwaysShowWild = !alwaysShowWild;
         e.currentTarget.classList.toggle('active', alwaysShowWild);
         e.currentTarget.setAttribute('aria-pressed', alwaysShowWild);
         await refreshChart();
     });
+}
+
+function attachToggleHandlers() {
+    attachFilterHandlers();
 
     chartRoot.querySelectorAll('.chart-mode-toggle').forEach(btn => {
         btn.addEventListener('click', async () => {
             const mode = btn.dataset.mode;
             if (chartMode === mode) return;
+            const filtersChange = (mode === 'line') !== (chartMode === 'line');
             chartMode = mode;
+            if (filtersChange) {
+                chartRoot.querySelector('.division-toggles').innerHTML = buildFilterToggles();
+                chartRoot.querySelector('.points-chart-intro').textContent = CHART_INTROS[mode === 'line' ? 'line' : 'standard']();
+                attachFilterHandlers();
+            }
             chartRoot.querySelectorAll('.chart-mode-toggle').forEach(b => {
                 b.classList.toggle('active', b.dataset.mode === mode);
             });
@@ -1701,6 +1909,7 @@ function attachToggleHandlers() {
 export async function renderPointsProgressionPage(container) {
     activeToggles = new Set(['Central']);
     chartMode = 'points';
+    playoffConf = 'W';
     alwaysShowWild = true;
     chartRoot = container;
     container.innerHTML = '<div class="loading">Loading chart…</div>';
