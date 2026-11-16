@@ -21,12 +21,14 @@ const TEAM_SLUGS = {
 
 export async function init(view = 'wildcard') {
     // The points progression chart isn't a standings table — it draws itself
-    if (view === 'points-progression') {
+    // (/standings/points-progression[/points-percentage|/playoff-line] — one URL per chart mode)
+    if (view.startsWith('points-progression')) {
         const state = getUIState('standings');
-        state.currentView = view;
+        state.currentView = 'points-progression';
         setUIState('standings', state);
         setupViewButtons();
-        await renderPointsProgressionPage(document.getElementById('standings-container'));
+        const mode = { 'points-progression/points-percentage': 'pct', 'points-progression/playoff-line': 'line' }[view] ?? 'points';
+        await renderPointsProgressionPage(document.getElementById('standings-container'), mode);
         return;
     }
 

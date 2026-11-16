@@ -86,6 +86,14 @@ const PAGE_META = {
         title: `NHL Points Progression Chart {season} – Team Points by Game | Wild Hockey Hub`,
         description: `NHL points progression chart for {season}. Compare the Minnesota Wild's points and points percentage game by game against every team in the Central and the rest of the NHL.`
     },
+    '/standings/points-progression/points-percentage': {
+        title: `NHL Points Percentage Chart {season} – Team Points % by Game | Wild Hockey Hub`,
+        description: `NHL points percentage chart for {season}. Compare the Minnesota Wild's points percentage game by game against every team in the Central and the rest of the NHL, evening out games in hand.`
+    },
+    '/standings/points-progression/playoff-line': {
+        title: `NHL Playoff Line Chart {season} – Points Above the Wild Card | Wild Hockey Hub`,
+        description: `NHL playoff line chart for {season}. See how far the Minnesota Wild and every Western and Eastern Conference team has been above or below the second wild card on every day of the season.`
+    },
     '/media': {
         title: `Minnesota Wild Videos & Highlights {season} | Wild Hockey Hub`,
         description: `Minnesota Wild videos for {season}. Watch highlights, game recaps, interviews, and more from the Wild.`
@@ -278,7 +286,7 @@ async function prerenderFor(path, env, meta) {
             const html = data && renderTeamRecordsContent(data, records, heading);
             return html && { selector: '#stats-team-records-view', html };
         }
-        if (path === '/standings/points-progression') {
+        if (path.startsWith('/standings/points-progression')) {
             const res = await upstreamFetch('https://api-web.nhle.com/v1/standings/now', {
                 redirect: 'follow',
                 signal: AbortSignal.timeout(2500),
@@ -393,8 +401,10 @@ function breadcrumbsFor(path, meta) {
 
     if (path === '/stats/numbers') {
         trail.push(['Stats', '/stats'], ['Jersey Numbers', path]);
-    } else if (path === '/standings/points-progression') {
-        trail.push(['Standings', '/standings'], ['Points Progression Chart', path]);
+    } else if (path.startsWith('/standings/points-progression')) {
+        trail.push(['Standings', '/standings'], ['Points Progression Chart', '/standings/points-progression']);
+        if (path === '/standings/points-progression/points-percentage') trail.push(['Points Percentage', path]);
+        if (path === '/standings/points-progression/playoff-line') trail.push(['Playoff Line', path]);
     } else if (path === '/stats/team-records' || parseTeamRecordsPath(path)) {
         trail.push(['Stats', '/stats'], ['Team Records', '/stats/team-records']);
         if (path !== '/stats/team-records') trail.push([pageName, path]);

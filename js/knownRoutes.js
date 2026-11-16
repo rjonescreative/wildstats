@@ -8,7 +8,7 @@ import { parseVideoPath } from './videoLinks.js';
 const STATIC_ROUTES = new Set([
     '/',
     '/stats', '/stats/season', '/stats/head-to-head', '/stats/team-records', '/stats/milestones', '/stats/numbers',
-    '/standings', '/standings/wildcard', '/standings/division', '/standings/conference', '/standings/league', '/standings/points-progression', '/standings/playoffs',
+    '/standings', '/standings/wildcard', '/standings/division', '/standings/conference', '/standings/league', '/standings/points-progression', '/standings/points-progression/points-percentage', '/standings/points-progression/playoff-line', '/standings/playoffs',
     '/schedule', '/schedule/past',
     '/media', '/media/highlights', '/media/recaps', '/media/condensed',
 ]);

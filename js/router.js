@@ -25,6 +25,27 @@ export function updateTeamRecordsURL(timeMode, statMode, posMode, gameType = 're
     trackPageView(path, title);
 }
 
+// Points progression chart: each chart mode has its own URL (Points lives at the base URL)
+const POINTS_CHART_PATHS = {
+    points: '/standings/points-progression',
+    pct: '/standings/points-progression/points-percentage',
+    line: '/standings/points-progression/playoff-line',
+};
+
+// The chart switched mode in place: push that mode's URL, update title + meta tags, track page view
+export function updatePointsChartURL(mode) {
+    const path = POINTS_CHART_PATHS[mode];
+    if (!path || window.location.pathname === path) return;
+    const subView = getStandingsView(path);
+    history.pushState({ path, viewName: 'standings', subView }, '', path);
+    viewPath = path; // Back/forward to another mode's URL re-renders the chart in that mode
+    const title = getPageTitle('standings', subView);
+    setDocumentTitle(title);
+    updateMetaTags(path, 'standings', subView);
+    trackStandingsView(subView);
+    trackPageView(path, title);
+}
+
 // Route configuration
 const routes = {
     '/': 'dashboard',
@@ -40,6 +61,8 @@ const routes = {
     '/standings/conference': 'standings',
     '/standings/league': 'standings',
     '/standings/points-progression': 'standings',
+    '/standings/points-progression/points-percentage': 'standings',
+    '/standings/points-progression/playoff-line': 'standings',
     '/standings/playoffs': 'standings',
     '/schedule': 'schedule',
     '/schedule/past': 'schedule',
@@ -275,6 +298,8 @@ function getPageTitle(viewName, subView = null) {
             conference: `NHL Conference Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             league: `NHL League Standings ${SEASON_LABEL} | Minnesota Wild | Wild Hockey Hub`,
             'points-progression': `NHL Points Progression Chart ${SEASON_LABEL} – Team Points by Game | Wild Hockey Hub`,
+            'points-progression/points-percentage': `NHL Points Percentage Chart ${SEASON_LABEL} – Team Points % by Game | Wild Hockey Hub`,
+            'points-progression/playoff-line': `NHL Playoff Line Chart ${SEASON_LABEL} – Points Above the Wild Card | Wild Hockey Hub`,
             playoffs: `NHL Playoff Bracket ${PLAYOFF_YEAR} – Stanley Cup Playoffs Matchups & Series Scores | Wild Hockey Hub`
         };
         return standingsTitles[subView] || standingsTitles.wildcard;
@@ -347,6 +372,8 @@ function getMetaDescription(viewName, subView = null) {
             conference: `NHL conference standings for ${SEASON_LABEL}. View Eastern and Western Conference standings including Minnesota Wild playoff positioning.`,
             league: `Full NHL league standings for ${SEASON_LABEL}. See where Minnesota Wild ranks across all 32 NHL teams by points and percentage.`,
             'points-progression': `NHL points progression chart for ${SEASON_LABEL}. Compare the Minnesota Wild's points and points percentage game by game against every team in the Central and the rest of the NHL.`,
+            'points-progression/points-percentage': `NHL points percentage chart for ${SEASON_LABEL}. Compare the Minnesota Wild's points percentage game by game against every team in the Central and the rest of the NHL, evening out games in hand.`,
+            'points-progression/playoff-line': `NHL playoff line chart for ${SEASON_LABEL}. See how far the Minnesota Wild and every Western and Eastern Conference team has been above or below the second wild card on every day of the season.`,
             playoffs: `Live ${PLAYOFF_YEAR} NHL playoff bracket with Stanley Cup Playoffs matchups, series scores, and bracket progression. Track the Minnesota Wild through every round from first round to the Stanley Cup Final.`
         };
         return standingsDescriptions[subView] || standingsDescriptions.wildcard;

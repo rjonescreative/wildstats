@@ -1,6 +1,7 @@
 // Current Season view — team-level stats for the current season
 import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams } from '../api.js';
 import { getSeasonLabel, PLAYOFF_MODE } from '../seasonConfig.js';
+import { updatePointsChartURL } from '../router.js';
 
 // ─── All 32 teams: division, name, chart color ─────────────────────────────
 export const ALL_TEAMS = {
@@ -1450,18 +1451,40 @@ const shortDate = date => `${MONTHS[+date.slice(5, 7) - 1]} ${+date.slice(8, 10)
 
 let playoffLineCache = null; // { W: series, E: series } built once from the all-team schedules
 
-// Points the 2nd wild card team has: drop the top 3 in each division, and the cutoff is the
-// 2nd-best total left in the conference. Tied teams have equal points, so tiebreakers can't
-// change this number — only which team's name sits on it.
-function wildCardCutoff(points, conf) {
-    const divs = Object.keys(DIVISIONS).filter(d => ALL_TEAMS[DIVISIONS[d][0]].conf === conf);
-    const pool = divs.flatMap(d => [...DIVISIONS[d]].sort((a, b) => points[b] - points[a]).slice(3));
-    return pool.map(t => points[t]).sort((a, b) => b - a)[1];
+const DIV_SHORT = { Central: 'Central', Pacific: 'Pacific', Atlantic: 'Atlantic', Metropolitan: 'Metro' };
+
+// NHL standings order: points, then fewer games played, regulation wins, regulation + OT wins,
+// total wins, goal differential, goals for. (Head-to-head, between ROW and goal differential in
+// the real rules, is skipped — it only matters when every earlier tiebreaker is level.)
+function compareStandings(a, b) {
+    return (b.pts - a.pts) || (a.gp - b.gp) || (b.rw - a.rw) || (b.row - a.row) || (b.w - a.w)
+        || ((b.gf - b.ga) - (a.gf - a.ga)) || (b.gf - a.gf);
 }
 
-// Replay every completed regular-season game in date order and, at the end of each
-// day with games, record each team's points minus its conference's wild card cutoff.
-// Returns { W: { [abbrev]: [{ x, date, diff }] }, E: { ... } }, x = days since the first game.
+// One day's playoff picture for a conference: who holds each spot, and the 2nd wild card's
+// points (the playoff line). Tied teams have equal points, so tiebreakers can't change the
+// line itself — only which team sits on it, which the spot labels need.
+function conferencePicture(stats, conf) {
+    const divs = Object.keys(DIVISIONS).filter(d => ALL_TEAMS[DIVISIONS[d][0]].conf === conf);
+    const spot = {};
+    const pool = [];
+    divs.forEach(d => {
+        [...DIVISIONS[d]].sort((a, b) => compareStandings(stats[a], stats[b])).forEach((t, i) => {
+            if (i < 3) spot[t] = { kind: 'div', label: `${ordinal(i + 1)} in ${DIV_SHORT[d]}` };
+            else pool.push(t);
+        });
+    });
+    pool.sort((a, b) => compareStandings(stats[a], stats[b]));
+    pool.forEach((t, i) => {
+        spot[t] = i < 2 ? { kind: 'wc', label: `Wild card ${i + 1}` } : { kind: 'out', label: 'Out' };
+    });
+    return { cutoff: stats[pool[1]].pts, spot };
+}
+
+// Replay every completed regular-season game in date order and, at the end of each day with
+// games, record each team's points minus its conference's wild card cutoff plus the spot it holds.
+// Returns { W: { [abbrev]: [{ x, date, diff, spot, divBelow }] }, E: { ... } }, x = days since the
+// first game. divBelow marks a team holding a division spot while below the playoff line.
 function computePlayoffLines(allSchedules) {
     const games = new Map();
     Object.values(allSchedules).flat().forEach(g => {
@@ -1469,27 +1492,37 @@ function computePlayoffLines(allSchedules) {
     });
     const sorted = [...games.values()].sort((a, b) => a.gameDate.localeCompare(b.gameDate));
     const abbrevs = Object.keys(ALL_TEAMS);
-    const points = Object.fromEntries(abbrevs.map(a => [a, 0]));
+    const stats = Object.fromEntries(abbrevs.map(a => [a, { pts: 0, gp: 0, w: 0, rw: 0, row: 0, gf: 0, ga: 0 }]));
     const result = { W: {}, E: {} };
     abbrevs.forEach(a => { result[ALL_TEAMS[a].conf][a] = []; });
     if (!sorted.length) return result;
 
     const firstDay = dayNumber(sorted[0].gameDate);
     const recordDay = date => {
-        const cutoff = { W: wildCardCutoff(points, 'W'), E: wildCardCutoff(points, 'E') };
+        const pic = { W: conferencePicture(stats, 'W'), E: conferencePicture(stats, 'E') };
         const x = dayNumber(date) - firstDay;
         abbrevs.forEach(a => {
-            const conf = ALL_TEAMS[a].conf;
-            result[conf][a].push({ x, date, diff: points[a] - cutoff[conf] });
+            const { cutoff, spot } = pic[ALL_TEAMS[a].conf];
+            const diff = stats[a].pts - cutoff;
+            result[ALL_TEAMS[a].conf][a].push({ x, date, diff, spot: spot[a].label, divBelow: spot[a].kind === 'div' && diff < 0 });
         });
     };
 
     sorted.forEach((g, i) => {
-        const homeWon = g.homeTeam.score > g.awayTeam.score;
-        const winner = homeWon ? g.homeTeam.abbrev : g.awayTeam.abbrev;
-        const loser  = homeWon ? g.awayTeam.abbrev : g.homeTeam.abbrev;
-        if (winner in points) points[winner] += 2;
-        if (loser in points && (g.gameOutcome?.lastPeriodType ?? 'REG') !== 'REG') points[loser] += 1;
+        const home = stats[g.homeTeam.abbrev];
+        const away = stats[g.awayTeam.abbrev];
+        if (home && away) {
+            const homeWon = g.homeTeam.score > g.awayTeam.score;
+            const [win, lose] = homeWon ? [home, away] : [away, home];
+            const lastPeriod = g.gameOutcome?.lastPeriodType ?? 'REG';
+            home.gp++; away.gp++;
+            home.gf += g.homeTeam.score; home.ga += g.awayTeam.score;
+            away.gf += g.awayTeam.score; away.ga += g.homeTeam.score;
+            win.pts += 2; win.w++;
+            if (lastPeriod === 'REG') win.rw++;
+            if (lastPeriod !== 'SO') win.row++;
+            if (lastPeriod !== 'REG') lose.pts += 1;
+        }
         if (sorted[i + 1]?.gameDate !== g.gameDate) recordDay(g.gameDate);
     });
     return result;
@@ -1554,10 +1587,13 @@ function buildPlayoffLineChart(teams) {
     const playoffLine = `<line x1="${s.ML}" y1="${zeroY}" x2="${plotRight}" y2="${zeroY}" class="chart-playoff-line"/>
 `;
     // Key for the dashed line sits under the x-axis, clear of every team's line
-    const keyX = s.ML + s.PW / 2 - 50;
+    const showRingKey = teams.some(t => t.data[t.data.length - 1]?.divBelow);
+    const keyX = s.ML + s.PW / 2 - (showRingKey ? 150 : 50);
     const keyY = VB_H - 8;
     const playoffKey = `<line x1="${keyX.toFixed(1)}" y1="${keyY}" x2="${(keyX + 24).toFixed(1)}" y2="${keyY}" class="chart-playoff-line"/>
-  <text x="${(keyX + 30).toFixed(1)}" y="${keyY}" dy="0.35em" class="chart-playoff-line-label">Playoff line</text>`;
+  <text x="${(keyX + 30).toFixed(1)}" y="${keyY}" dy="0.35em" class="chart-playoff-line-label">Playoff line</text>${showRingKey ? `
+  <circle cx="${(keyX + 136).toFixed(1)}" cy="${keyY}" r="4" fill="#111" stroke="rgba(255,255,255,0.7)" stroke-width="2"/>
+  <text x="${(keyX + 146).toFixed(1)}" y="${keyY}" dy="0.35em" class="chart-playoff-line-label">In on a division spot</text>` : ''}`;
 
     const axisLabels = [
         ...yTicks.map(v => `<text x="${(s.ML - 8).toFixed(1)}" y="${s.sy(v).toFixed(1)}" dy="0.35em" text-anchor="end" class="chart-label">${v > 0 ? '+' : ''}${v}</text>`),
@@ -1578,7 +1614,9 @@ function buildPlayoffLineChart(teams) {
             : '';
         return `<g class="team-group" data-team="${t.abbrev}">
     ${area}<path d="${linePathPl(t.data)}" fill="none" stroke="${t.config.lineColor}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round" clip-path="url(#${clipId})"/>
-    <circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>
+    ${last.divBelow
+        ? `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="4" fill="#111" stroke="${t.config.lineColor}" stroke-width="2"/>`
+        : `<circle cx="${lx.toFixed(1)}" cy="${ly.toFixed(1)}" r="3.5" fill="${t.config.lineColor}" stroke="#111" stroke-width="1.5"/>`}
     <image href="https://assets.nhle.com/logos/nhl/svg/${t.abbrev}_light.svg" x="${(lx + 5).toFixed(1)}" y="${(ly - LOGO_SIZE / 2).toFixed(1)}" width="${LOGO_SIZE}" height="${LOGO_SIZE}" style="cursor:pointer"/>
     </g>`;
     }).join('\n    ');
@@ -1628,7 +1666,7 @@ export function attachChartHoverHandlers(svg, teams, mode) {
 
     const getTeamData = (team) => mode === 'pct' ? toPctProgression(team.data) : team.data;
 
-    const formatLabel = (d) => isLine ? `${shortDate(d.date)}: ${d.diff > 0 ? '+' : ''}${d.diff}`
+    const formatLabel = (d) => isLine ? `${shortDate(d.date)}: ${d.diff > 0 ? '+' : ''}${d.diff} · ${d.spot}`
         : mode === 'pct' ? d.pct.toFixed(3)
         : `${d.points}`;
 
@@ -1898,6 +1936,7 @@ function attachToggleHandlers() {
             if (chartMode === mode) return;
             const filtersChange = (mode === 'line') !== (chartMode === 'line');
             chartMode = mode;
+            updatePointsChartURL(mode);
             if (filtersChange) {
                 chartRoot.querySelector('.division-toggles').innerHTML = buildFilterToggles();
                 chartRoot.querySelector('.points-chart-intro').textContent = CHART_INTROS[mode === 'line' ? 'line' : 'standard']();
@@ -1911,35 +1950,30 @@ function attachToggleHandlers() {
     });
 }
 
-// Draw the full chart page (Central division to start, with mode and division toggles) into container
-export async function renderPointsProgressionPage(container) {
+let pageRenderId = 0; // latest page render; an older one finishing late is dropped
+
+// Draw the full chart page into container: mode comes from the URL ('points' | 'pct' | 'line'),
+// starting on the Central division (or the West, for the playoff line) with every toggle reset
+export async function renderPointsProgressionPage(container, mode = 'points') {
     activeToggles = new Set(['Central']);
-    chartMode = 'points';
+    chartMode = mode;
     playoffConf = 'W';
     alwaysShowWild = true;
     chartRoot = container;
+    const id = ++pageRenderId;
     container.innerHTML = '<div class="loading">Loading chart…</div>';
 
     try {
-        const teams = await Promise.all(
-            DIVISIONS.Central.map(async abbrev => ({
-                abbrev,
-                config: ALL_TEAMS[abbrev],
-                data: await loadTeamData(abbrev),
-            }))
-        );
-        if (chartRoot !== container) return; // navigated away while loading
+        // One aggregated request holds every team's schedule; every chart mode draws from it
+        await getAllTeamSchedules();
+        if (id !== pageRenderId) return; // navigated again while loading
 
-        container.innerHTML = buildChartSection(buildChart(teams));
+        container.innerHTML = buildChartSection('');
         attachToggleHandlers();
-        const svg = container.querySelector('svg');
-        if (svg) attachChartHoverHandlers(svg, teams, chartMode);
+        await refreshChart();
 
-        // All 32 team schedules are already in the aggregated response — pre-populate
-        // the dataCache for every team so division toggles are instant with no extra requests.
-        Object.values(DIVISIONS).flat()
-            .filter(a => !DIVISIONS.Central.includes(a))
-            .forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
+        // Pre-populate the dataCache for every team so division toggles are instant
+        Object.values(DIVISIONS).flat().forEach(abbrev => loadTeamData(abbrev).catch(() => {}));
     } catch (err) {
         console.error('Error loading points progression chart:', err);
         container.innerHTML = '<div class="error-message">Failed to load chart data.</div>';
