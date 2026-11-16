@@ -4750,7 +4750,8 @@ footer {
     text-align: right;
 }
 
-.st-chart-wrap {
+.st-chart-wrap,
+.gm-chart-wrap {
     position: relative;
     background-color: rgba(20, 20, 20, 0.75);
     border: 1px solid var(--border-subtle);
@@ -4758,12 +4759,14 @@ footer {
     padding: 0.75rem 0.5rem 0.25rem;
 }
 
-.st-chart {
+.st-chart,
+.gm-chart {
     position: relative;
     touch-action: pan-y;
 }
 
-.st-chart-svg {
+.st-chart-svg,
+.gm-chart-svg {
     width: 100%;
     height: auto;
 }
@@ -4778,7 +4781,8 @@ footer {
     fill: var(--text-tertiary);
 }
 
-.st-chart-tooltip {
+.st-chart-tooltip,
+.gm-chart-tooltip {
     position: absolute;
     margin: 0.75rem 0.5rem 0;
     top: 0;
@@ -4805,6 +4809,70 @@ footer {
 
 .special-teams .chart-controls {
     justify-content: flex-start;
+}
+
+/* ─── Game by Game margin chart ──────────────────────────────────────────── */
+
+.gm-chart-wrap {
+    padding: 0.75rem 0.5rem 0.5rem;
+}
+
+.gm-bar.gm-w, .gm-swatch.gm-w     { fill: #3cb96a; background: #3cb96a; }
+.gm-bar.gm-l, .gm-swatch.gm-l     { fill: #D03B4C; background: #D03B4C; }
+/* OT/SO losses earn a point: a neutral slate, distinct from both win and loss */
+.gm-bar.gm-otl, .gm-swatch.gm-otl { fill: #8796AB; background: #8796AB; }
+
+.gm-tip-result { font-weight: 700; }
+.gm-tip-result.gm-w   { color: #3cb96a; }
+.gm-tip-result.gm-l   { color: #D03B4C; }
+.gm-tip-result.gm-otl { color: #8796AB; }
+
+.gm-future {
+    fill: rgba(255, 255, 255, 0.12);
+}
+
+.gm-baseline {
+    stroke: rgba(255, 255, 255, 0.3);
+    stroke-width: 1;
+}
+
+.gm-hover {
+    fill: rgba(255, 255, 255, 0.07);
+}
+
+
+.gm-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem 1.1rem;
+    margin-top: 0.625rem;
+    font-size: 0.72rem;
+    color: var(--text-secondary);
+}
+
+.gm-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.gm-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+
+.gm-averages {
+    margin-top: 1rem;
+}
+
+@media (max-width: 640px) {
+    /* Four cards: two rows of two. Five cards: 2 + 2 + 1, last one full width */
+    .glance-top .season-glance-card,
+    .gm-averages .season-glance-card {
+        flex-basis: calc(50% - 0.625rem);
+    }
 }
 
 @media (max-width: 1024px) {

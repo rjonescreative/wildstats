@@ -1,7 +1,7 @@
 // Wild power play / penalty kill helpers — shared by server.js and the Cloudflare Function.
 // Official per-game numbers come from the NHL stats API; period and score-state splits are
-// derived from play-by-play and only kept for games where the derivation matches the official
-// opportunity and goal counts exactly.
+// derived from play-by-play and reconciled to the official opportunity and goal counts (the
+// official numbers always win); a game is left out only when it can't be reconciled.
 
 const STATS_BASE = 'https://api.nhle.com/stats/rest/en/team';
 
@@ -109,6 +109,30 @@ export function resolveSpecialTeams({ powerPlay, penaltyKill, league, splits, la
 
 const sumGoals = list => list.reduce((n, o) => n + o[2].length, 0);
 
+// Bring one side's derived opportunities in line with the official NHL count, which always wins.
+// Play-by-play over-counts when penalties overlap: stacked minors can each count as a power play
+// while the overlapping penalties leave only one real man advantage. Extra opportunities are
+// dropped from those that produced no goal, preferring ones stacked with a neighbour (same
+// period and score state, i.e. called together), latest first. Returns null when the counts
+// can't be matched (too few opportunities, or the goals disagree).
+function reconcile(list, officialOpps, officialGoals) {
+    if (sumGoals(list) !== officialGoals || list.length < officialOpps) return null;
+    const out = [...list];
+    const sameMoment = (a, b) => a && b && a[0] === b[0] && a[1] === b[1];
+    while (out.length > officialOpps) {
+        let drop = -1;
+        for (let i = out.length - 1; i >= 0 && drop < 0; i--) {
+            if (!out[i][2].length && (sameMoment(out[i], out[i - 1]) || sameMoment(out[i], out[i + 1]))) drop = i;
+        }
+        for (let i = out.length - 1; i >= 0 && drop < 0; i--) {
+            if (!out[i][2].length) drop = i;
+        }
+        if (drop < 0) return null;
+        out.splice(drop, 1);
+    }
+    return out;
+}
+
 // Response payload from the stats API reports plus cached play-by-play splits (gameId → splits)
 export function buildSpecialTeamsPayload({ powerPlay, penaltyKill, league, splits = {} }) {
     const pkById = Object.fromEntries((penaltyKill ?? []).map(g => [g.gameId, g]));
@@ -132,10 +156,9 @@ export function buildSpecialTeamsPayload({ powerPlay, penaltyKill, league, split
                 splits: null,
             };
             const s = splits[g.gameId];
-            if (s && s.pp.length === game.ppOpps && sumGoals(s.pp) === game.ppGoals
-                  && s.pk.length === game.timesShorthanded && sumGoals(s.pk) === game.ppGoalsAgainst) {
-                game.splits = s;
-            }
+            const pp = s && reconcile(s.pp, game.ppOpps, game.ppGoals);
+            const pkSplits = s && reconcile(s.pk, game.timesShorthanded, game.ppGoalsAgainst);
+            if (pp && pkSplits) game.splits = { pp, pk: pkSplits };
             return game;
         });
 

@@ -187,20 +187,16 @@ function computeStreak(games) {
 
 // ─── Section: Season At a Glance ───────────────────────────────────────────
 
-function buildAtAGlance(games) {
+function buildAtAGlance(games, slots, standings) {
     const r  = computeRecord(games);
     const hr = computeRecord(games.filter(g => g.isHome));
     const ar = computeRecord(games.filter(g => !g.isHome));
     const streak  = computeStreak(games);
-    const gfPG = r.GP > 0 ? (r.GF / r.GP).toFixed(2) : '—';
-    const gaPG = r.GP > 0 ? (r.GA / r.GP).toFixed(2) : '—';
-    const gdiff  = r.GF - r.GA;
-    const gdiffStr = gdiff > 0 ? `+${gdiff}` : `${gdiff}`;
 
     return `
     <div class="season-section">
       <h2 class="section-title">Season At a Glance</h2>
-      <div class="season-glance-grid">
+      <div class="season-glance-grid glance-top">
         <div class="season-glance-card">
           <div class="glance-label">Record</div>
           <div class="glance-value">${fmtRecord(r.W, r.L, r.OTL)}</div>
@@ -217,27 +213,220 @@ function buildAtAGlance(games) {
           <div class="glance-sub">${ar.GP} games &middot; ${fmtPct(ar.pct)} pts%</div>
         </div>
         <div class="season-glance-card">
-          <div class="glance-label">Goals For</div>
-          <div class="glance-value">${r.GF}</div>
-          <div class="glance-sub">${gfPG} per game</div>
-        </div>
-        <div class="season-glance-card">
-          <div class="glance-label">Goals Against</div>
-          <div class="glance-value">${r.GA}</div>
-          <div class="glance-sub">${gaPG} per game</div>
-        </div>
-        <div class="season-glance-card">
-          <div class="glance-label">Goal Diff</div>
-          <div class="glance-value ${gdiff >= 0 ? 'glance-positive' : 'glance-negative'}">${gdiffStr}</div>
-          <div class="glance-sub">${r.GP} games played</div>
-        </div>
-        <div class="season-glance-card">
           <div class="glance-label">Streak</div>
           <div class="glance-value">${streak}</div>
           <div class="glance-sub">current</div>
         </div>
       </div>
+      ${buildGameMargins(slots, games, leagueGoalRanks(standings))}
     </div>`;
+}
+
+// ─── Section: Game by Game (goal margin per game) ──────────────────────────
+
+// Every regular-season game in date order, played or not, so the chart spans the full season
+function gameSlots(scheduleGames, games) {
+    const played = new Map(games.map(g => [g.id, g]));
+    return scheduleGames
+        .filter(g => g.gameType === 2)
+        .sort((a, b) => new Date(a.startTimeUTC ?? a.gameDate) - new Date(b.startTimeUTC ?? b.gameDate))
+        .map(g => {
+            const isHome = g.homeTeam.abbrev === 'MIN';
+            const opponent = isHome ? g.awayTeam.abbrev : g.homeTeam.abbrev;
+            return { date: g.gameDate, isHome, opponent, game: played.get(g.id) ?? null };
+        });
+}
+
+// Wild's NHL rank in goals for and against per game (per game, since teams have played different counts).
+// Ties share a rank: 1 + the number of teams strictly better.
+function leagueGoalRanks(standings) {
+    const teams = standings
+        .filter(t => t.gamesPlayed > 0)
+        .map(t => ({ abbrev: t.teamAbbrev?.default ?? t.teamAbbrev, gf: t.goalFor / t.gamesPlayed, ga: t.goalAgainst / t.gamesPlayed }));
+    const min = teams.find(t => t.abbrev === 'MIN');
+    if (!min) return {};
+    return {
+        gf: 1 + teams.filter(t => t.gf > min.gf).length,
+        ga: 1 + teams.filter(t => t.ga < min.ga).length,
+    };
+}
+
+function buildMarginAverages(games, ranks = {}) {
+    const avg = list => list.length ? list.reduce((sum, g) => sum + g.myScore - g.oppScore, 0) / list.length : null;
+    const signed = v => v === null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`;
+    const valueClass = v => v > 0 ? ' glance-positive' : v < 0 ? ' glance-negative' : '';
+    const r = computeRecord(games);
+    const total = r.GF - r.GA;
+    const rankStr = rank => rank ? ` &middot; ${ordinal(rank)} in NHL` : '';
+    const wins = games.filter(g => g.result === 'W');
+    const losses = games.filter(g => g.result !== 'W');
+    const diff = avg(games);
+    const winDiff = avg(wins);
+    const lossDiff = avg(losses);
+    const card = (label, value, sub, cls = '') => `
+        <div class="season-glance-card">
+          <div class="glance-label">${label}</div>
+          <div class="glance-value${cls}">${value}</div>
+          <div class="glance-sub">${sub}</div>
+        </div>`;
+    return `
+      <div class="season-glance-grid gm-averages">
+        ${card('Goals For', r.GF, `${(r.GF / r.GP).toFixed(2)} per game${rankStr(ranks.gf)}`)}
+        ${card('Goals Against', r.GA, `${(r.GA / r.GP).toFixed(2)} per game${rankStr(ranks.ga)}`)}
+        ${card('Goal Diff', `${total > 0 ? '+' : total < 0 ? '−' : ''}${Math.abs(total)}`, `${signed(diff)} per game`, valueClass(total))}
+        ${card('Goal Diff in Wins', signed(winDiff), `${wins.length} ${wins.length === 1 ? 'win' : 'wins'}`, valueClass(winDiff))}
+        ${card('Goal Diff in Losses', signed(lossDiff), `${losses.length} ${losses.length === 1 ? 'loss' : 'losses'} incl. OT/SO`, valueClass(lossDiff))}
+      </div>`;
+}
+
+function buildGameMargins(slots, games, ranks) {
+    const playedCount = games.length;
+    if (playedCount === 0) return '';
+    return `
+      <h3 class="subsection-title">Game by Game - ${playedCount} of ${slots.length} played</h3>
+      <div class="gm-chart-wrap">
+        <div class="gm-chart"></div>
+        <div class="gm-chart-tooltip" hidden></div>
+      </div>
+      <div class="gm-legend" aria-hidden="true">
+        <span class="gm-legend-item"><span class="gm-swatch gm-w"></span>Win</span>
+        <span class="gm-legend-item"><span class="gm-swatch gm-l"></span>Loss</span>
+        <span class="gm-legend-item"><span class="gm-swatch gm-otl"></span>OT/SO Loss</span>
+      </div>
+      ${buildMarginAverages(games, ranks)}`;
+}
+
+const RESULT_CLASS = { W: 'gm-w', L: 'gm-l', OTL: 'gm-otl' };
+
+function buildGameMarginsChart(slots, width) {
+    const W = Math.round(width);
+    const narrow = W < 500;
+    const m = { top: 10, right: 8, bottom: 26, left: 30 };
+    const pw = W - m.left - m.right;
+
+    const margins = slots.filter(s => s.game).map(s => Math.abs(s.game.myScore - s.game.oppScore));
+    const yMax = Math.max(3, ...margins);
+    const unit = narrow ? 15 : 22;                  // px per goal
+    const half = yMax * unit;
+    const ph = half * 2;
+    const H = m.top + ph + m.bottom;
+    const base = m.top + half;
+
+    const slotW = pw / slots.length;
+    const barW = Math.max(1, slotW * (slotW < 6 ? 0.8 : 0.66));
+    const cx = i => m.left + slotW * (i + 0.5);
+    const y = v => base - v * unit;
+
+    const step = yMax <= 5 ? 1 : 2;
+    const ticks = [];
+    for (let v = step; v <= yMax; v += step) ticks.push(v, -v);
+    const grid = ticks.map(v => `<line x1="${m.left}" y1="${y(v)}" x2="${m.left + pw}" y2="${y(v)}" class="chart-grid"/>
+    <text x="${m.left - 6}" y="${y(v)}" dy="0.35em" text-anchor="end" class="chart-label">${v > 0 ? '+' : '−'}${Math.abs(v)}</text>`).join('\n    ');
+
+    const bars = slots.map((s, i) => {
+        if (!s.game) {
+            // Unplayed: a faint stub on the baseline
+            return `<rect x="${(cx(i) - barW / 2).toFixed(1)}" y="${base - 1}" width="${barW.toFixed(1)}" height="2" class="gm-future"/>`;
+        }
+        const diff = s.game.myScore - s.game.oppScore;
+        const top = diff > 0 ? y(diff) : base;
+        const h = Math.abs(diff) * unit;
+        return `<rect x="${(cx(i) - barW / 2).toFixed(1)}" y="${top.toFixed(1)}" width="${barW.toFixed(1)}" height="${h}" rx="${barW > 4 ? 1.5 : 0}" class="gm-bar ${RESULT_CLASS[s.game.result]}"/>`;
+    }).join('');
+
+    // Month labels at each month's first game, skipping any that would collide
+    let lastX = -Infinity, lastMonth = null;
+    const months = slots.map((s, i) => {
+        const d = new Date(s.date + 'T12:00:00');
+        const key = d.getMonth();
+        if (key === lastMonth) return '';
+        lastMonth = key;
+        const x = cx(i) - slotW / 2;
+        if (x - lastX < 30) return '';
+        lastX = x;
+        return `<line x1="${x.toFixed(1)}" y1="${m.top + ph + 2}" x2="${x.toFixed(1)}" y2="${m.top + ph + 7}" class="chart-axis"/>
+    <text x="${x.toFixed(1)}" y="${H - 6}" class="chart-label">${d.toLocaleDateString('en-US', { month: 'short' })}</text>`;
+    }).join('');
+
+    return `<svg class="points-chart gm-chart-svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Goal margin of each Wild game this season">
+  ${grid}
+  <line x1="${m.left}" y1="${m.top}" x2="${m.left}" y2="${m.top + ph}" class="chart-axis"/>
+  <rect class="gm-hover" x="0" y="${m.top}" width="${slotW.toFixed(1)}" height="${ph}" visibility="hidden"/>
+  ${bars}
+  <line x1="${m.left}" y1="${base}" x2="${m.left + pw}" y2="${base}" class="gm-baseline"/>
+  ${months}
+</svg>`;
+}
+
+function attachGameMarginsChart(root, slots) {
+    const wrap = root.querySelector('.gm-chart-wrap');
+    if (!wrap) return;
+    const chartEl = wrap.querySelector('.gm-chart');
+    const tooltip = wrap.querySelector('.gm-chart-tooltip');
+    let renderedWidth = 0;
+
+    const render = () => {
+        const width = chartEl.clientWidth;
+        if (!width) return;
+        renderedWidth = width;
+        chartEl.innerHTML = buildGameMarginsChart(slots, width);
+        tooltip.hidden = true;
+
+        const svg = chartEl.querySelector('svg');
+        const band = svg.querySelector('.gm-hover');
+        const plotLeft = 30, plotW = width - 30 - 8;
+        const slotW = plotW / slots.length;
+
+        const show = evt => {
+            const box = svg.getBoundingClientRect();
+            const scale = width / box.width;
+            const px = (evt.clientX - box.left) * scale;
+            const i = Math.floor((px - plotLeft) / slotW);
+            const s = slots[i];
+            if (!s) { hide(); return; }
+            band.setAttribute('x', (plotLeft + i * slotW).toFixed(1));
+            band.setAttribute('visibility', 'visible');
+
+            const date = new Date(s.date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            const g = s.game;
+            let body;
+            if (g) {
+                const extra = g.lastPeriod === 'OT' || g.lastPeriod === 'SO' ? ` (${g.lastPeriod})` : '';
+                const label = g.result === 'W' ? 'W' : g.result === 'OTL' ? 'OTL' : 'L';
+                body = `<div class="st-tip-value"><span class="gm-tip-result ${RESULT_CLASS[g.result]}">${label}</span> ${g.myScore}–${g.oppScore}${extra}</div>`;
+            } else {
+                body = '<div>Not played yet</div>';
+            }
+            tooltip.innerHTML = `<div class="st-tip-head">Game ${i + 1} &middot; ${s.isHome ? 'vs' : '@'} ${s.opponent} &middot; ${date}</div>${body}`;
+            tooltip.hidden = false;
+            const tw = tooltip.offsetWidth;
+            const barX = (plotLeft + (i + 0.5) * slotW) / scale;
+            tooltip.style.left = `${Math.min(Math.max(barX - tw / 2, 0), box.width - tw)}px`;
+            // Sit in the half away from the bar so it never hides it
+            const baseY = Number(svg.querySelector('.gm-baseline').getAttribute('y1')) / scale;
+            const wins = g && g.myScore > g.oppScore;
+            tooltip.style.top = wins ? `${baseY + 6}px` : `${Math.max(baseY - tooltip.offsetHeight - 6, 0)}px`;
+        };
+        const hide = () => {
+            tooltip.hidden = true;
+            band.setAttribute('visibility', 'hidden');
+        };
+        svg.addEventListener('pointermove', show);
+        svg.addEventListener('pointerdown', show);
+        svg.addEventListener('pointerleave', hide);
+    };
+
+    render();
+
+    let resizeTimer = null;
+    const onResize = () => {
+        clearTimeout(resizeTimer);
+        resizeTimer = setTimeout(() => {
+            if (!wrap.isConnected) { window.removeEventListener('resize', onResize); return; }
+            if (chartEl.clientWidth !== renderedWidth) render();
+        }, 150);
+    };
+    window.addEventListener('resize', onResize);
 }
 
 // ─── Section: Special Teams ────────────────────────────────────────────────
@@ -338,7 +527,7 @@ function buildSpecialTeams(st) {
             : '';
         splitsHtml = `
       <h3 class="subsection-title">By Period and Score</h3>
-      <p class="season-section-note st-splits-note">PP shows goals / opportunities; PK shows kills / times shorthanded. Goals count in the period they were scored and opportunities in the period the penalty was called, so a power play that carries over can add a goal to the next period. Score is the Wild's score when the penalty was called.${coverage}</p>
+      <p class="season-section-note st-splits-note">Goals count in the period they were scored and opportunities in the period the penalty was called.${coverage}</p>
       <div class="season-table-wrap">
         <table class="season-table situation-table st-table">
           <thead>
@@ -718,7 +907,6 @@ function buildBackToBack(games) {
     return `
     <div class="season-section">
       <h2 class="section-title">Back-to-Back Performance</h2>
-      <p class="season-section-note">How the Wild perform on the second game of back-to-back sets.</p>
       <div class="season-table-wrap">
         <table class="season-table">
           <thead>
@@ -1555,9 +1743,10 @@ async function loadAndRenderStats(scheduleGames) {
     const wildStats       = wildStatsResult.value ?? {};
 
     const games = processGames(scheduleGames, periodScores);
+    const slots = gameSlots(scheduleGames, games);
 
     statsEl.innerHTML = [
-        buildAtAGlance(games),
+        buildAtAGlance(games, slots, standings),
         buildSpecialTeams(specialTeamsResult.value),
         buildPeriodScoring(games),
         buildSituationalRecords(games),
@@ -1568,6 +1757,7 @@ async function loadAndRenderStats(scheduleGames) {
         buildOTShootout(games, wildStats, soScorers, seasonBreakdown),
     ].join('');
 
+    attachGameMarginsChart(statsEl, slots);
     if (specialTeamsResult.value) attachSpecialTeamsChart(statsEl, specialTeamsResult.value);
 }
 
