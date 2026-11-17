@@ -29,6 +29,9 @@ const ROUTES = [
     `/api/schedule/${season}`,
     `/api/all-team-schedules/${season}`,
     '/api/news/wild?offset=0&limit=6',
+    // Rebuilt only after Wild games (js/gameTriggeredData.js); requesting it also lets a data
+    // center that can reach the NHL build it when visitors elsewhere can't
+    '/api/milestones/career-totals',
 ];
 
 async function check(path) {
