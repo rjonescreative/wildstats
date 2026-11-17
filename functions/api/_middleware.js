@@ -6,7 +6,8 @@
 //    rate-limits Cloudflare's shared IPs with HTTP 429).
 // 2. Last good: when a route fails (5xx/429/thrown), the last good copy is served instead, marked
 //    X-Data-Stale so the browser can log that the data isn't real time. The edge cache is per data
-//    center, so a copy is also kept in R2 (global) and used when this data center has none.
+//    center, so a copy is also kept in R2 (global) and used when this data center has none, or when
+//    its own copy is over R2_REFRESH old and R2's is newer.
 // 3. Deadline: a route that hasn't answered within ROUTE_DEADLINE while a last good copy exists
 //    gets the copy served in its place. The route keeps running in the background and refreshes
 //    the copy if it succeeds, so a hung NHL API (up to ~16s of timeouts and retries per call)
@@ -117,22 +118,30 @@ export async function onRequest(context) {
         }
     }
 
-    // Last good copy to fall back on: this data center's, else R2's (looked up at most once, and
-    // only once it's needed, so a healthy route costs no R2 reads)
+    // Last good copy to fall back on: this data center's, or R2's when this data center has none or
+    // its copy is older than R2_REFRESH (a quiet data center's copy can be hours old while busy ones
+    // keep R2's within ~15 min). The newer of the two wins. Looked up at most once, and only once
+    // it's needed, so a healthy route costs no R2 reads.
     let lastGood;
     const loadLastGood = () => lastGood ??= (async () => {
-        if (cached) {
-            const headers = new Headers(cached.headers);
-            headers.delete('X-Fresh-For');
-            return staleResponse(cached.body, headers);
-        }
-        const stored = storeKey ? await env.H2H_DATA.get(storeKey).catch(() => null) : null;
-        return stored
-            ? staleResponse(stored.body, {
-                'Content-Type': stored.httpMetadata?.contentType || 'application/json',
-                'X-Data-Updated': stored.customMetadata?.updatedAt || stored.uploaded?.toISOString?.() || '',
-            })
+        const cachedAge = ageMs(cached); // Infinity with no copy here
+        const stored = storeKey && cachedAge > R2_REFRESH
+            ? await env.H2H_DATA.get(storeKey).catch(() => null)
             : null;
+        if (stored) {
+            const updatedAt = stored.customMetadata?.updatedAt || stored.uploaded?.toISOString?.() || '';
+            const storedAge = Date.now() - Date.parse(updatedAt);
+            if (!cached || storedAge < cachedAge) {
+                return staleResponse(stored.body, {
+                    'Content-Type': stored.httpMetadata?.contentType || 'application/json',
+                    'X-Data-Updated': updatedAt,
+                });
+            }
+        }
+        if (!cached) return null;
+        const headers = new Headers(cached.headers);
+        headers.delete('X-Fresh-For');
+        return staleResponse(cached.body, headers);
     })();
 
     // 4. Failed recently: serve the last good copy straight away
