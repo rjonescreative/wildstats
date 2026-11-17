@@ -3,6 +3,7 @@
 // so search engines see correct metadata without needing to execute JS.
 import { getSeasonLabel, getPreviousSeason, getPastSeasons, seasonFromLabel, getPlayoffYear, getCurrentSeason } from '../js/seasonConfig.js';
 import { findNextGame, nextGameDescription, nextGameJsonLd } from '../js/nextGame.js';
+import { fetchWildSchedule } from '../js/wildSchedule.js';
 import { parseTeamRecordsPath, teamRecordsTitle, teamRecordsDescription } from '../js/teamRecordsMeta.js';
 import { isKnownRoute, isPagePath, redirectTarget } from '../js/knownRoutes.js';
 import { parseVideoPath, brightcovePlayerUrl, DEFAULT_BRIGHTCOVE_ACCOUNT } from '../js/videoLinks.js';
@@ -315,12 +316,8 @@ async function prerenderFor(path, env, meta) {
 // can't be fetched or there's no game left this season.
 async function nextGameSearchData() {
     try {
-        const res = await upstreamFetch(`https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`, {
-            redirect: 'follow',
-            signal: AbortSignal.timeout(2500),
-            ttl: 300,
-            cf: { cacheTtl: 300, cacheEverything: true },
-        });
+        // Game-window cache shared with the schedule route (js/wildSchedule.js)
+        const res = await fetchWildSchedule(getCurrentSeason(), { signal: AbortSignal.timeout(2500) });
         if (!res.ok) return null;
         const game = findNextGame((await res.json()).games);
         if (!game) return null;

@@ -17,6 +17,7 @@
 // (e.g. the NHL rate-limiting us) isn't retried any sooner.
 
 import { upstreamFetch } from './upstream.js';
+import { fetchWildSchedule } from './wildSchedule.js';
 
 export const ATTEMPT_LOCK_MS = 15 * 60 * 1000; // one rebuild attempt per dataset per 15 min, site-wide
 const HOUR = 60 * 60 * 1000;
@@ -38,15 +39,18 @@ async function getJson(url, ttl) {
     return r.json();
 }
 
-// Finished regular-season Wild games this season. Same NHL URL as the schedule route, so it's
-// usually already in the upstream cache. Trigger lookups are cached 5 min, matching how often each
-// data center runs these routes (the /api middleware's fresh window).
+// Finished regular-season Wild games this season, from the Wild schedule's game-window cache
+// (js/wildSchedule.js, shared with the schedule route): refreshed every 5 min around games, so a
+// final is seen within minutes, and rarely otherwise.
 export async function wildGamesTrigger(season) {
-    const { games = [] } = await getJson(`https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`, 300);
+    const r = await fetchWildSchedule(season);
+    if (!r.ok) throw new Error(`Wild schedule failed: ${r.status}`);
+    const { games = [] } = await r.json();
     return finishedGames(games);
 }
 
-// Finished regular-season games league-wide, today and the previous game day (so games that end
+// Finished regular-season games league-wide, today and the previous game day. Cached 5 min,
+// matching how often each data center runs these routes (the /api middleware's fresh window) (so games that end
 // after midnight, or finish while a new day's games are scheduled, are seen). Games rolling out of
 // this window, or days with no games, never trigger a rebuild: only a newly finished game does.
 export async function leagueGamesTrigger() {

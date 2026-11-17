@@ -84,15 +84,17 @@ async function attempt(url, init, timeout) {
  * Drop-in replacement for fetch() for upstream URLs, with caching and retries.
  * Extra init keys (removed before fetching):
  *   ttl     seconds to reuse a successful response (default 60; 0 = don't cache)
+ *   ttlFor  async (response) => seconds: work the ttl out from the response itself instead (it gets
+ *           a clone). Every caller of a URL should agree on this, since the last writer sets the ttl.
  *   retries extra attempts on 429 / 5xx / network errors (default 2; 0 when init.signal is given,
  *           since the caller has its own time budget)
  *   timeout ms per attempt (default 5000; ignored when init.signal is given)
  * @returns {Promise<Response>}
  */
-export async function upstreamFetch(url, { ttl = DEFAULT_TTL, retries, timeout = DEFAULT_TIMEOUT, ...init } = {}) {
+export async function upstreamFetch(url, { ttl = DEFAULT_TTL, ttlFor, retries, timeout = DEFAULT_TIMEOUT, ...init } = {}) {
     retries ??= init.signal ? 0 : DEFAULT_RETRIES;
 
-    if (ttl > 0) {
+    if (ttl > 0 || ttlFor) {
         const cached = await readCache(url);
         if (cached) return cached;
     }
@@ -103,7 +105,8 @@ export async function upstreamFetch(url, { ttl = DEFAULT_TTL, retries, timeout =
         try {
             response = await attempt(url, init, timeout);
             if (!isRetryable(response.status)) {
-                if (response.ok && ttl > 0) await writeCache(url, response, ttl);
+                const keepFor = response.ok && ttlFor ? await ttlFor(response.clone()).catch(() => DEFAULT_TTL) : ttl;
+                if (response.ok && keepFor > 0) await writeCache(url, response, keepFor);
                 return response;
             }
             lastError = null;

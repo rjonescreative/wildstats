@@ -1,14 +1,12 @@
-// Cloudflare Pages Function for Wild schedule endpoint
-import { upstreamFetch } from '../../../js/upstream.js';
+// Cloudflare Pages Function for Wild schedule endpoint. Cached by game window (js/wildSchedule.js):
+// 5 min from 30 min before a game until it's final, otherwise until the next window (at most 1h).
+import { fetchWildSchedule, wildScheduleTtl } from '../../../js/wildSchedule.js';
 export async function onRequest(context) {
     const { params } = context;
     const season = params.season;
 
     try {
-        const response = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`,
-            { redirect: 'follow' }
-        );
+        const response = await fetchWildSchedule(season);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
@@ -16,7 +14,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify(data), {
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300'
+                'Cache-Control': `public, max-age=${wildScheduleTtl(data)}`
             }
         });
     } catch (error) {

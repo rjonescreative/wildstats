@@ -8,9 +8,10 @@ export async function onRequest(context) {
 
         // Fetch from all sources in parallel (get more items for pagination)
         const [athleticResponse, nhlResponse, stribResponse] = await Promise.all([
-            upstreamFetch('https://www.nytimes.com/athletic/rss/nhl/wild/', { ttl: 300 }).catch(() => null),
-            upstreamFetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', { ttl: 300 }).catch(() => null),
-            upstreamFetch('https://www.startribune.com/sports/index.rss2', { ttl: 300 }).catch(() => null)
+            // Feeds cached 30 min, matching this route's max-age, so every page of results shares them
+            upstreamFetch('https://www.nytimes.com/athletic/rss/nhl/wild/', { ttl: 1800 }).catch(() => null),
+            upstreamFetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', { ttl: 1800 }).catch(() => null),
+            upstreamFetch('https://www.startribune.com/sports/index.rss2', { ttl: 1800 }).catch(() => null)
         ]);
 
         const articles = [];

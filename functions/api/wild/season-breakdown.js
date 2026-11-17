@@ -3,6 +3,7 @@
 
 import { getCurrentSeason } from '../../../js/seasonConfig.js';
 import { upstreamFetch } from '../../../js/upstream.js';
+import { fetchWildSchedule } from '../../../js/wildSchedule.js';
 
 // Extract period scores, SO scorers, and goalie data from a play-by-play response
 function extractGameData(pbp) {
@@ -91,10 +92,7 @@ export async function onRequest(context) {
         const processedSet = new Set(cached.processedGameIds ?? []);
 
         // 2. Fetch MIN schedule to find all completed games
-        const schedResponse = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${SEASON}`,
-            { redirect: 'follow' }
-        );
+        const schedResponse = await fetchWildSchedule(SEASON);
         if (!schedResponse.ok || !schedResponse.headers.get('content-type')?.includes('json')) {
             // Schedule unavailable — return whatever is cached, marked stale
             return new Response(JSON.stringify({

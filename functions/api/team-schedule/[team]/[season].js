@@ -1,15 +1,16 @@
 // Cloudflare Pages Function — any-team schedule endpoint
 import { upstreamFetch } from '../../../../js/upstream.js';
+import { fetchWildSchedule, wildScheduleTtl } from '../../../../js/wildSchedule.js';
 export async function onRequest(context) {
     const { params } = context;
     const team   = params.team.toUpperCase();
     const season = params.season;
 
     try {
-        const response = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/${team}/${season}`,
-            { redirect: 'follow' }
-        );
+        // The Wild's schedule shares the game-window cache with every other caller of that URL
+        const response = team === 'MIN'
+            ? await fetchWildSchedule(season)
+            : await upstreamFetch(`https://api-web.nhle.com/v1/club-schedule-season/${team}/${season}`, { redirect: 'follow' });
 
         if (!response.ok) {
             return new Response(
@@ -31,7 +32,7 @@ export async function onRequest(context) {
         return new Response(JSON.stringify(data), {
             headers: {
                 'Content-Type': 'application/json',
-                'Cache-Control': 'public, max-age=300',
+                'Cache-Control': `public, max-age=${team === 'MIN' ? wildScheduleTtl(data) : 300}`,
             },
         });
     } catch (error) {

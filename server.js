@@ -6,6 +6,7 @@ import { setDefaultResultOrder } from 'dns';
 import { S3Client, GetObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import { getCurrentSeason } from './js/seasonConfig.js';
 import { upstreamFetch } from './js/upstream.js';
+import { fetchWildSchedule, wildScheduleTtl } from './js/wildSchedule.js';
 import { loadDataset, DATASETS } from './js/gameTriggeredData.js';
 import { memoryStore } from './js/gameTriggered.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
@@ -192,14 +193,12 @@ app.get('/api/player/:id/game-log', async (req, res) => {
 app.get('/api/schedule/:season', async (req, res) => {
     const season = req.params.season;
     try {
-        const response = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${season}`,
-            { redirect: 'follow' }
-        );
+        // Cached by game window (js/wildSchedule.js), shared with every caller of this NHL URL
+        const response = await fetchWildSchedule(season);
 
         if (!response.ok) throw new Error(`NHL API error: ${response.status}`);
         const data = await response.json();
-        res.set('Cache-Control', 'public, max-age=300');
+        res.set('Cache-Control', `public, max-age=${wildScheduleTtl(data)}`);
         res.json(data);
     } catch (error) {
         console.error('Error fetching schedule:', error);
@@ -211,10 +210,10 @@ app.get('/api/schedule/:season', async (req, res) => {
 app.get('/api/team-schedule/:team/:season', async (req, res) => {
     const { team, season } = req.params;
     try {
-        const response = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/${team.toUpperCase()}/${season}`,
-            { redirect: 'follow' }
-        );
+        const isWild = team.toUpperCase() === 'MIN';
+        const response = isWild
+            ? await fetchWildSchedule(season)
+            : await upstreamFetch(`https://api-web.nhle.com/v1/club-schedule-season/${team.toUpperCase()}/${season}`, { redirect: 'follow' });
 
         if (!response.ok) {
             console.error(`NHL API error for ${team} schedule: ${response.status}`);
@@ -229,7 +228,7 @@ app.get('/api/team-schedule/:team/:season', async (req, res) => {
             return res.status(502).json({ error: 'Invalid response from NHL API' });
         }
 
-        res.set('Cache-Control', 'public, max-age=300');
+        res.set('Cache-Control', `public, max-age=${isWild ? wildScheduleTtl(data) : 300}`);
         res.json(data);
     } catch (error) {
         console.error(`Error fetching schedule for ${team}:`, error);
@@ -407,14 +406,15 @@ app.get('/api/news/wild', async (req, res) => {
 
         // Fetch from all sources in parallel (get more items for pagination)
         const [athleticResponse, nhlResponse, stribResponse] = await Promise.all([
+            // Feeds cached 30 min, matching this route's max-age, so every page of results shares them
             upstreamFetch('https://www.nytimes.com/athletic/rss/nhl/wild/', {
-                redirect: 'follow'
+                redirect: 'follow', ttl: 1800
             }).catch(() => null),
             upstreamFetch('https://forge-dapi.d3.nhle.com/v2/content/en-us/stories?tags.slug=teamid-30&limit=20', {
-                redirect: 'follow'
+                redirect: 'follow', ttl: 1800
             }).catch(() => null),
             upstreamFetch('https://www.startribune.com/sports/index.rss2', {
-                redirect: 'follow'
+                redirect: 'follow', ttl: 1800
             }).catch(() => null)
         ]);
 
@@ -674,10 +674,7 @@ app.get('/api/wild/season-breakdown', async (req, res) => {
         const processedSet = new Set(cached.processedGameIds ?? []);
 
         // 2. Fetch MIN schedule to find all completed games
-        const schedResponse = await upstreamFetch(
-            `https://api-web.nhle.com/v1/club-schedule-season/MIN/${getCurrentSeason()}`,
-            { redirect: 'follow' }
-        );
+        const schedResponse = await fetchWildSchedule(getCurrentSeason());
         if (!schedResponse.ok || !schedResponse.headers.get('content-type')?.includes('json')) {
             // Schedule unavailable — return whatever we have cached, marked stale
             return res.set({ 'Cache-Control': 'public, max-age=300', 'X-Data-Stale': 'true' }).json({

@@ -24,7 +24,16 @@ const FRESH_CAP = 300;                   // serve a cached copy without re-runni
 // max-age). Career totals checks for a newly finished Wild game each run and rebuilds (~28 NHL
 // requests) only after one (js/careerTotals.js); an hour's cap keeps even the check to once an
 // hour per data center.
-const FRESH_CAPS = { '/api/milestones/career-totals': 3600 };
+// Matched by path prefix. The Wild schedule sets its own max-age by game window (js/wildSchedule.js:
+// 5 min around games, up to an hour otherwise); news declares 30 min and its feeds update slowly.
+const FRESH_CAPS = {
+    '/api/milestones/career-totals': 3600,
+    '/api/schedule/': 3600,
+    '/api/team-schedule/MIN/': 3600,
+    '/api/news/wild': 1800,
+};
+const freshCapFor = pathname =>
+    Object.entries(FRESH_CAPS).find(([prefix]) => pathname.startsWith(prefix))?.[1] ?? FRESH_CAP;
 const R2_REFRESH = 15 * 60 * 1000;       // rewrite a URL's R2 copy at most every 15 min (per data center)
 const R2_PREFIX = 'api-last-good/';
 const ROUTE_DEADLINE = 2000;             // ms to wait for a route before serving the last good copy
@@ -96,7 +105,7 @@ export async function onRequest(context) {
 
     // 1. Recent enough copy: serve it without running the route
     if (cached) {
-        const cap = FRESH_CAPS[new URL(request.url).pathname] ?? FRESH_CAP;
+        const cap = freshCapFor(new URL(request.url).pathname);
         const freshFor = Math.min(Number(cached.headers.get('X-Fresh-For')) || 0, cap) * 1000;
         const age = ageMs(cached);
         if (age < freshFor) {
