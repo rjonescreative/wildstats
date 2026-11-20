@@ -954,14 +954,9 @@ function flowRank(teams, valueOf, higherIsBetter = true) {
 const flowPct = r => r.gp ? (r.w * 2 + r.otl) / (r.gp * 2) : null;
 const share = (n, of) => of ? `${Math.round((n / of) * 100)}%` : '—';
 
-function fmtClock(seconds) { // per-game time, m:ss
+function fmtClock(seconds) { // minutes:seconds, e.g. 34:42 or 1,012:05
     const s = Math.round(seconds);
-    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
-}
-
-function fmtHours(seconds) { // season time, 13h 18m
-    const m = Math.round(seconds / 60);
-    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+    return `${Math.floor(s / 60).toLocaleString('en-US')}:${String(s % 60).padStart(2, '0')}`;
 }
 
 function fmtThrough(date) {
@@ -974,6 +969,12 @@ function buildGameFlow(gameFlow) {
     const teams = gameFlow?.teams ?? {};
     const t = teams.MIN;
     if (!t || t.gp === 0) return '';
+    // Earlier days still being fetched (first backfill, or a failed day): partial totals would
+    // undercount, so show nothing rather than wrong numbers
+    if (gameFlow.complete === false) {
+        return `<h3 class="subsection-title">First Goal and Time With the Lead</h3>
+      <p class="season-section-note">These stats are still loading for earlier games. Check back in a few minutes.</p>`;
+    }
 
     const card = (label, value, subs, cls = '') => `
         <div class="season-glance-card">
@@ -1038,8 +1039,8 @@ function buildGameFlow(gameFlow) {
 
     const timeCards = `
       <div class="season-glance-grid flow-time-cards">
-        ${card('Time Leading', fmtHours(t.leadSeconds), [flowRank(teams, x => x.leadSeconds)], ' glance-positive')}
-        ${card('Time Trailing', fmtHours(t.trailSeconds), [flowRank(teams, x => x.trailSeconds, false)], ' glance-negative')}
+        ${card('Time Leading', fmtClock(t.leadSeconds), [flowRank(teams, x => x.leadSeconds)], ' glance-positive')}
+        ${card('Time Trailing', fmtClock(t.trailSeconds), [flowRank(teams, x => x.trailSeconds, false)], ' glance-negative')}
         ${card('Leading per Game', fmtClock(t.leadSeconds / t.gp), [flowRank(teams, x => x.gp ? x.leadSeconds / x.gp : null)], ' glance-positive')}
         ${card('Trailing per Game', fmtClock(t.trailSeconds / t.gp), [flowRank(teams, x => x.gp ? x.trailSeconds / x.gp : null, false)], ' glance-negative')}
       </div>`;

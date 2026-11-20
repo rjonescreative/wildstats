@@ -179,8 +179,17 @@ export function teamGameFlow(data) {
     return teams;
 }
 
-/** The /api/league/game-flow response: per-team totals, and the last day whose games are all in. */
-export function gameFlowResponse(data) {
-    const doneDays = Object.entries(data?.days ?? {}).filter(([, d]) => d.done && d.games.length).map(([d]) => d).sort();
-    return { teams: teamGameFlow(data), through: doneDays.at(-1) ?? null };
+/**
+ * The /api/league/game-flow response: per-team totals, the last day whose games are all in, and
+ * complete: every day from the season start through the day before yesterday (ET) is in. The last
+ * two days may still be catching up (late games, the feed lagging a final); anything earlier
+ * missing means a backfill is under way and the totals undercount.
+ */
+export function gameFlowResponse(data, now = Date.now()) {
+    const days = data?.days ?? {};
+    const doneDays = Object.entries(days).filter(([, d]) => d.done && d.games.length).map(([d]) => d).sort();
+    const cutoff = easternDate(now - 2 * 86400000);
+    const complete = Boolean(data?.startDate)
+        && (data.startDate > cutoff || datesBetween(data.startDate, cutoff).every(d => days[d]?.done));
+    return { teams: teamGameFlow(data), through: doneDays.at(-1) ?? null, complete };
 }
