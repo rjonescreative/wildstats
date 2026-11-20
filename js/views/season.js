@@ -1041,8 +1041,8 @@ function buildGameFlow(gameFlow) {
       <div class="season-glance-grid flow-time-cards">
         ${card('Time Leading', fmtClock(t.leadSeconds), [flowRank(teams, x => x.leadSeconds)], ' glance-positive')}
         ${card('Time Trailing', fmtClock(t.trailSeconds), [flowRank(teams, x => x.trailSeconds, false)], ' glance-negative')}
-        ${card('Leading per Game', fmtClock(t.leadSeconds / t.gp), [flowRank(teams, x => x.gp ? x.leadSeconds / x.gp : null)], ' glance-positive')}
-        ${card('Trailing per Game', fmtClock(t.trailSeconds / t.gp), [flowRank(teams, x => x.gp ? x.trailSeconds / x.gp : null, false)], ' glance-negative')}
+        ${card('Avg Leading per Game', fmtClock(t.leadSeconds / t.gp), [flowRank(teams, x => x.gp ? x.leadSeconds / x.gp : null)], ' glance-positive')}
+        ${card('Avg Trailing per Game', fmtClock(t.trailSeconds / t.gp), [flowRank(teams, x => x.gp ? x.trailSeconds / x.gp : null, false)], ' glance-negative')}
       </div>`;
 
     return `
