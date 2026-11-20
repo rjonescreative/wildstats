@@ -175,16 +175,25 @@ function recStr(games) {
     return fmtRecord(r.W, r.L, r.OTL);
 }
 
+// Current streak → { label: 'W5', cls, pointStreak }. Colored like the standings STRK column: a
+// streak over 2 games is green for wins, red for losses (OT included). pointStreak is the run of
+// games with a point (wins and OT/SO losses) when it's longer than the current streak, else 0.
 function computeStreak(games) {
-    if (!games.length) return '—';
-    let count = 1;
+    if (!games.length) return { label: '—', cls: '', pointStreak: 0 };
     const last = games[games.length - 1].result;
-    for (let i = games.length - 2; i >= 0; i--) {
-        if (games[i].result === last) count++;
-        else break;
-    }
-    const label = last === 'W' ? 'W' : last === 'OTL' ? 'OT' : 'L';
-    return `${label}${count}`;
+    const runOf = test => {
+        let n = 0;
+        for (let i = games.length - 1; i >= 0 && test(games[i].result); i--) n++;
+        return n;
+    };
+    const count = runOf(r => r === last);
+    const points = last === 'L' ? 0 : runOf(r => r === 'W' || r === 'OTL');
+    const code = last === 'W' ? 'W' : last === 'OTL' ? 'OT' : 'L';
+    return {
+        label: `${code}${count}`,
+        cls: count > 2 ? (last === 'W' ? 'streak-W' : 'streak-L') : '',
+        pointStreak: points > count ? points : 0,
+    };
 }
 
 // ─── Section: Season At a Glance ───────────────────────────────────────────
@@ -215,9 +224,9 @@ function buildAtAGlance(games, slots, standings) {
           <div class="glance-sub">${ar.GP} games &middot; ${fmtPct(ar.pct)} pts%</div>
         </div>
         <div class="season-glance-card">
-          <div class="glance-label">Streak</div>
-          <div class="glance-value">${streak}</div>
-          <div class="glance-sub">current</div>
+          <div class="glance-label">Current Streak</div>
+          <div class="glance-value ${streak.cls}">${streak.label}</div>
+          <div class="glance-sub">${streak.pointStreak ? `${streak.pointStreak}-game point streak` : '&nbsp;'}</div>
         </div>
       </div>
       ${buildGameMargins(slots, games, leagueGoalRanks(standings))}
