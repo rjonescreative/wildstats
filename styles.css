@@ -4748,6 +4748,88 @@ footer {
     margin-top: 0.1rem;
 }
 
+/* ─── Situational records: first goal and time with the lead ─────────────── */
+
+.flow-first-cards,
+.flow-time-cards {
+    margin-bottom: 0.875rem;
+}
+
+.season-table.flow-record-table {
+    min-width: 0; /* five short columns: fit a phone without scrolling */
+}
+
+.flow-record-table td:not(:first-child),
+.flow-record-table th:not(:first-child) {
+    text-align: center;
+}
+
+@media (max-width: 400px) {
+    .season-table.flow-record-table th,
+    .season-table.flow-record-table td {
+        padding-left: 0.4rem;
+        padding-right: 0.4rem;
+        letter-spacing: 0.02em;
+    }
+}
+
+.flow-record-table .flow-rank {
+    color: var(--text-secondary);
+}
+
+.flow-split {
+    margin-bottom: 0.875rem;
+}
+
+.flow-bar {
+    display: flex;
+    height: 14px;
+    border-radius: 7px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.06);
+}
+
+.flow-bar-seg + .flow-bar-seg {
+    border-left: 2px solid var(--bg-primary, #0e0e0e);
+}
+
+.flow-lead { background: #3cb96a; }
+.flow-tied { background: #6a6a6a; }
+.flow-trail { background: var(--wild-red); }
+
+.flow-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 1.25rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+    color: #909090;
+}
+
+.flow-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.flow-legend-item strong {
+    color: var(--text-primary);
+    font-weight: 600;
+}
+
+.flow-swatch {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+}
+
+@media (max-width: 640px) {
+    /* Four time cards: two rows of two */
+    .flow-time-cards .season-glance-card {
+        flex-basis: calc(50% - 0.625rem);
+    }
+}
+
 /* ─── Special teams ───────────────────────────────────────────────────────── */
 
 .special-teams .st-table {

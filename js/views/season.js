@@ -1,5 +1,5 @@
 // Current Season view — team-level stats for the current season
-import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams } from '../api.js';
+import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams, getGameFlow } from '../api.js';
 import { getSeasonLabel, PLAYOFF_MODE } from '../seasonConfig.js';
 import { updatePointsChartURL } from '../router.js';
 
@@ -867,7 +867,7 @@ function buildPeriodScoring(games) {
 
 // ─── Section: Situational Records ──────────────────────────────────────────
 
-function buildSituationalRecords(games) {
+function buildSituationalRecords(games, gameFlow) {
     const gamesWithP1 = games.filter(g => g.stateAfterP1 !== null);
     const gamesWithP2 = games.filter(g => g.stateAfterP2 !== null);
 
@@ -875,6 +875,7 @@ function buildSituationalRecords(games) {
         return `<div class="season-section">
           <h2 class="section-title">Situational Records</h2>
           <p class="season-no-data">Period data unavailable.</p>
+          ${buildGameFlow(gameFlow)}
         </div>`;
     }
 
@@ -931,7 +932,127 @@ function buildSituationalRecords(games) {
           </tbody>
         </table>
       </div>
+      ${buildGameFlow(gameFlow)}
     </div>`;
+}
+
+// ─── Situational Records: first goal and time with the lead ────────────────
+
+// League rank of the Wild's value among every team with one: 1 + teams strictly better, marked
+// "T-" when another team has the same value
+function flowRank(teams, valueOf, higherIsBetter = true) {
+    const values = Object.entries(teams)
+        .map(([abbrev, t]) => [abbrev, valueOf(t)])
+        .filter(([, v]) => v !== null && Number.isFinite(v));
+    const mine = values.find(([abbrev]) => abbrev === 'MIN')?.[1];
+    if (mine === undefined) return '';
+    const better = values.filter(([, v]) => higherIsBetter ? v > mine : v < mine).length;
+    const tied = values.filter(([abbrev, v]) => abbrev !== 'MIN' && v === mine).length > 0;
+    return `${tied ? 'T-' : ''}${ordinal(better + 1)} in NHL`;
+}
+
+const flowPct = r => r.gp ? (r.w * 2 + r.otl) / (r.gp * 2) : null;
+const share = (n, of) => of ? `${Math.round((n / of) * 100)}%` : '—';
+
+function fmtClock(seconds) { // per-game time, m:ss
+    const s = Math.round(seconds);
+    return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
+}
+
+function fmtHours(seconds) { // season time, 13h 18m
+    const m = Math.round(seconds / 60);
+    return m >= 60 ? `${Math.floor(m / 60)}h ${m % 60}m` : `${m}m`;
+}
+
+function fmtThrough(date) {
+    if (!date) return '';
+    const d = new Date(`${date}T12:00:00Z`);
+    return ` through ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`;
+}
+
+function buildGameFlow(gameFlow) {
+    const teams = gameFlow?.teams ?? {};
+    const t = teams.MIN;
+    if (!t || t.gp === 0) return '';
+
+    const card = (label, value, subs, cls = '') => `
+        <div class="season-glance-card">
+          <div class="glance-label">${label}</div>
+          <div class="glance-value${cls}">${value}</div>
+          ${subs.filter(Boolean).map(text => `<div class="glance-sub">${text}</div>`).join('')}
+        </div>`;
+
+    // First goal: how often, and the record in each case
+    const firstCards = `
+      <div class="season-glance-grid flow-first-cards">
+        ${card('Scored First', t.scoredFirst.gp, [`${share(t.scoredFirst.gp, t.gp)} of games`, flowRank(teams, x => x.gp ? x.scoredFirst.gp / x.gp : null)])}
+        ${card('Scored Second', t.scoredSecond.gp, [`${share(t.scoredSecond.gp, t.gp)} of games`])}
+        ${card('No Goals', t.noGoals.gp, [`${share(t.noGoals.gp, t.gp)} of games`, flowRank(teams, x => x.gp ? x.noGoals.gp / x.gp : null, false)])}
+      </div>`;
+
+    const recordRow = (label, key, cls, ranked = true) => {
+        const r = t[key];
+        return `<tr>
+          <td class="sit-label ${cls}">${label}</td>
+          <td>${r.gp}</td>
+          <td>${r.gp ? fmtRecord(r.w, r.l, r.otl) : '—'}</td>
+          <td>${fmtPct(flowPct(r))}</td>
+          <td class="flow-rank">${ranked && r.gp ? flowRank(teams, x => flowPct(x[key])).replace(' in NHL', '') : '—'}</td>
+        </tr>`;
+    };
+    const recordTable = `
+      <div class="season-table-wrap">
+        <table class="season-table situation-table flow-record-table">
+          <thead>
+            <tr><th>First Goal</th><th>GP</th><th>Record</th><th>Pts%</th><th>Rank</th></tr>
+          </thead>
+          <tbody>
+            ${recordRow('Scored first', 'scoredFirst', 'sit-label-leading')}
+            ${recordRow('Scored second', 'scoredSecond', 'sit-label-trailing')}
+            ${recordRow('No goals', 'noGoals', 'sit-label-tied', false)}
+          </tbody>
+        </table>
+      </div>`;
+
+    // Time with the lead: season split, then totals and per-game averages
+    const tied = Math.max(0, t.playedSeconds - t.leadSeconds - t.trailSeconds);
+    const pctOf = sec => t.playedSeconds ? (sec / t.playedSeconds) * 100 : 0;
+    const segment = (cls, label, sec) => {
+        const pct = pctOf(sec);
+        return pct > 0 ? `<div class="flow-bar-seg ${cls}" style="width:${pct.toFixed(2)}%" title="${label}: ${Math.round(pct)}%"></div>` : '';
+    };
+    const legend = (cls, label, sec) => `<span class="flow-legend-item"><span class="flow-swatch ${cls}"></span>${label} <strong>${Math.round(pctOf(sec))}%</strong></span>`;
+    const splitBar = `
+      <div class="flow-split" role="img" aria-label="Share of game time: leading ${Math.round(pctOf(t.leadSeconds))}%, tied ${Math.round(pctOf(tied))}%, trailing ${Math.round(pctOf(t.trailSeconds))}%">
+        <div class="flow-bar">
+          ${segment('flow-lead', 'Leading', t.leadSeconds)}
+          ${segment('flow-tied', 'Tied', tied)}
+          ${segment('flow-trail', 'Trailing', t.trailSeconds)}
+        </div>
+        <div class="flow-legend" aria-hidden="true">
+          ${legend('flow-lead', 'Leading', t.leadSeconds)}
+          ${legend('flow-tied', 'Tied', tied)}
+          ${legend('flow-trail', 'Trailing', t.trailSeconds)}
+        </div>
+      </div>`;
+
+    const timeCards = `
+      <div class="season-glance-grid flow-time-cards">
+        ${card('Time Leading', fmtHours(t.leadSeconds), [flowRank(teams, x => x.leadSeconds)], ' glance-positive')}
+        ${card('Time Trailing', fmtHours(t.trailSeconds), [flowRank(teams, x => x.trailSeconds, false)], ' glance-negative')}
+        ${card('Leading per Game', fmtClock(t.leadSeconds / t.gp), [flowRank(teams, x => x.gp ? x.leadSeconds / x.gp : null)], ' glance-positive')}
+        ${card('Trailing per Game', fmtClock(t.trailSeconds / t.gp), [flowRank(teams, x => x.gp ? x.trailSeconds / x.gp : null, false)], ' glance-negative')}
+      </div>`;
+
+    return `
+      <h3 class="subsection-title">First Goal</h3>
+      <p class="season-section-note">Who scored the game's first goal, in ${t.gp} games${fmtThrough(gameFlow.through)}. Scored second means the Wild answered after allowing the first; shootouts don't count.</p>
+      ${firstCards}
+      ${recordTable}
+      <h3 class="subsection-title">Time With the Lead</h3>
+      <p class="season-section-note">Game time spent leading, tied and trailing, including overtime. For time trailing, 1st in NHL means the least.</p>
+      ${splitBar}
+      ${timeCards}`;
 }
 
 // ─── Section: Back-to-Back Performance ─────────────────────────────────────
@@ -2028,11 +2149,12 @@ async function loadAndRenderStats(scheduleGames) {
     const statsEl = document.getElementById('season-extra-stats');
     if (!statsEl) return;
 
-    const [standingsResult, breakdownResult, wildStatsResult, specialTeamsResult] = await Promise.allSettled([
+    const [standingsResult, breakdownResult, wildStatsResult, specialTeamsResult, gameFlowResult] = await Promise.allSettled([
         getStandings(),
         getWildSeasonBreakdown(),
         getWildStats(),
         getWildSpecialTeams(),
+        getGameFlow(),
     ]);
 
     const standings       = standingsResult.value?.standings ?? [];
@@ -2048,7 +2170,7 @@ async function loadAndRenderStats(scheduleGames) {
         buildAtAGlance(games, slots, standings),
         buildSpecialTeams(specialTeamsResult.value),
         buildPeriodScoring(games),
-        buildSituationalRecords(games),
+        buildSituationalRecords(games, gameFlowResult.value),
         buildBackToBack(games),
         buildDivisionConferenceRecords(games),
         // Playoff-race section — only shown in playoff mode

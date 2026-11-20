@@ -8,6 +8,7 @@ import { getCurrentSeason } from './js/seasonConfig.js';
 import { upstreamFetch } from './js/upstream.js';
 import { fetchWildSchedule, wildScheduleTtl } from './js/wildSchedule.js';
 import { loadDataset, DATASETS } from './js/gameTriggeredData.js';
+import { gameFlowResponse } from './js/gameFlow.js';
 import { memoryStore } from './js/gameTriggered.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
@@ -137,6 +138,17 @@ app.get('/api/wild/stats', async (req, res) => {
     } catch (error) {
         console.error('Error fetching Wild stats:', error);
         res.status(500).json({ error: 'Failed to fetch Wild stats' });
+    }
+});
+
+// Scoring first and time leading/trailing for every team (js/gameFlow.js)
+app.get('/api/league/game-flow', async (req, res) => {
+    try {
+        const { data } = await loadDataset('gameFlow', { season: getCurrentSeason(), store: datasetStores.gameFlow });
+        res.json(gameFlowResponse(data));
+    } catch (error) {
+        console.error('Error fetching game flow:', error);
+        res.status(500).json({ error: 'Failed to fetch game flow' });
     }
 });
 

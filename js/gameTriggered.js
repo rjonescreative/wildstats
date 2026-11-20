@@ -106,8 +106,9 @@ export function refreshDecision(stored, trigger, season, recheckMs, now) {
  *   season    current season id (a stored build from another season is ignored)
  *   store     { read, write } — r2Store(...) or memoryStore()
  *   trigger   () => Promise<{ ids, latestStart }>
- *   build     () => Promise<{ data, complete }> — throw on failure; complete=false when an optional
- *             part failed, so the build is rechecked rather than settled
+ *   build     (previousData | null) => Promise<{ data, complete }> — throw on failure; complete=false
+ *             when an optional part failed (or work was left for later), so the build is rechecked
+ *             rather than settled. previousData (this season's stored build) lets a build add to it.
  *   settleMs, recheckMs   see top of file
  * Resolves to { data, rebuilt }; throws only when there's nothing stored to fall back on.
  */
@@ -135,7 +136,7 @@ export async function getGameTriggered({ name, season, store, trigger, build, se
 
     await store.write({ ...(stored ?? {}), attemptAt: now }).catch(() => {});
     try {
-        const { data, complete = true } = await build();
+        const { data, complete = true } = await build(usable?.data ?? null);
         await store.write({
             season,
             data,

@@ -151,6 +151,11 @@ export async function getWildSeasonBreakdown(forceRefresh = false) {
     return fetchWithCache('/api/wild/season-breakdown', 'wildSeasonBreakdown', forceRefresh);
 }
 
+// Get scoring first and time leading/trailing for every team ({ teams: { [abbrev]: totals }, through })
+export async function getGameFlow(forceRefresh = false) {
+    return fetchWithCache('/api/league/game-flow', 'gameFlow', forceRefresh);
+}
+
 // Get Wild power play / penalty kill — season totals, per-game numbers, period / score-state splits
 export async function getWildSpecialTeams(forceRefresh = false) {
     return fetchWithCache('/api/wild/special-teams', 'wildSpecialTeams', forceRefresh);

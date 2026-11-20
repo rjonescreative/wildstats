@@ -6,6 +6,7 @@ import { upstreamFetch } from './upstream.js';
 import { addFaceoffCounts, fetchFaceoffReport } from './faceoffs.js';
 import { addGoalieShootoutLosses, fetchGoalieShootoutReport } from './goalieShootouts.js';
 import { buildCareerTotals } from './careerTotals.js';
+import { buildGameFlow } from './gameFlow.js';
 import { getGameTriggered, leagueGamesTrigger, wildGamesTrigger, r2Store } from './gameTriggered.js';
 
 const HOUR = 60 * 60 * 1000;
@@ -79,6 +80,15 @@ export const DATASETS = {
         build: (season, { landingTtl }) => buildCareerTotals(season, landingTtl),
         settleMs: 10 * HOUR, recheckMs: 4 * HOUR,
     },
+    // Scoring first and time leading/trailing for every team (js/gameFlow.js). Builds add to the
+    // previous one (only unfinished days are fetched, usually one request), so the short recheck
+    // is cheap and lets a capped backfill (or a day that failed) catch up within minutes.
+    gameFlow: {
+        r2Key: 'game-triggered/game-flow.json',
+        trigger: () => leagueGamesTrigger(),
+        build: (season, { previous }) => buildGameFlow(previous),
+        settleMs: 3 * HOUR, recheckMs: 5 * 60 * 1000,
+    },
 };
 
 // Requests in the same process (the Express server, or one Worker isolate) that arrive while a
@@ -104,7 +114,7 @@ function loadDatasetOnce(name, { season, store, bucket, landingTtl = 0, now } = 
         season,
         store: store ?? r2Store(bucket, ds.r2Key),
         trigger: () => ds.trigger(season),
-        build: () => ds.build(season, { landingTtl }),
+        build: previous => ds.build(season, { landingTtl, previous }),
         settleMs: ds.settleMs,
         recheckMs: ds.recheckMs,
         now,
