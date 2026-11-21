@@ -627,7 +627,7 @@ function setupGoalieSortListeners() {
 
 function getSkaterBestValues(skaters) {
     const best = {};
-    const fields = ['goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 'shorthandedGoals', 'shots', 'shootingPctg', 'faceoffWinPctg', 'avgTimeOnIcePerGame'];
+    const fields = ['goals', 'assists', 'points', 'plusMinus', 'powerPlayGoals', 'shorthandedGoals', 'shots', 'shootingPctg', 'faceoffWinPctg', 'blockedShots', 'avgTimeOnIcePerGame'];
 
     fields.forEach(field => {
         const values = skaters
@@ -661,6 +661,8 @@ function renderSkaters() {
             bVal = b.gamesPlayed > 0 ? b.points / b.gamesPlayed : 0;
         }
 
+        aVal ??= 0; // blocked shots are missing when the NHL's report was unavailable
+        bVal ??= 0;
         return state.skaterSortDirection === 'desc' ? bVal - aVal : aVal - bVal;
     });
 
@@ -696,6 +698,7 @@ function renderSkaters() {
                     <th class="center hide-mobile sortable ${state.skaterSort === 'shots' ? 'sorted' : ''}" data-sort="shots" data-tooltip="Shots on Goal" aria-label="Shots on Goal">SOG${getSortIcon('shots')}</th>
                     <th class="center hide-mobile sortable ${state.skaterSort === 'shootingPctg' ? 'sorted' : ''}" data-sort="shootingPctg" data-tooltip="Shooting Percentage" aria-label="Shooting Percentage">S%${getSortIcon('shootingPctg')}</th>
                     <th class="center hide-mobile sortable ${state.skaterSort === 'faceoffWinPctg' ? 'sorted' : ''}" data-sort="faceoffWinPctg" data-tooltip="Faceoff Win Percentage" aria-label="Faceoff Win Percentage">FOW%${getSortIcon('faceoffWinPctg')}</th>
+                    <th class="center hide-mobile sortable ${state.skaterSort === 'blockedShots' ? 'sorted' : ''}" data-sort="blockedShots" data-tooltip="Blocked Shots" aria-label="Blocked Shots">BLK${getSortIcon('blockedShots')}</th>
                     <th class="center hide-mobile sortable ${state.skaterSort === 'avgTimeOnIcePerGame' ? 'sorted' : ''}" data-sort="avgTimeOnIcePerGame" data-tooltip="Time on Ice per Game" aria-label="Time on Ice per Game">TOI/G${getSortIcon('avgTimeOnIcePerGame')}</th>
                 </tr>
             </thead>
@@ -719,6 +722,7 @@ function renderSkaters() {
                         <td class="center hide-mobile ${isBest(player.shots, 'shots')}">${player.shots ?? '--'}</td>
                         <td class="center hide-mobile ${isBest(player.shootingPctg, 'shootingPctg')}">${player.shootingPctg != null ? (player.shootingPctg * 100).toFixed(1) : '--'}</td>
                         <td class="center hide-mobile ${isBest(player.faceoffWinPctg, 'faceoffWinPctg')}"${player.faceoffTotal > 0 && player.faceoffWinPctg > 0 ? ` data-tooltip="${player.faceoffWins}/${player.faceoffTotal}"` : ''}>${player.faceoffWinPctg != null && player.faceoffWinPctg > 0 ? (player.faceoffWinPctg * 100).toFixed(1) : '--'}</td>
+                        <td class="center hide-mobile ${isBest(player.blockedShots, 'blockedShots')}">${player.blockedShots ?? '--'}</td>
                         <td class="center hide-mobile ${isBest(player.avgTimeOnIcePerGame, 'avgTimeOnIcePerGame')}">${player.avgTimeOnIcePerGame ? formatTimeOnIce(player.avgTimeOnIcePerGame) : '--'}</td>
                     </tr>
                 `).join('')}

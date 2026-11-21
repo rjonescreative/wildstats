@@ -152,6 +152,10 @@ export async function getWildSeasonBreakdown(forceRefresh = false) {
 }
 
 // Get scoring first and time leading/trailing for every team ({ teams: { [abbrev]: totals }, through })
+export async function getTeamStats(forceRefresh = false) {
+    return fetchWithCache('/api/league/team-stats', 'teamStats', forceRefresh);
+}
+
 export async function getGameFlow(forceRefresh = false) {
     return fetchWithCache('/api/league/game-flow', 'gameFlow', forceRefresh);
 }

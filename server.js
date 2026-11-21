@@ -152,6 +152,17 @@ app.get('/api/league/game-flow', async (req, res) => {
     }
 });
 
+// Blocks, penalties, hits, faceoffs and shot attempts for every team (js/teamStats.js)
+app.get('/api/league/team-stats', async (req, res) => {
+    try {
+        const { data } = await loadDataset('teamStats', { season: getCurrentSeason(), store: datasetStores.teamStats });
+        res.json(data);
+    } catch (error) {
+        console.error('Error fetching team stats:', error);
+        res.status(500).json({ error: 'Failed to fetch team stats' });
+    }
+});
+
 // League stat leaders endpoint
 app.get('/api/league/leaders', async (req, res) => {
     try {

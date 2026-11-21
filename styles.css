@@ -4973,8 +4973,27 @@ footer {
     margin-top: 1rem;
 }
 
+/* Six cards in one row; on phones two per row */
+.team-stat-cards {
+    margin-top: 0.625rem;
+}
+
+/* Six cards per row: on tablets, where they don't fit in one row, 3 + 3 */
+@media (min-width: 641px) and (max-width: 860px) {
+    .gm-averages .season-glance-card,
+    .team-stat-cards .season-glance-card {
+        flex-basis: calc(33.333% - 0.625rem);
+    }
+}
+
 @media (max-width: 640px) {
-    /* Four cards: two rows of two. Five cards: 2 + 2 + 1, last one full width */
+    .team-stat-cards .season-glance-card {
+        flex-basis: calc(50% - 0.625rem);
+    }
+}
+
+@media (max-width: 640px) {
+    /* Cards in pairs; with an odd count the last one is full width */
     .glance-top .season-glance-card,
     .gm-averages .season-glance-card {
         flex-basis: calc(50% - 0.625rem);

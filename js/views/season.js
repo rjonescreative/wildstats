@@ -1,5 +1,5 @@
 // Current Season view — team-level stats for the current season
-import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams, getGameFlow } from '../api.js';
+import { getTeamSchedule, getAllTeamSchedules, getStandings, getWildStats, getWildSeasonBreakdown, getWildSpecialTeams, getGameFlow, getTeamStats } from '../api.js';
 import { getSeasonLabel, PLAYOFF_MODE } from '../seasonConfig.js';
 import { updatePointsChartURL } from '../router.js';
 
@@ -198,7 +198,7 @@ function computeStreak(games) {
 
 // ─── Section: Season At a Glance ───────────────────────────────────────────
 
-function buildAtAGlance(games, slots, standings) {
+function buildAtAGlance(games, slots, standings, teamStats) {
     const r  = computeRecord(games);
     const hr = computeRecord(games.filter(g => g.isHome));
     const ar = computeRecord(games.filter(g => !g.isHome));
@@ -229,8 +229,60 @@ function buildAtAGlance(games, slots, standings) {
           <div class="glance-sub">${streak.pointStreak ? `${streak.pointStreak}-game point streak` : '&nbsp;'}</div>
         </div>
       </div>
-      ${buildGameMargins(slots, games, leagueGoalRanks(standings))}
+      ${buildGameMargins(slots, games, leagueGoalRanks(standings), teamStats)}
+      ${buildTeamStatCards(teamStats)}
     </div>`;
+}
+
+// Blocks, penalties, hits, faceoffs and shot attempts with league ranks (/api/league/team-stats).
+// Shot attempt % joins the goals row; the rest get a row of their own (six cards each).
+const WILD_TEAM_ID = '30';
+
+function teamStatHelpers(teamStats) {
+    const teams = teamStats?.teams ?? {};
+    const t = teams[WILD_TEAM_ID];
+    if (!t?.gp) return null;
+    return {
+        t,
+        rank: (valueOf, higherIsBetter = true) => flowRank(teams, valueOf, higherIsBetter, WILD_TEAM_ID),
+        card: (label, value, subs) => `
+        <div class="season-glance-card">
+          <div class="glance-label">${label}</div>
+          <div class="glance-value">${value}</div>
+          ${subs.filter(Boolean).map(text => `<div class="glance-sub">${text}</div>`).join('')}
+        </div>`,
+    };
+}
+
+const statPct = v => v == null ? '—' : `${(v * 100).toFixed(1)}%`;
+
+// Shot Attempt % card for the goals row
+function teamPossessionCards(teamStats) {
+    const h = teamStatHelpers(teamStats);
+    if (!h) return '';
+    return h.card('Shot Attempt %', statPct(h.t.satPct), [h.rank(x => x.satPct)]);
+}
+
+function buildTeamStatCards(teamStats) {
+    const h = teamStatHelpers(teamStats);
+    if (!h) return '';
+    const { t, rank, card } = h;
+    // The NHL's own per-60 rates (per 60 min of ice time), fairer than per game when games go to OT
+    const per60 = (value, valueOf) => {
+        if (value == null) return '';
+        const r = rank(valueOf);
+        return `${value.toFixed(1)} per 60 min${r ? ` &middot; ${r}` : ''}`;
+    };
+    const drawn = teamStats.wildPimDrawn;
+    return `
+      <div class="season-glance-grid team-stat-cards">
+        ${card('Blocked Shots', t.blockedShots, [rank(x => x.blockedShots), per60(t.blockedShotsPer60, x => x.blockedShotsPer60)])}
+        ${card('Penalties Drawn', t.penaltiesDrawn, [rank(x => x.penaltiesDrawn), drawn?.gp ? `${fmtClock(drawn.minutes * 60 / drawn.gp)} PIM drawn per game` : ''])}
+        ${card('Penalties Taken', t.penaltiesTaken, [rank(x => x.penaltiesTaken, false), `${fmtClock(t.pimSecondsPerGame)} PIM per game`])}
+        ${card('Hits', t.hits, [rank(x => x.hits), per60(t.hitsPer60, x => x.hitsPer60)])}
+        ${card('Takeaways', t.takeaways, [rank(x => x.takeaways), `${t.giveaways} giveaways`])}
+        ${card('Faceoff Win %', statPct(t.faceoffWinPct), [rank(x => x.faceoffWinPct)])}
+      </div>`;
 }
 
 // ─── Section: Game by Game (goal margin per game) ──────────────────────────
@@ -269,7 +321,7 @@ function leagueGoalRanks(standings) {
     };
 }
 
-function buildMarginAverages(games, ranks = {}) {
+function buildMarginAverages(games, ranks = {}, teamStats = null) {
     const avg = list => list.length ? list.reduce((sum, g) => sum + g.myScore - g.oppScore, 0) / list.length : null;
     const signed = v => v === null ? '—' : `${v > 0 ? '+' : v < 0 ? '−' : ''}${Math.abs(v).toFixed(2)}`;
     const valueClass = v => v > 0 ? ' glance-positive' : v < 0 ? ' glance-negative' : '';
@@ -295,10 +347,11 @@ function buildMarginAverages(games, ranks = {}) {
         ${card('Goal Diff', `${total > 0 ? '+' : total < 0 ? '−' : ''}${Math.abs(total)}`, `${signed(diff)} per game`, valueClass(total))}
         ${card('Goal Diff in Wins', signed(winDiff), `${wins.length} ${wins.length === 1 ? 'win' : 'wins'}`, valueClass(winDiff))}
         ${card('Goal Diff in Losses', signed(lossDiff), `${losses.length} ${losses.length === 1 ? 'loss' : 'losses'} incl. OT/SO`, valueClass(lossDiff))}
+        ${teamPossessionCards(teamStats)}
       </div>`;
 }
 
-function buildGameMargins(slots, games, ranks) {
+function buildGameMargins(slots, games, ranks, teamStats) {
     const playedCount = games.length;
     if (playedCount === 0) return '';
     return `
@@ -314,7 +367,7 @@ function buildGameMargins(slots, games, ranks) {
         </div>
         <div class="gm-legend" aria-hidden="true">${gmLegend(gmChartMode)}</div>
       </div>
-      ${buildMarginAverages(games, ranks)}`;
+      ${buildMarginAverages(games, ranks, teamStats)}`;
 }
 
 let gmChartMode = 'diff'; // 'diff' | 'goals'
@@ -949,14 +1002,15 @@ function buildSituationalRecords(games, gameFlow) {
 
 // League rank of the Wild's value among every team with one: 1 + teams strictly better, marked
 // "T-" when another team has the same value
-function flowRank(teams, valueOf, higherIsBetter = true) {
+// League rank of the Wild (key `self` in teams), e.g. "3rd in NHL" or "T-8th in NHL"
+function flowRank(teams, valueOf, higherIsBetter = true, self = 'MIN') {
     const values = Object.entries(teams)
-        .map(([abbrev, t]) => [abbrev, valueOf(t)])
+        .map(([key, t]) => [key, valueOf(t)])
         .filter(([, v]) => v !== null && Number.isFinite(v));
-    const mine = values.find(([abbrev]) => abbrev === 'MIN')?.[1];
+    const mine = values.find(([key]) => key === self)?.[1];
     if (mine === undefined) return '';
     const better = values.filter(([, v]) => higherIsBetter ? v > mine : v < mine).length;
-    const tied = values.filter(([abbrev, v]) => abbrev !== 'MIN' && v === mine).length > 0;
+    const tied = values.filter(([key, v]) => key !== self && v === mine).length > 0;
     return `${tied ? 'T-' : ''}${ordinal(better + 1)} in NHL`;
 }
 
@@ -2159,12 +2213,13 @@ async function loadAndRenderStats(scheduleGames) {
     const statsEl = document.getElementById('season-extra-stats');
     if (!statsEl) return;
 
-    const [standingsResult, breakdownResult, wildStatsResult, specialTeamsResult, gameFlowResult] = await Promise.allSettled([
+    const [standingsResult, breakdownResult, wildStatsResult, specialTeamsResult, gameFlowResult, teamStatsResult] = await Promise.allSettled([
         getStandings(),
         getWildSeasonBreakdown(),
         getWildStats(),
         getWildSpecialTeams(),
         getGameFlow(),
+        getTeamStats(),
     ]);
 
     const standings       = standingsResult.value?.standings ?? [];
@@ -2177,7 +2232,7 @@ async function loadAndRenderStats(scheduleGames) {
     const slots = gameSlots(scheduleGames, games);
 
     statsEl.innerHTML = [
-        buildAtAGlance(games, slots, standings),
+        buildAtAGlance(games, slots, standings, teamStatsResult.value),
         buildSpecialTeams(specialTeamsResult.value),
         buildPeriodScoring(games),
         buildSituationalRecords(games, gameFlowResult.value),

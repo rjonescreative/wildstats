@@ -7,6 +7,8 @@ import { addFaceoffCounts, fetchFaceoffReport } from './faceoffs.js';
 import { addGoalieShootoutLosses, fetchGoalieShootoutReport } from './goalieShootouts.js';
 import { buildCareerTotals } from './careerTotals.js';
 import { buildGameFlow } from './gameFlow.js';
+import { buildTeamStats } from './teamStats.js';
+import { addBlockedShots, fetchRealtimeReport } from './blockedShots.js';
 import { getGameTriggered, leagueGamesTrigger, wildGamesTrigger, r2Store } from './gameTriggered.js';
 
 const HOUR = 60 * 60 * 1000;
@@ -39,17 +41,18 @@ async function buildLeagueLeaders(season) {
     return { data: Object.fromEntries(results) };
 }
 
-// Club stats with faceoff counts and goalie shootout losses merged in. The two reports are
+// Club stats with faceoff counts, blocked shots and goalie shootout losses merged in. The reports are
 // optional (the page shows without them), but a build missing one is incomplete, so it's rechecked.
 async function buildWildStats(season) {
-    const [clubStats, faceoffs, shootouts] = await Promise.all([
+    const [clubStats, faceoffs, shootouts, realtime] = await Promise.all([
         nhlJson(`https://api-web.nhle.com/v1/club-stats/MIN/${season}/2`),
         fetchFaceoffReport(season),
         fetchGoalieShootoutReport(season),
+        fetchRealtimeReport(season),
     ]);
     return {
-        data: addGoalieShootoutLosses(addFaceoffCounts(clubStats, faceoffs), shootouts),
-        complete: faceoffs !== null && shootouts !== null,
+        data: addBlockedShots(addGoalieShootoutLosses(addFaceoffCounts(clubStats, faceoffs), shootouts), realtime),
+        complete: faceoffs !== null && shootouts !== null && realtime !== null,
     };
 }
 
@@ -79,6 +82,14 @@ export const DATASETS = {
         trigger: season => wildGamesTrigger(season),
         build: (season, { landingTtl }) => buildCareerTotals(season, landingTtl),
         settleMs: 10 * HOUR, recheckMs: 4 * HOUR,
+    },
+    // Blocks, penalties, hits, faceoffs and shot attempts for every team (js/teamStats.js); the
+    // stats API can lag the final horn
+    teamStats: {
+        r2Key: 'game-triggered/team-stats.json',
+        trigger: () => leagueGamesTrigger(),
+        build: season => buildTeamStats(season),
+        settleMs: 6 * HOUR, recheckMs: 2 * HOUR,
     },
     // Scoring first and time leading/trailing for every team (js/gameFlow.js). Builds add to the
     // previous one (only unfinished days are fetched, usually one request), so the short recheck
