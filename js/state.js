@@ -29,6 +29,9 @@ const state = {
             filterType: 'all',
             showPreseason: false,
             hidePastGames: false
+        },
+        numbers: {
+            showPlayoffs: true
         }
     }
 };

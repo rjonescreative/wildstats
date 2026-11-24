@@ -1,6 +1,7 @@
 // Numbers view — every jersey number worn by a Wild player, who wore it, and for how many games
 import { getSweaterNumbers, getWildStats } from '../api.js';
 import { buildJerseyStats, REVOLVING_DOOR_NOTE } from '../jerseyStats.js';
+import { getUIState, setUIState } from '../state.js';
 
 const VISIBLE_WEARERS = 5;   // wearers shown before "Show all"
 const MAX_NUMBER_WIDTH = 58; // widest a number may be on the jersey (SVG units of the 100×100 graphic)
@@ -63,10 +64,11 @@ function renderJersey(number) {
 }
 
 // One line per stint: season span on the left, games in that stint on the right.
-// With a single stint the total GP above already covers it, so only a playoff split is shown.
-function renderStint(stint, multiple) {
+// With a single stint the total GP above already covers it, so only a playoff split is shown
+// (and only while playoff games are counted).
+function renderStint(stint, multiple, showPlayoffs) {
     let split = '';
-    if (stint.playoffs > 0) split = `${stint.regular} + ${stint.playoffs} playoffs`;
+    if (showPlayoffs && stint.playoffs > 0) split = `${stint.regular} + ${stint.playoffs} playoffs`;
     else if (multiple) split = `${stint.regular} GP`;
     return `
                 <div class="number-wearer-stint">
@@ -75,7 +77,7 @@ function renderStint(stint, multiple) {
                 </div>`;
 }
 
-function renderWearer(w, currentSet) {
+function renderWearer(w, currentSet, showPlayoffs) {
     const isCurrent = currentSet.has(Number(w.playerId));
     const attrs = isCurrent
         ? `class="number-wearer number-wearer--current player-hoverable" data-player-id="${w.playerId}" tabindex="0" role="button" aria-label="View ${w.name} stats"`
@@ -87,14 +89,14 @@ function renderWearer(w, currentSet) {
                 <span class="number-wearer-name">${w.name}</span>
                 <span class="number-wearer-gp">${w.games}<span class="number-wearer-gp-label"> GP</span></span>
             </div>
-            ${w.stints.map(stint => renderStint(stint, w.stints.length > 1)).join('')}
+            ${w.stints.map(stint => renderStint(stint, w.stints.length > 1, showPlayoffs)).join('')}
         </li>`;
 }
 
-function renderNumberCard({ number, wearers }, currentSet) {
+function renderNumberCard({ number, wearers }, currentSet, showPlayoffs) {
     const hiddenCount = wearers.length - VISIBLE_WEARERS;
     const rows = wearers.map((w, i) => {
-        const row = renderWearer(w, currentSet);
+        const row = renderWearer(w, currentSet, showPlayoffs);
         return i < VISIBLE_WEARERS ? row : row.replace('<li ', '<li hidden data-extra ');
     }).join('');
 
@@ -115,24 +117,40 @@ function renderNumberCard({ number, wearers }, currentSet) {
         </article>`;
 }
 
-// Flatten the API payload into [{ number, wearers: [...] }] sorted by number, wearers by games
-function buildNumberList(data) {
+// One wearer of a number. Without playoffs, games and seasons count the regular season only,
+// and a player who wore the number only in the playoffs is left out (null).
+function buildWearer(playerId, s, name, showPlayoffs) {
+    let stints = buildStints(s);
+    if (!showPlayoffs) {
+        stints = stints.filter(st => st.regular > 0).map(st => ({ ...st, playoffs: 0 }));
+        if (stints.length === 0) return null;
+    }
+    const regular = s.regular;
+    const playoffs = showPlayoffs ? s.playoffs : 0;
+    return {
+        playerId,
+        name,
+        regular,
+        playoffs,
+        games: regular + playoffs,
+        firstSeason: stints[0].firstSeason,
+        lastSeason: stints.at(-1).lastSeason,
+        stints,
+    };
+}
+
+// Flatten the API payload into [{ number, wearers: [...] }] sorted by number, wearers by games.
+// Numbers left with no wearers (worn only in the playoffs) are dropped.
+function buildNumberList(data, showPlayoffs = true) {
     return Object.entries(data.numbers ?? {})
         .map(([number, byPlayer]) => ({
             number: Number(number),
             wearers: Object.entries(byPlayer)
-                .map(([playerId, s]) => ({
-                    playerId,
-                    name: data.players?.[playerId]?.name || 'Unknown player',
-                    regular: s.regular,
-                    playoffs: s.playoffs,
-                    games: s.regular + s.playoffs,
-                    firstSeason: s.firstSeason,
-                    lastSeason: s.lastSeason,
-                    stints: buildStints(s),
-                }))
+                .map(([playerId, s]) => buildWearer(playerId, s, data.players?.[playerId]?.name || 'Unknown player', showPlayoffs))
+                .filter(Boolean)
                 .sort((a, b) => b.games - a.games || b.lastSeason.localeCompare(a.lastSeason)),
         }))
+        .filter(n => n.wearers.length > 0)
         .sort((a, b) => a.number - b.number);
 }
 
@@ -202,6 +220,59 @@ async function fitJerseyNumbers(container) {
     });
 }
 
+// Grid, Jersey Stats and their buttons/links, for the current playoff setting
+function renderNumbersBody(intro, body, data, currentSet) {
+    const showPlayoffs = getUIState('numbers').showPlayoffs !== false;
+    const list = buildNumberList(data, showPlayoffs);
+    const totalWearers = new Set(list.flatMap(n => n.wearers.map(w => w.playerId))).size;
+    const gamesNote = showPlayoffs
+        ? 'Games played include the regular season and playoffs.'
+        : 'Games played are regular season only.';
+
+    intro.innerHTML = `${list.length} numbers worn by ${totalWearers} players since 2000-01. ${gamesNote} <a href="#jersey-stats" class="text-link" data-jump-stats>Jump to Jersey Stats ↓</a>`;
+    body.innerHTML = `
+            <div class="numbers-grid">
+                ${list.map(n => renderNumberCard(n, currentSet, showPlayoffs)).join('')}
+            </div>
+            ${renderJerseyStats(list)}`;
+
+    body.querySelectorAll('[data-toggle-stat]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.jersey-stat-card');
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            card.querySelectorAll('[data-extra]').forEach(li => { li.hidden = expanded; });
+            btn.setAttribute('aria-expanded', String(!expanded));
+            btn.textContent = expanded ? `Show all ${card.querySelectorAll('.jersey-stat-row').length}` : 'Show fewer';
+        });
+    });
+
+    // Jump link in the intro scrolls to Jersey Stats (without changing the URL)
+    intro.querySelector('[data-jump-stats]')?.addEventListener('click', e => {
+        e.preventDefault();
+        document.getElementById('jersey-stats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+
+    // Jersey Stats numbers scroll to that number's card (without changing the URL)
+    body.querySelectorAll('[data-jump-number]').forEach(link => {
+        link.addEventListener('click', e => {
+            e.preventDefault();
+            document.getElementById(`number-${link.dataset.jumpNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    body.querySelectorAll('[data-toggle-number]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const card = btn.closest('.number-card');
+            const expanded = btn.getAttribute('aria-expanded') === 'true';
+            card.querySelectorAll('[data-extra]').forEach(li => { li.hidden = expanded; });
+            btn.setAttribute('aria-expanded', String(!expanded));
+            btn.textContent = expanded ? `Show all ${card.querySelectorAll('.number-wearer').length}` : 'Show fewer';
+        });
+    });
+
+    fitJerseyNumbers(body);
+}
+
 export async function init() {
     const container = document.getElementById('stats-numbers-view');
     container.innerHTML = '<div class="loading">Loading jersey numbers...</div>';
@@ -212,54 +283,30 @@ export async function init() {
             ...(wildStats.skaters || []).map(p => p.playerId),
             ...(wildStats.goalies || []).map(p => p.playerId),
         ]);
-        const list = buildNumberList(data);
-        const totalWearers = new Set(list.flatMap(n => n.wearers.map(w => w.playerId))).size;
+        const showPlayoffs = getUIState('numbers').showPlayoffs !== false;
 
         container.innerHTML = `
             <div class="numbers-header">
-                <h2 class="section-title">Jersey Numbers</h2>
-                <p class="numbers-intro">${list.length} numbers worn by ${totalWearers} players since 2000-01. Games played include the regular season and playoffs. <a href="#jersey-stats" class="text-link" data-jump-stats>Jump to Jersey Stats ↓</a></p>
+                <div class="numbers-title-row">
+                    <h2 class="section-title">Jersey Numbers</h2>
+                    <label class="schedule-toggle">
+                        <span class="toggle-label">Include Playoff Games</span>
+                        <input type="checkbox" id="numbers-playoffs-toggle" ${showPlayoffs ? 'checked' : ''}>
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <p class="numbers-intro"></p>
             </div>
-            <div class="numbers-grid">
-                ${list.map(n => renderNumberCard(n, currentSet)).join('')}
-            </div>
-            ${renderJerseyStats(list)}`;
+            <div class="numbers-body"></div>`;
 
-        container.querySelectorAll('[data-toggle-stat]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const card = btn.closest('.jersey-stat-card');
-                const expanded = btn.getAttribute('aria-expanded') === 'true';
-                card.querySelectorAll('[data-extra]').forEach(li => { li.hidden = expanded; });
-                btn.setAttribute('aria-expanded', String(!expanded));
-                btn.textContent = expanded ? `Show all ${card.querySelectorAll('.jersey-stat-row').length}` : 'Show fewer';
-            });
+        const intro = container.querySelector('.numbers-intro');
+        const body = container.querySelector('.numbers-body');
+        renderNumbersBody(intro, body, data, currentSet);
+
+        container.querySelector('#numbers-playoffs-toggle').addEventListener('change', e => {
+            setUIState('numbers', { showPlayoffs: e.target.checked });
+            renderNumbersBody(intro, body, data, currentSet);
         });
-
-        // Jump link in the intro scrolls to Jersey Stats (without changing the URL)
-        container.querySelector('[data-jump-stats]')?.addEventListener('click', e => {
-            e.preventDefault();
-            document.getElementById('jersey-stats')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        });
-
-        // Jersey Stats numbers scroll to that number's card (without changing the URL)
-        container.querySelectorAll('[data-jump-number]').forEach(link => {
-            link.addEventListener('click', e => {
-                e.preventDefault();
-                document.getElementById(`number-${link.dataset.jumpNumber}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-            });
-        });
-
-        container.querySelectorAll('[data-toggle-number]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const card = btn.closest('.number-card');
-                const expanded = btn.getAttribute('aria-expanded') === 'true';
-                card.querySelectorAll('[data-extra]').forEach(li => { li.hidden = expanded; });
-                btn.setAttribute('aria-expanded', String(!expanded));
-                btn.textContent = expanded ? `Show all ${card.querySelectorAll('.number-wearer').length}` : 'Show fewer';
-            });
-        });
-
-        fitJerseyNumbers(container);
     } catch (err) {
         console.error('Error loading sweater numbers:', err);
         container.innerHTML = '<div class="loading">Error loading jersey numbers.</div>';

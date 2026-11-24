@@ -5105,6 +5105,25 @@ footer {
     margin-bottom: 1.25rem;
 }
 
+/* Title on the left, Include Playoff Games toggle on the right (wraps under the title if narrow) */
+.numbers-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 0.5rem 1rem;
+    margin-bottom: 1rem;
+}
+
+.numbers-title-row .section-title {
+    margin: 0;
+}
+
+/* Stays on the right even when it wraps under the title */
+.numbers-title-row .schedule-toggle {
+    margin-left: auto;
+}
+
 /* Jersey Stats: cards of number trivia under the jersey grid */
 .jersey-stats {
     margin-top: 2.5rem;
