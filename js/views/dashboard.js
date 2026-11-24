@@ -7,6 +7,7 @@ import { NHL_TEAMS } from '../teams.js';
 import { ALL_TEAMS, DIVISIONS, loadTeamData, buildChart, attachChartHoverHandlers } from './season.js';
 import { getTVBroadcast } from './schedule.js';
 import { openVideo } from '../router.js';
+import { videoQueueFrom } from '../videoQueue.js';
 
 let standingsData = null;
 let leagueLeaders = null;
@@ -536,7 +537,7 @@ function renderHighlights(videos) {
         const handleActivation = () => {
             const { brightcoveId, accountId, slug, title } = card.dataset;
             if (brightcoveId) {
-                openVideo({ brightcoveId, accountId, slug, title });
+                openVideo({ brightcoveId, accountId, slug, title }, videoQueueFrom(card));
             }
         };
 

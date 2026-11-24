@@ -32,14 +32,15 @@ const FRESH_CAPS = {
     '/api/schedule/': 3600,
     '/api/team-schedule/MIN/': 3600,
     '/api/news/wild': 1800,
+    '/api/media/game/': 86400, // a finished game's videos stop changing the next afternoon
 };
 const freshCapFor = pathname =>
     Object.entries(FRESH_CAPS).find(([prefix]) => pathname.startsWith(prefix))?.[1] ?? FRESH_CAP;
 const R2_REFRESH = 15 * 60 * 1000;       // rewrite a URL's R2 copy at most every 15 min (per data center)
 const R2_PREFIX = 'api-last-good/';
 const ROUTE_DEADLINE = 2000;             // ms to wait for a route before serving the last good copy
-// Routes that fan out to many NHL requests and can pass 2s even when the NHL is healthy
-const SLOW_ROUTE_DEADLINES = { '/api/milestones/career-totals': 8000 };
+// Routes that fan out to many NHL requests and can pass 2s even when the NHL is healthy (by path prefix)
+const SLOW_ROUTE_DEADLINES = { '/api/milestones/career-totals': 8000, '/api/media/game/': 8000 };
 const FAILING_FOR = 60;                  // seconds a failed URL serves its last good copy without retrying
 
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
@@ -192,7 +193,8 @@ export async function onRequest(context) {
 
     // 3. Deadline: past it, serve the last good copy if there is one and let the route finish
     // in the background (refreshing the copy, or marking the URL failing)
-    const deadline = SLOW_ROUTE_DEADLINES[new URL(request.url).pathname] ?? ROUTE_DEADLINE;
+    const pathname = new URL(request.url).pathname;
+    const deadline = Object.entries(SLOW_ROUTE_DEADLINES).find(([prefix]) => pathname.startsWith(prefix))?.[1] ?? ROUTE_DEADLINE;
     const first = await Promise.race([run, sleep(deadline).then(() => null)]);
     if (!first) {
         const fallback = await loadLastGood();

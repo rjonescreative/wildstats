@@ -180,6 +180,11 @@ export async function getPlayoffBracket(season = getPlayoffYear(), forceRefresh 
     return fetchWithCache(`/api/playoff-bracket/${season}`, `playoffBracket_${season}`, forceRefresh);
 }
 
+// Get every video for one game from both teams ({ videos: [{ ..., teams: [teamId] }] }, oldest first)
+export async function getGameVideos(gameId, forceRefresh = false) {
+    return fetchWithCache(`/api/media/game/${gameId}`, `gameVideos_${gameId}`, forceRefresh);
+}
+
 // Get Wild videos (supports pagination and filtering)
 export async function getVideos(offset = 0, limit = 12, type = 'all') {
     const response = await fetchWithRetry(`/api/media/videos?offset=${offset}&limit=${limit}&type=${type}`);

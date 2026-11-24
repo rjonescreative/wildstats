@@ -69,7 +69,8 @@ const routes = {
     '/media': 'media',
     '/media/highlights': 'media',
     '/media/recaps': 'media',
-    '/media/condensed': 'media'
+    '/media/condensed': 'media',
+    '/media/games': 'media'
 };
 
 // View modules (will be set by main.js)
@@ -199,28 +200,43 @@ function videoPageTitle(video) {
     return serverVideoTitle || 'Minnesota Wild Video | Wild Hockey Hub';
 }
 
-// Open a video from a card: { slug, brightcoveId, accountId, title }
-export function openVideo(video) {
+// Open a video from a card: { slug, brightcoveId, accountId, title }. `queue` is the page's
+// visible videos in order (js/videoQueue.js), offered by the player's end screen.
+export function openVideo(video, queue = []) {
     if (!video.slug) {
-        showVideoModal(video);
+        showVideoModal(video, null, { queue });
         return;
     }
     const path = videoPath(video.slug);
     const state = history.state || {};
     history.pushState({ ...state, path, video }, '', path);
-    showVideo(video);
+    showVideo(video, queue);
 }
 
 // Show the video for the current /media/video/... URL and update title, meta and analytics
-function showVideo(video) {
+function showVideo(video, queue = []) {
+    setVideoPage(video);
+    if (openVideoId() !== video.brightcoveId) {
+        showVideoModal(video, () => closeVideo(video), { queue, onPlay: next => switchVideo(video, next) });
+    }
+}
+
+function setVideoPage(video) {
     const path = window.location.pathname;
     const title = videoPageTitle(video);
     document.title = title;
     setVideoMetaTags(path, title);
     trackPageView(path, title);
-    if (openVideoId() !== video.brightcoveId) {
-        showVideoModal(video, () => closeVideo(video));
-    }
+}
+
+// The viewer picked another video on the player's end screen: swap the URL in place, so closing
+// still goes straight back to the page underneath
+function switchVideo(opened, next) {
+    if (!next.slug) return;
+    const path = videoPath(next.slug);
+    const video = { ...next, deepLink: opened.deepLink };
+    history.replaceState({ ...(history.state || {}), path, video }, '', path);
+    setVideoPage(video);
 }
 
 // The viewer closed the video: go back to the page it was opened over, or for a shared
@@ -310,7 +326,8 @@ function getPageTitle(viewName, subView = null) {
             all: `Minnesota Wild Videos & Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
             highlights: `Minnesota Wild Game Highlights ${SEASON_LABEL} | Wild Hockey Hub`,
             recaps: `Minnesota Wild Game Recaps ${SEASON_LABEL} | Wild Hockey Hub`,
-            condensed: `Minnesota Wild Condensed Games ${SEASON_LABEL} | Wild Hockey Hub`
+            condensed: `Minnesota Wild Condensed Games ${SEASON_LABEL} | Wild Hockey Hub`,
+            games: `Minnesota Wild Videos by Game ${SEASON_LABEL} | Wild Hockey Hub`
         };
         return mediaTitles[subView] || mediaTitles.all;
     }
@@ -384,7 +401,8 @@ function getMetaDescription(viewName, subView = null) {
             all: `Minnesota Wild videos for ${SEASON_LABEL}. Watch highlights, game recaps, interviews, and more from the Wild.`,
             highlights: `Minnesota Wild game highlights for ${SEASON_LABEL}. Watch the best plays, goals, and saves from Wild games this season.`,
             recaps: `Minnesota Wild game recaps for ${SEASON_LABEL}. Watch condensed game recaps and full game summaries.`,
-            condensed: `Minnesota Wild condensed games for ${SEASON_LABEL}. Watch full condensed game replays for every Wild game this season.`
+            condensed: `Minnesota Wild condensed games for ${SEASON_LABEL}. Watch full condensed game replays for every Wild game this season.`,
+            games: `Every Minnesota Wild game of ${SEASON_LABEL} with all its videos: pregame and postgame interviews, highlights, recaps and condensed games from the Wild and their opponent.`
         };
         return mediaDescriptions[subView] || mediaDescriptions.all;
     }

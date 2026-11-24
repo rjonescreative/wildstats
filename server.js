@@ -13,6 +13,7 @@ import { memoryStore } from './js/gameTriggered.js';
 import { specialTeamsStatsUrls, extractSpecialTeams, statsRows, resolveSpecialTeams } from './js/specialTeams.js';
 import { isKnownRoute, isPagePath, redirectTarget } from './js/knownRoutes.js';
 import { filterVideos, playKey } from './js/videoFilters.js';
+import { buildGameVideos, gameVideosMaxAge } from './js/gameVideos.js';
 
 // Force IPv4 for DNS resolution (IPv6 seems to hang on this system)
 setDefaultResultOrder('ipv4first');
@@ -351,6 +352,20 @@ app.get('/api/game/:id/live', async (req, res) => {
     } catch (error) {
         console.error('Error fetching live game:', error);
         res.status(500).json({ error: 'Failed to fetch live game data' });
+    }
+});
+
+// Every video for one game, both teams (Media → Game-by-Game)
+app.get('/api/media/game/:gameId', async (req, res) => {
+    const { gameId } = req.params;
+    if (!/^\d{10}$/.test(gameId)) return res.status(400).json({ error: 'Invalid game ID' });
+    try {
+        const result = await buildGameVideos(gameId);
+        res.set('Cache-Control', `public, max-age=${gameVideosMaxAge(result)}`);
+        res.json(result);
+    } catch (error) {
+        console.error(`Error fetching videos for game ${gameId}:`, error);
+        res.status(500).json({ error: 'Failed to fetch game videos' });
     }
 });
 

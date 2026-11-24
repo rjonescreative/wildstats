@@ -111,6 +111,10 @@ const PAGE_META = {
         title: `Minnesota Wild Condensed Games {season} | Wild Hockey Hub`,
         description: `Minnesota Wild condensed games for {season}. Watch full condensed game replays for every Wild game this season.`
     },
+    '/media/games': {
+        title: `Minnesota Wild Videos by Game {season} | Wild Hockey Hub`,
+        description: `Every Minnesota Wild game of {season} with all its videos: pregame and postgame interviews, highlights, recaps and condensed games from the Wild and their opponent.`
+    },
     '/stats/milestones': {
         title: `Minnesota Wild Player Milestones {season} | Wild Hockey Hub`,
         description: `Minnesota Wild player milestones for {season}. See which Wild players are approaching franchise records and which milestones have already been achieved this season.`

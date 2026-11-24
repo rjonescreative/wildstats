@@ -3777,7 +3777,9 @@ footer {
 .media-controls,
 .schedule-controls {
     display: flex;
-    gap: 30px;
+    flex-wrap: wrap; /* five media tabs don't fit one line on phones */
+    column-gap: 30px;
+    row-gap: 10px;
     margin: 0 0 2rem 0;
     padding: 0;
 }
@@ -3786,7 +3788,7 @@ footer {
     .media-controls,
     .schedule-controls {
         margin: 0 0 1.5rem 0;
-        gap: 24px;
+        column-gap: 24px;
     }
 }
 
@@ -3794,7 +3796,7 @@ footer {
     .media-controls,
     .schedule-controls {
         margin: 0 0 1.25rem 0;
-        gap: 20px;
+        column-gap: 20px;
     }
 }
 
@@ -3802,7 +3804,7 @@ footer {
     .media-controls,
     .schedule-controls {
         margin: 0 0 1rem 0;
-        gap: 16px;
+        column-gap: 16px;
     }
 }
 
@@ -4008,6 +4010,192 @@ footer {
     border: none;
 }
 
+/* Brightcove in-page player (js/videoModal.js) fills the modal */
+.video-player-container .video-js {
+    width: 100%;
+    height: 100%;
+}
+
+/* End screen: previous / next video from the page, and replay. It sits inside the player (so it
+   shows in full screen) and stops above the control bar, which stays usable. */
+.video-end-screen {
+    position: absolute;
+    inset: 0 0 3em 0;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(0, 0, 0, 0.82);
+    container-type: size;
+    font-family: inherit;
+}
+
+.video-js.video-ended-with-screen .vjs-big-play-button,
+.video-js.video-ended-with-screen .vjs-poster {
+    display: none;
+}
+
+/* Keep the controls showing under the end screen */
+.video-js.video-ended-with-screen .vjs-control-bar {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.video-end-cards {
+    display: flex;
+    justify-content: center;
+    gap: 1.5rem;
+    width: 100%;
+}
+
+.video-end-card {
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: min(42%, 340px);
+    padding: 0;
+    background: none;
+    border: 0;
+    color: white;
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.video-end-label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-secondary);
+}
+
+.video-end-thumb {
+    position: relative;
+    display: block;
+    aspect-ratio: 16 / 9;
+    max-height: 48cqh;
+    border: 1px solid var(--border-medium);
+    border-radius: 6px;
+    overflow: hidden;
+    background: #111;
+}
+
+.video-end-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+.video-end-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 44px;
+    height: 44px;
+    padding: 8px;
+    transform: translate(-50%, -50%);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    transition: background 0.2s ease;
+}
+
+.video-end-card:hover .video-end-thumb,
+.video-end-card:focus-visible .video-end-thumb {
+    border-color: white;
+}
+
+.video-end-card:hover .video-end-play,
+.video-end-card:focus-visible .video-end-play {
+    background: var(--wild-green);
+}
+
+.video-end-card:focus-visible {
+    outline: none;
+}
+
+.video-end-title {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    font-size: 0.9rem;
+    font-weight: 600;
+    line-height: 1.3;
+}
+
+.video-end-replay {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 1rem;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-medium);
+    border-radius: 999px;
+    color: white;
+    font: inherit;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+.video-end-replay svg {
+    width: 16px;
+    height: 16px;
+}
+
+.video-end-replay:hover,
+.video-end-replay:focus-visible {
+    background: rgba(255, 255, 255, 0.2);
+    outline: none;
+    border-color: white;
+}
+
+/* Small players (phones): tighter, one-line titles, and titles only when there's room */
+@container (max-height: 230px) {
+    .video-end-cards {
+        gap: 0.75rem;
+    }
+
+    .video-end-card {
+        gap: 0.25rem;
+    }
+
+    .video-end-thumb {
+        max-height: 40cqh;
+    }
+
+    .video-end-label {
+        font-size: 0.65rem;
+    }
+
+    .video-end-title {
+        font-size: 0.75rem;
+        -webkit-line-clamp: 1;
+    }
+
+    .video-end-play {
+        width: 32px;
+        height: 32px;
+        padding: 6px;
+    }
+
+    .video-end-replay {
+        padding: 0.3rem 0.75rem;
+        font-size: 0.75rem;
+    }
+}
+
+@container (max-height: 120px) {
+    .video-end-title {
+        display: none;
+    }
+}
+
 /* Media page responsive styles */
 @media (max-width: 1200px) {
     .video-grid {
@@ -4018,6 +4206,157 @@ footer {
 @media (max-width: 900px) {
     .video-grid {
         grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* ─── Media → Game-by-Game: one row per game, opening to its videos ────────── */
+
+.gbg-list {
+    background-color: rgba(20, 20, 20, 0.75);
+    border: 1px solid var(--border-subtle);
+    border-radius: 8px;
+}
+
+.gbg-game + .gbg-game {
+    border-top: 1px solid var(--border-subtle);
+}
+
+.gbg-row {
+    display: grid;
+    grid-template-columns: 90px auto 1fr 24px;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background: none;
+    border: 0;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 0.875rem;
+    text-align: left;
+    cursor: pointer;
+}
+
+.gbg-row:hover {
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.gbg-row:focus-visible {
+    outline: 2px solid var(--wild-gold);
+    outline-offset: -2px;
+}
+
+.gbg-date {
+    display: flex;
+    flex-direction: column;
+    color: var(--text-secondary);
+}
+
+.gbg-playoff {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.gbg-matchup {
+    display: grid;
+    grid-template-columns: 24px 42px 24px 20px 24px 42px 24px;
+    align-items: center;
+    gap: 4px;
+    text-align: center;
+}
+
+.gbg-matchup .team-logo {
+    width: 24px;
+    height: 24px;
+}
+
+.gbg-team {
+    font-weight: 500;
+}
+
+.gbg-score {
+    font-weight: 600;
+}
+
+.gbg-at {
+    color: var(--text-secondary);
+}
+
+.gbg-result {
+    font-weight: 600;
+}
+
+.gbg-chevron {
+    width: 24px;
+    height: 24px;
+    color: var(--text-secondary);
+    transition: transform 0.2s ease;
+}
+
+.gbg-row[aria-expanded="true"] .gbg-chevron {
+    transform: rotate(180deg);
+}
+
+.gbg-row:hover .gbg-chevron {
+    color: var(--text-primary);
+}
+
+.gbg-panel {
+    padding: 0.25rem 1rem 1.25rem;
+}
+
+.gbg-section + .gbg-section {
+    margin-top: 1.5rem;
+}
+
+.gbg-section-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.75rem 0;
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.gbg-section-title .team-logo {
+    width: 28px;
+    height: 28px;
+}
+
+.gbg-count {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 400;
+}
+
+/* Team logos are hidden site-wide at this width, so the matchup drops their columns */
+@media (max-width: 768px) {
+    .gbg-matchup {
+        grid-template-columns: 42px 24px 20px 24px 42px;
+    }
+}
+
+@media (max-width: 600px) {
+    .gbg-row {
+        grid-template-columns: 48px auto 1fr 20px;
+        gap: 0.5rem;
+        padding: 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    .gbg-matchup {
+        grid-template-columns: 34px 18px 14px 18px 34px;
+        gap: 2px;
+    }
+
+    .gbg-chevron {
+        width: 20px;
+        height: 20px;
+    }
+
+    .gbg-panel {
+        padding: 0 0.75rem 1rem;
     }
 }
 
