@@ -193,7 +193,7 @@ function setupVideoCards(root) {
 
 // ─── Game-by-Game ────────────────────────────────────────────────────────────
 // Every game played this season, newest first. Opening a game loads its videos from both teams
-// (/api/media/game/:gameId): the Wild's, then the opponent's, each in the order they were posted.
+// (/api/media/game/:gameId): the Wild's, then the opponent's, each newest first like the other tabs.
 
 const PLAYED = new Set(['LIVE', 'CRIT', 'OFF', 'FINAL']);
 
@@ -276,9 +276,11 @@ async function loadGamePanel(panel, game) {
         const data = await getGameVideos(game.id);
         const opp = game.homeTeam.abbrev === 'MIN' ? game.awayTeam : game.homeTeam;
         const wild = game.homeTeam.abbrev === 'MIN' ? game.homeTeam : game.awayTeam;
+        // Newest first, by when each was posted (sorted here, so cached responses in any order work)
+        const videos = [...data.videos].sort((a, b) => Date.parse(b.contentDate) - Date.parse(a.contentDate));
         // National copies (tagged with both teams) sit with the Wild's
-        const wildVideos = data.videos.filter(v => v.teams.includes(WILD_ID));
-        const oppVideos = data.videos.filter(v => !v.teams.includes(WILD_ID));
+        const wildVideos = videos.filter(v => v.teams.includes(WILD_ID));
+        const oppVideos = videos.filter(v => !v.teams.includes(WILD_ID));
         const section = (team, list) => list.length === 0 ? '' : `
             <section class="gbg-section">
                 <h3 class="gbg-section-title"><img src="${teamLogo(team)}" alt="" class="team-logo">${teamName(team)}<span class="gbg-count">${list.length} ${list.length === 1 ? 'video' : 'videos'}</span></h3>
