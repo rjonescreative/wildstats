@@ -1,6 +1,7 @@
 import { getCachedPlayerCard, setCachedPlayerCard, getCachedData } from './state.js';
 import { trackPlayerCardView } from './analytics.js';
 import { getSeasonGames, getPreviousSeason } from './seasonConfig.js';
+import { getTeamSchedule } from './api.js';
 
 // State
 let hoverTimeout = null;
@@ -214,7 +215,8 @@ async function fetchPlayerCardData(playerId) {
                 gameLogRes.json()
             ]);
 
-            const cardData = processPlayerData(details, gameLog);
+            const teamGames = await fetchTeamGames(details.currentTeamAbbrev, gameLog?.seasonId);
+            const cardData = processPlayerData(details, gameLog, teamGames);
             setCachedPlayerCard(playerId, cardData);
             return cardData;
         } catch (error) {
@@ -229,8 +231,19 @@ async function fetchPlayerCardData(playerId) {
     return promise;
 }
 
+// The player's current team's schedule, to tell when a player has missed games.
+// Null if it can't be loaded (the streak then counts the player's own games only).
+async function fetchTeamGames(teamAbbrev, season) {
+    if (!teamAbbrev || !season) return null;
+    try {
+        return (await getTeamSchedule(teamAbbrev, String(season)))?.games ?? null;
+    } catch {
+        return null;
+    }
+}
+
 // Process API data
-function processPlayerData(details, gameLog) {
+function processPlayerData(details, gameLog, teamGames = null) {
     // Validate required data
     if (!details || !details.playerId) {
         throw new Error('Invalid player details data');
@@ -243,7 +256,7 @@ function processPlayerData(details, gameLog) {
     const last10Stats = calculateStats(recentGames);
 
     // Detect streak (use full game log, not just last 10)
-    const streak = detectPointStreak(games);
+    const streak = detectPointStreak(games, teamGames, gameLog?.gameTypeId);
 
     // Safe property access with defaults
     const firstName = details.firstName?.default || details.firstName || '';
@@ -330,8 +343,13 @@ function calculateStats(games) {
     }), { goals: 0, assists: 0, points: 0 });
 }
 
-// Helper: Detect point streak
-function detectPointStreak(games) {
+// Helper: Detect point streak. A game the player's team played without him ends it.
+function detectPointStreak(games, teamGames = null, gameTypeId = 2) {
+    const lastPlayed = games[0]?.gameDate;
+    const missedSince = lastPlayed && (teamGames ?? []).some(g =>
+        g.gameType === gameTypeId && ['OFF', 'FINAL'].includes(g.gameState) && g.gameDate > lastPlayed);
+    if (missedSince) return null;
+
     let streak = 0;
     for (const game of games) {
         if ((game.goals || 0) + (game.assists || 0) > 0) {
